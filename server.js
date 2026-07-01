@@ -320,6 +320,10 @@ function mergeSettings(saved) {
   };
 }
 
+// Start init early so requests wait for it
+const _ready = initStore().catch(err => console.error("[store] init failed:", err.message));
+app.use(async (req, res, next) => { await _ready; next(); });
+
 // Synchronous load from in-memory cache
 function loadProducts()    { return _store.products    || []; }
 function loadSettings()    { return mergeSettings(_store.settings || {}); }
@@ -947,8 +951,6 @@ app.delete("/admin/order/:id", (req, res) => {
   res.json({ success: true });
 });
 
-// Init store then start (works for both local and Vercel)
-const _ready = initStore().catch(err => console.error("[store] init failed:", err.message));
 if (require.main === module) {
   _ready.finally(() => app.listen(3000, () => console.log("Shop läuft auf http://localhost:3000")));
 }
