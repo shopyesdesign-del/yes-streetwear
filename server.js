@@ -329,13 +329,16 @@ function mergeSettings(saved) {
   };
 }
 
-// Start init early so requests wait for it
+// Start init early in background
 const _ready = initStore().catch(err => console.error("[store] init failed:", err.message));
-app.use(async (req, res, next) => { await _ready; next(); });
 
 // Synchronous load from in-memory cache
 function loadProducts()    { return _store.products    || []; }
-function loadSettings()    { return mergeSettings(_store.settings || {}); }
+function loadSettings() {
+  if (_store.settings !== null) return mergeSettings(_store.settings);
+  try { return mergeSettings(JSON.parse(fs.readFileSync(SETTINGS_FILE))); } catch (_) {}
+  return mergeSettings({});
+}
 function loadOrders()      { return _store.orders      || []; }
 function loadCollections() { return _store.collections || []; }
 
