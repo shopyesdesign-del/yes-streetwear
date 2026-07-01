@@ -1697,6 +1697,31 @@
           </div>
         </div>
       </div>
+
+      <!-- Cloudinary -->
+      <div class="editor-card">
+        <div class="card-title">☁️ Cloudinary Bildspeicher</div>
+        <p class="field-hint" style="margin:0 0 18px">
+          Ohne Cloudinary gehen hochgeladene Bilder bei jedem Server-Neustart verloren (Vercel).
+          Kostenlos registrieren auf <a href="https://cloudinary.com" target="_blank" style="color:var(--admin-accent)">cloudinary.com</a>
+          → Dashboard → API Keys.
+        </p>
+        <div class="field-row">
+          <div class="field-group" style="flex:1">
+            <label class="field-label">Cloud Name</label>
+            <input type="text" class="input-field" id="cld_cloudName" placeholder="z.B. dripvault123">
+          </div>
+          <div class="field-group" style="flex:1">
+            <label class="field-label">API Key</label>
+            <input type="text" class="input-field" id="cld_apiKey" placeholder="123456789012345">
+          </div>
+          <div class="field-group" style="flex:1">
+            <label class="field-label">API Secret</label>
+            <input type="password" class="input-field" id="cld_apiSecret" placeholder="••••••••••••">
+          </div>
+        </div>
+        <div id="cldStatus" style="margin-top:10px;font-size:13px;color:#aaa"></div>
+      </div>
     </section>
 
   </div><!-- /main-area -->
@@ -3659,6 +3684,16 @@ async function loadPaymentSettings() {
   document.getElementById('em_senderEmail').value    = e.senderEmail || '';
   document.getElementById('em_subject').value        = e.subject     || '';
   document.getElementById('em_body').value           = e.body        || '';
+
+  // Cloudinary settings
+  const cl = s.cloudinary || {};
+  document.getElementById('cld_cloudName').value = cl.cloudName || '';
+  document.getElementById('cld_apiKey').value    = cl.apiKey    || '';
+  document.getElementById('cld_apiSecret').value = '';  // never pre-fill secret
+  const configured = !!(cl.cloudName && cl.apiKey && cl.apiSecret);
+  document.getElementById('cldStatus').innerHTML = configured
+    ? '<span style="color:#4CAF50">✓ Cloudinary aktiv — Bilder werden dauerhaft gespeichert</span>'
+    : '<span style="color:#ff9800">⚠ Nicht konfiguriert — Bilder gehen bei Server-Neustart verloren</span>';
 }
 
 async function savePaymentSettings() {
@@ -3685,11 +3720,23 @@ async function savePaymentSettings() {
     subject:      document.getElementById('em_subject').value,
     body:         document.getElementById('em_body').value,
   };
+  const cloudinary = {
+    cloudName: document.getElementById('cld_cloudName').value.trim(),
+    apiKey:    document.getElementById('cld_apiKey').value.trim(),
+    apiSecret: document.getElementById('cld_apiSecret').value,  // empty = keep existing
+  };
   const fd = new FormData();
   fd.append('payment', JSON.stringify(payment));
   fd.append('email', JSON.stringify(email));
+  fd.append('cloudinary', JSON.stringify(cloudinary));
   await postSettings(fd);
   toast('Einstellungen gespeichert ✓', 'success');
+  // Refresh status display
+  const cl = await fetch('/settings').then(r => r.json()).then(s => s.cloudinary || {}).catch(() => ({}));
+  const configured = !!(cl.cloudName && cl.apiKey && cl.apiSecret);
+  document.getElementById('cldStatus').innerHTML = configured
+    ? '<span style="color:#4CAF50">✓ Cloudinary aktiv — Bilder werden dauerhaft gespeichert</span>'
+    : '<span style="color:#ff9800">⚠ Nicht konfiguriert — Bilder gehen bei Server-Neustart verloren</span>';
 }
 
 async function sendTestEmail() {

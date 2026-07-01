@@ -5,6 +5,7 @@ const path       = require("path");
 const os         = require("os");
 const crypto     = require("crypto");
 const nodemailer = require("nodemailer");
+const cloudinary = require("cloudinary").v2;
 // On Vercel the filesystem is read-only — writes are silently skipped
 function safeWrite(file, data) {
   try { fs.writeFileSync(file, JSON.stringify(data, null, 2)); } catch (_) {}
@@ -15,7 +16,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Determine writable uploads dir — public/uploads locally, os.tmpdir() on Vercel (read-only fs)
+// Fallback upload dir (local dev only — Vercel uses Cloudinary)
 const UPLOADS_DIR = (() => {
   const local = path.join(__dirname, "public/uploads");
   try { fs.mkdirSync(local, { recursive: true }); return local; } catch (_) {}
@@ -23,13 +24,28 @@ const UPLOADS_DIR = (() => {
   try { fs.mkdirSync(tmp, { recursive: true }); } catch (_) {}
   return tmp;
 })();
-// Use diskStorage with function-based destination to avoid mkdirSync at init time (multer 2 bug on Vercel)
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, UPLOADS_DIR),
-    filename:    (req, file, cb) => crypto.randomBytes(16, (err, raw) => cb(err, raw ? raw.toString("hex") : Date.now().toString())),
-  }),
-});
+
+// All uploads go through memory first, then either Cloudinary or local disk
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Upload a file: Cloudinary if configured, otherwise local fallback
+async function uploadFile(file) {
+  const cfg = (loadSettings().cloudinary) || {};
+  if (cfg.cloudName && cfg.apiKey && cfg.apiSecret) {
+    cloudinary.config({ cloud_name: cfg.cloudName, api_key: cfg.apiKey, api_secret: cfg.apiSecret });
+    return new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { resource_type: "auto", folder: "dripvault" },
+        (err, result) => err ? reject(err) : resolve(result.secure_url)
+      );
+      stream.end(file.buffer);
+    });
+  }
+  // Local fallback
+  const filename = crypto.randomBytes(16).toString("hex");
+  fs.writeFileSync(path.join(UPLOADS_DIR, filename), file.buffer);
+  return "/uploads/" + filename;
+}
 
 const CUSTOMER_PASS = "yes";
 const ADMIN_PASS = "yes0511";
@@ -188,6 +204,11 @@ const defaultSettings = {
     subject:      "Deine Bestellung {{orderId}} ist eingegangen 🛍",
     body:         "Hallo {{name}},\n\nvielen Dank für deine Bestellung bei DRIP VAULT!\n\nDeine Bestellnummer: {{orderId}}\nGesamtbetrag: {{total}}\nZahlungsart: {{paymentMethod}}\n\n📦 Bestellte Artikel:\n{{items}}\n\nLieferadresse:\n{{address}}\n\nWir melden uns, sobald deine Bestellung versendet wurde.\n\nBis bald,\nDas DRIP VAULT Team",
   },
+  cloudinary: {
+    cloudName:  "",
+    apiKey:     "",
+    apiSecret:  "",
+  },
 };
 
 // Load helpers
@@ -230,9 +251,10 @@ function loadSettings() {
       sparkle:       { ...dVE.sparkle,       ...(sVE.sparkle       || {}) },
       cardTilt3D:    { ...dVE.cardTilt3D,    ...(sVE.cardTilt3D    || {}) },
     },
-    cursor:   { ...defaultSettings.cursor,   ...(saved.cursor   || {}) },
-    payment:  { ...defaultSettings.payment,  ...(saved.payment  || {}) },
-    email:    { ...defaultSettings.email,    ...(saved.email    || {}) },
+    cursor:     { ...defaultSettings.cursor,     ...(saved.cursor     || {}) },
+    payment:    { ...defaultSettings.payment,    ...(saved.payment    || {}) },
+    email:      { ...defaultSettings.email,      ...(saved.email      || {}) },
+    cloudinary: { ...defaultSettings.cloudinary, ...(saved.cloudinary || {}) },
   };
 }
 
@@ -272,12 +294,12 @@ app.get("/products", (req, res) => {
 });
 
 // ADD PRODUCT (multiple images)
-app.post("/admin/add-product", upload.array("images", 10), (req, res) => {
+app.post("/admin/add-product", upload.array("images", 10), async (req, res) => {
   if (!req.body.name || !req.body.price) {
     return res.status(400).json({ error: "Name und Preis sind pflicht." });
   }
   const products = loadProducts();
-  const images = req.files ? req.files.map(f => "/uploads/" + f.filename) : [];
+  const images = req.files && req.files.length ? await Promise.all(req.files.map(f => uploadFile(f))) : [];
   const parseArr = (v) => {
     if (!v) return [];
     return typeof v === "string" ? JSON.parse(v) : v;
@@ -302,14 +324,14 @@ app.post("/admin/add-product", upload.array("images", 10), (req, res) => {
 });
 
 // EDIT PRODUCT (multiple images)
-app.put("/admin/product/:id", upload.array("images", 10), (req, res) => {
+app.put("/admin/product/:id", upload.array("images", 10), async (req, res) => {
   const products = loadProducts();
   const id = parseInt(req.params.id);
   const idx = products.findIndex((p) => p.id === id);
   if (idx === -1) return res.status(404).json({ error: "Produkt nicht gefunden." });
   const existing = products[idx];
   const keepImages = req.body.keepImages ? JSON.parse(req.body.keepImages) : (existing.images || (existing.image ? [existing.image] : []));
-  const newImages  = req.files ? req.files.map(f => "/uploads/" + f.filename) : [];
+  const newImages  = req.files && req.files.length ? await Promise.all(req.files.map(f => uploadFile(f))) : [];
   const allImages  = [...keepImages, ...newImages];
   const parseArr   = (v) => { if (!v) return undefined; return typeof v === "string" ? JSON.parse(v) : v; };
   products[idx] = {
@@ -420,17 +442,17 @@ app.post("/admin/settings", upload.fields([
   { name: "loginVideo" },
   { name: "loginLogo" },
   { name: "cursorImage" },
-]), (req, res) => {
+]), async (req, res) => {
   const settings = loadSettings();
 
   if (req.files && req.files.logo) {
-    settings.logo = "/uploads/" + req.files.logo[0].filename;
+    settings.logo = await uploadFile(req.files.logo[0]);
   }
   if (req.files && req.files.background) {
-    settings.background = "/uploads/" + req.files.background[0].filename;
+    settings.background = await uploadFile(req.files.background[0]);
   }
   if (req.files && req.files.loginBackground) {
-    settings.loginBackground = "/uploads/" + req.files.loginBackground[0].filename;
+    settings.loginBackground = await uploadFile(req.files.loginBackground[0]);
   }
 
   const str = (key) => { if (req.body[key] !== undefined) settings[key] = req.body[key]; };
@@ -438,7 +460,7 @@ app.post("/admin/settings", upload.fields([
 
   if (req.files && req.files.bannerImage) {
     settings.heroBanner = settings.heroBanner || {};
-    settings.heroBanner.image = "/uploads/" + req.files.bannerImage[0].filename;
+    settings.heroBanner.image = await uploadFile(req.files.bannerImage[0]);
   }
   if (req.body.heroBanner) {
     const h = typeof req.body.heroBanner === "string"
@@ -463,11 +485,11 @@ app.post("/admin/settings", upload.fields([
 
   if (req.files && req.files.loginVideo) {
     settings.loginPage = settings.loginPage || {};
-    settings.loginPage.bgVideo = "/uploads/" + req.files.loginVideo[0].filename;
+    settings.loginPage.bgVideo = await uploadFile(req.files.loginVideo[0]);
   }
   if (req.files && req.files.loginLogo) {
     settings.loginPage = settings.loginPage || {};
-    settings.loginPage.logoUrl = "/uploads/" + req.files.loginLogo[0].filename;
+    settings.loginPage.logoUrl = await uploadFile(req.files.loginLogo[0]);
   }
   if (req.body.loginPage) {
     const lp = typeof req.body.loginPage === "string"
@@ -489,7 +511,7 @@ app.post("/admin/settings", upload.fields([
 
   if (req.files?.cursorImage) {
     settings.cursor = settings.cursor || {};
-    settings.cursor.imageUrl = "/uploads/" + req.files.cursorImage[0].filename;
+    settings.cursor.imageUrl = await uploadFile(req.files.cursorImage[0]);
   }
   if (req.body.cursor) {
     const c = typeof req.body.cursor === "string" ? JSON.parse(req.body.cursor) : req.body.cursor;
@@ -509,6 +531,13 @@ app.post("/admin/settings", upload.fields([
     const merged = { ...defaultSettings.email, ...(settings.email || {}) };
     Object.entries(em).forEach(([k, v]) => { if (v !== "") merged[k] = v; });
     settings.email = merged;
+  }
+
+  if (req.body.cloudinary) {
+    const cl = typeof req.body.cloudinary === "string" ? JSON.parse(req.body.cloudinary) : req.body.cloudinary;
+    const merged = { ...defaultSettings.cloudinary, ...(settings.cloudinary || {}) };
+    Object.entries(cl).forEach(([k, v]) => { if (v !== "") merged[k] = v; });
+    settings.cloudinary = merged;
   }
 
   saveSettings(settings);
@@ -553,7 +582,7 @@ app.get("/admin/collections", (req, res) => {
 app.post("/admin/collections", upload.fields([
   { name: "titleImage" },
   { name: "bannerImage" },
-]), (req, res) => {
+]), async (req, res) => {
   const cols = loadCollections();
   const name = req.body.name || "New Drop";
   const col  = {
@@ -561,8 +590,8 @@ app.post("/admin/collections", upload.fields([
     name,
     slug:        slugify(name),
     description: req.body.description || "",
-    titleImage:  req.files?.titleImage  ? "/uploads/" + req.files.titleImage[0].filename  : "",
-    banner:      req.files?.bannerImage ? "/uploads/" + req.files.bannerImage[0].filename : "",
+    titleImage:  req.files?.titleImage  ? await uploadFile(req.files.titleImage[0])  : "",
+    banner:      req.files?.bannerImage ? await uploadFile(req.files.bannerImage[0]) : "",
     products:    req.body.products  ? JSON.parse(req.body.products)  : [],
     colors:      req.body.colors    ? JSON.parse(req.body.colors)    : { bg:"#0f0f0f", text:"#ffffff", accent:"#ff2d55", button:"#ff2d55" },
     fonts:       req.body.fonts     ? JSON.parse(req.body.fonts)     : { display:"Bangers", body:"Inter" },
@@ -582,7 +611,7 @@ app.post("/admin/collections", upload.fields([
 app.put("/admin/collection/:id", upload.fields([
   { name: "titleImage" },
   { name: "bannerImage" },
-]), (req, res) => {
+]), async (req, res) => {
   const cols = loadCollections();
   const id   = parseInt(req.params.id);
   const idx  = cols.findIndex(c => c.id === id);
@@ -601,8 +630,8 @@ app.put("/admin/collection/:id", upload.fields([
     releaseDate: req.body.releaseDate ?? ex.releaseDate,
     status:      req.body.status      ?? ex.status,
     visible:     req.body.visible !== undefined ? req.body.visible !== "false" : ex.visible,
-    titleImage:  req.files?.titleImage  ? "/uploads/" + req.files.titleImage[0].filename  : ex.titleImage,
-    banner:      req.files?.bannerImage ? "/uploads/" + req.files.bannerImage[0].filename : ex.banner,
+    titleImage:  req.files?.titleImage  ? await uploadFile(req.files.titleImage[0])  : ex.titleImage,
+    banner:      req.files?.bannerImage ? await uploadFile(req.files.bannerImage[0]) : ex.banner,
   };
   if (req.body.name) cols[idx].slug = slugify(req.body.name);
   saveCollections(cols);
