@@ -11,16 +11,18 @@ function safeWrite(file, data) {
 
 const app = express();
 app.use(express.json());
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
 
-const upload = multer({ dest: "public/uploads/" });
+const UPLOADS_DIR = path.join(__dirname, "public/uploads");
+if (!fs.existsSync(UPLOADS_DIR)) { try { fs.mkdirSync(UPLOADS_DIR, { recursive: true }); } catch (_) {} }
+const upload = multer({ dest: UPLOADS_DIR });
 
 const CUSTOMER_PASS = "yes";
 const ADMIN_PASS = "yes0511";
 
 // Dateien
-const PRODUCTS_FILE = "./data.json";
-const SETTINGS_FILE = "./settings.json";
+const PRODUCTS_FILE = path.join(__dirname, "data.json");
+const SETTINGS_FILE = path.join(__dirname, "settings.json");
 
 const defaultSettings = {
   shopTitle:       "DRIP VAULT",
@@ -176,6 +178,7 @@ const defaultSettings = {
 
 // Load helpers
 function loadProducts() {
+  if (!fs.existsSync(PRODUCTS_FILE)) return [];
   return JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
 }
 
@@ -341,7 +344,7 @@ app.patch("/admin/toggle/:id", (req, res) => {
 });
 
 // ORDERS
-const ORDERS_FILE = "./orders.json";
+const ORDERS_FILE = path.join(__dirname, "orders.json");
 
 function loadOrders() {
   if (!fs.existsSync(ORDERS_FILE)) return [];
@@ -493,7 +496,7 @@ app.post("/admin/settings", upload.fields([
 });
 
 /* ═══════════════ COLLECTIONS ═══════════════════════════════ */
-const COLLECTIONS_FILE = "./collections.json";
+const COLLECTIONS_FILE = path.join(__dirname, "collections.json");
 
 function loadCollections() {
   if (!fs.existsSync(COLLECTIONS_FILE)) return [];
