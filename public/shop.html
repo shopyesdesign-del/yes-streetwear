@@ -239,10 +239,49 @@
     </div>
   </div>
 
+  <!-- Footer -->
+  <footer style="text-align:center;padding:40px 20px 24px;border-top:1px solid rgba(255,255,255,.07);margin-top:60px;">
+    <p style="font-size:.8rem;color:rgba(255,255,255,.3);">
+      © 2026 YES Design &nbsp;·&nbsp;
+      <a href="impressum.html" style="color:rgba(255,255,255,.4);text-decoration:none;">Impressum</a>
+      &nbsp;·&nbsp;
+      <a href="datenschutz.html" style="color:rgba(255,255,255,.4);text-decoration:none;">Datenschutz</a>
+    </p>
+  </footer>
+
+  <!-- Cookie Banner -->
+  <div id="cookieBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;
+    background:#1a1a1a;border-top:1px solid rgba(255,255,255,.1);
+    padding:16px 24px;display:flex;align-items:center;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;">
+    <p style="font-size:.85rem;color:#bbb;max-width:600px;margin:0;">
+      Diese Website verwendet technisch notwendige Cookies für den Shop-Betrieb.
+      Mehr Infos in unserer <a href="datenschutz.html" style="color:#ff2d55;">Datenschutzerklärung</a>.
+    </p>
+    <div style="display:flex;gap:10px;flex-shrink:0;">
+      <button onclick="acceptCookies()" style="background:#ff2d55;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;">Akzeptieren</button>
+      <button onclick="declineCookies()" style="background:transparent;color:#888;border:1px solid #333;padding:9px 20px;border-radius:8px;font-size:.85rem;cursor:pointer;">Ablehnen</button>
+    </div>
+  </div>
+
   <script src="js/auth.js"></script>
   <script src="js/effects.js"></script>
   <script src="js/cursor.js"></script>
   <script src="js/drops.js"></script>
   <script src="js/shop.js"></script>
+  <script>
+    // Cookie Banner
+    if (!localStorage.getItem('cookieConsent')) {
+      document.getElementById('cookieBanner').style.display = 'flex';
+    }
+    function acceptCookies() {
+      localStorage.setItem('cookieConsent', 'accepted');
+      document.getElementById('cookieBanner').style.display = 'none';
+    }
+    function declineCookies() {
+      localStorage.setItem('cookieConsent', 'declined');
+      document.getElementById('cookieBanner').style.display = 'none';
+    }
+  </script>
 </body>
 </html>
