@@ -6,6 +6,42 @@ const os         = require("os");
 const crypto     = require("crypto");
 const nodemailer = require("nodemailer");
 const cloudinary = require("cloudinary").v2;
+const { MongoClient } = require("mongodb");
+
+// ── MongoDB ────────────────────────────────────────────────────
+let _db = null;
+async function getDb() {
+  if (_db) return _db;
+  const uri = process.env.MONGODB_URI;
+  if (!uri) return null;
+  const client = new MongoClient(uri);
+  await client.connect();
+  _db = client.db("yesdesign");
+  return _db;
+}
+
+async function dbGet(key, fallback) {
+  try {
+    const db = await getDb();
+    if (!db) return fallback;
+    const doc = await db.collection("store").findOne({ _id: key });
+    return doc ? doc.data : fallback;
+  } catch (_) { return fallback; }
+}
+
+async function dbSet(key, data) {
+  try {
+    const db = await getDb();
+    if (!db) return false;
+    await db.collection("store").updateOne(
+      { _id: key },
+      { $set: { _id: key, data } },
+      { upsert: true }
+    );
+    return true;
+  } catch (_) { return false; }
+}
+
 // On Vercel the filesystem is read-only — writes are silently skipped
 function safeWrite(file, data) {
   try { fs.writeFileSync(file, JSON.stringify(data, null, 2)); } catch (_) {}
@@ -66,8 +102,10 @@ const CUSTOMER_PASS = "yes";
 const ADMIN_PASS = "yes0511";
 
 // Dateien
-const PRODUCTS_FILE = path.join(__dirname, "data.json");
-const SETTINGS_FILE = path.join(__dirname, "settings.json");
+const PRODUCTS_FILE    = path.join(__dirname, "data.json");
+const SETTINGS_FILE    = path.join(__dirname, "settings.json");
+const ORDERS_FILE      = path.join(__dirname, "orders.json");
+const COLLECTIONS_FILE = path.join(__dirname, "collections.json");
 
 const defaultSettings = {
   shopTitle:       "DRIP VAULT",
@@ -226,23 +264,28 @@ const defaultSettings = {
   },
 };
 
-// Load helpers
-function loadProducts() {
-  if (!fs.existsSync(PRODUCTS_FILE)) return [];
-  return JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
+// ── In-memory store (loaded once at startup from MongoDB or files) ──
+const _store = { products: null, settings: null, orders: null, collections: null };
+
+async function initStore() {
+  _store.products    = await dbGet("products",    null) || (fs.existsSync(PRODUCTS_FILE)    ? JSON.parse(fs.readFileSync(PRODUCTS_FILE))    : []);
+  _store.settings    = await dbGet("settings",    null) || (fs.existsSync(SETTINGS_FILE)    ? JSON.parse(fs.readFileSync(SETTINGS_FILE))    : {});
+  _store.orders      = await dbGet("orders",      null) || (fs.existsSync(ORDERS_FILE)      ? JSON.parse(fs.readFileSync(ORDERS_FILE))      : []);
+  _store.collections = await dbGet("collections", null) || (fs.existsSync(COLLECTIONS_FILE) ? JSON.parse(fs.readFileSync(COLLECTIONS_FILE)) : []);
+  // Seed MongoDB from files if MongoDB was empty
+  if (await getDb()) {
+    if (!await dbGet("products",    null)) await dbSet("products",    _store.products);
+    if (!await dbGet("settings",    null)) await dbSet("settings",    _store.settings);
+    if (!await dbGet("orders",      null)) await dbSet("orders",      _store.orders);
+    if (!await dbGet("collections", null)) await dbSet("collections", _store.collections);
+  }
 }
 
-function saveProducts(data) { safeWrite(PRODUCTS_FILE, data); }
-
-function loadSettings() {
-  const saved = fs.existsSync(SETTINGS_FILE)
-    ? JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf-8"))
-    : {};
+function mergeSettings(saved) {
   const dVE = defaultSettings.visualEffects;
-  const sVE = saved.visualEffects || {};
+  const sVE = (saved.visualEffects) || {};
   return {
-    ...defaultSettings,
-    ...saved,
+    ...defaultSettings, ...saved,
     theme:       { ...defaultSettings.theme,       ...(saved.theme       || {}) },
     heroBanner:  { ...defaultSettings.heroBanner,  ...(saved.heroBanner  || {}) },
     buttonStyle: { ...defaultSettings.buttonStyle, ...(saved.buttonStyle || {}) },
@@ -250,11 +293,7 @@ function loadSettings() {
     loginPage: (() => {
       const dLP = defaultSettings.loginPage;
       const sLP = saved.loginPage || {};
-      return {
-        ...dLP, ...sLP,
-        money: { ...dLP.money, ...(sLP.money || {}) },
-        grain: { ...dLP.grain, ...(sLP.grain || {}) },
-      };
+      return { ...dLP, ...sLP, money: { ...dLP.money, ...(sLP.money||{}) }, grain: { ...dLP.grain, ...(sLP.grain||{}) } };
     })(),
     passwords:   { ...defaultSettings.passwords,   ...(saved.passwords   || {}) },
     visualEffects: {
@@ -273,7 +312,17 @@ function loadSettings() {
   };
 }
 
-function saveSettings(data) { safeWrite(SETTINGS_FILE, data); }
+// Synchronous load from in-memory cache
+function loadProducts()    { return _store.products    || []; }
+function loadSettings()    { return mergeSettings(_store.settings || {}); }
+function loadOrders()      { return _store.orders      || []; }
+function loadCollections() { return _store.collections || []; }
+
+// Save: update cache + persist to MongoDB + file fallback
+function saveProducts(data)    { _store.products    = data; dbSet("products",    data); safeWrite(PRODUCTS_FILE,    data); }
+function saveSettings(data)    { _store.settings    = data; dbSet("settings",    data); safeWrite(SETTINGS_FILE,    data); }
+function saveOrders(data)      { _store.orders      = data; dbSet("orders",      data); safeWrite(ORDERS_FILE,      data); }
+function saveCollections(data) { _store.collections = data; dbSet("collections", data); safeWrite(COLLECTIONS_FILE, data); }
 
 // LOGIN — passwords now configurable via admin
 app.post("/login", (req, res) => {
@@ -395,23 +444,16 @@ app.patch("/admin/toggle/:id", (req, res) => {
 });
 
 // ORDERS
-const ORDERS_FILE = path.join(__dirname, "orders.json");
-
-function loadOrders() {
-  if (!fs.existsSync(ORDERS_FILE)) return [];
-  return JSON.parse(fs.readFileSync(ORDERS_FILE, "utf-8"));
-}
-
 app.post("/orders", async (req, res) => {
   const orders = loadOrders();
   const order  = { id: "ORD-" + Date.now(), ...req.body, createdAt: new Date().toISOString() };
   orders.unshift(order);
-  safeWrite(ORDERS_FILE, orders);
+  saveOrders(orders);
   sendOrderEmail(order).catch(err => console.error("[email] send failed:", err.message));
   res.json({ success: true, orderId: order.id });
 });
 
-app.get("/admin/orders", (req, res) => {
+app.get("/admin/orders", async (req, res) => {
   res.json(loadOrders());
 });
 
@@ -560,13 +602,6 @@ app.post("/admin/settings", upload.fields([
 });
 
 /* ═══════════════ COLLECTIONS ═══════════════════════════════ */
-const COLLECTIONS_FILE = path.join(__dirname, "collections.json");
-
-function loadCollections() {
-  if (!fs.existsSync(COLLECTIONS_FILE)) return [];
-  return JSON.parse(fs.readFileSync(COLLECTIONS_FILE, "utf-8"));
-}
-function saveCollections(data) { safeWrite(COLLECTIONS_FILE, data); }
 function slugify(name) {
   return (name || "").toLowerCase()
     .replace(/[äöü]/g, c => ({ ä:"ae", ö:"oe", ü:"ue" })[c] || c)
@@ -900,11 +935,13 @@ app.delete("/admin/order/:id", (req, res) => {
   const orders   = loadOrders();
   const filtered = orders.filter(o => o.id !== req.params.id);
   if (filtered.length === orders.length) return res.status(404).json({ error: "Not found" });
-  safeWrite(ORDERS_FILE, filtered);
+  saveOrders(filtered);
   res.json({ success: true });
 });
 
+// Init store then start (works for both local and Vercel)
+const _ready = initStore().catch(err => console.error("[store] init failed:", err.message));
 if (require.main === module) {
-  app.listen(3000, () => console.log("Shop läuft auf http://localhost:3000"));
+  _ready.finally(() => app.listen(3000, () => console.log("Shop läuft auf http://localhost:3000")));
 }
 module.exports = app;
