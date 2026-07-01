@@ -268,24 +268,33 @@ const defaultSettings = {
 const _store = { products: null, settings: null, orders: null, collections: null };
 
 async function initStore() {
-  _store.products    = await dbGet("products",    null) || (fs.existsSync(PRODUCTS_FILE)    ? JSON.parse(fs.readFileSync(PRODUCTS_FILE))    : []);
-  _store.orders      = await dbGet("orders",      null) || (fs.existsSync(ORDERS_FILE)      ? JSON.parse(fs.readFileSync(ORDERS_FILE))      : []);
-  _store.collections = await dbGet("collections", null) || (fs.existsSync(COLLECTIONS_FILE) ? JSON.parse(fs.readFileSync(COLLECTIONS_FILE)) : []);
+  // Load all collections in parallel
+  const [dbProducts, dbOrders, dbCollections, dbSettings] = await Promise.all([
+    dbGet("products",    null),
+    dbGet("orders",      null),
+    dbGet("collections", null),
+    dbGet("settings",    null),
+  ]);
+
+  const fileSettings = fs.existsSync(SETTINGS_FILE) ? JSON.parse(fs.readFileSync(SETTINGS_FILE)) : null;
+
+  _store.products    = dbProducts    || (fs.existsSync(PRODUCTS_FILE)    ? JSON.parse(fs.readFileSync(PRODUCTS_FILE))    : []);
+  _store.orders      = dbOrders      || (fs.existsSync(ORDERS_FILE)      ? JSON.parse(fs.readFileSync(ORDERS_FILE))      : []);
+  _store.collections = dbCollections || (fs.existsSync(COLLECTIONS_FILE) ? JSON.parse(fs.readFileSync(COLLECTIONS_FILE)) : []);
 
   // Settings: prefer file if DB is missing key design fields (incomplete seed)
-  const dbSettings   = await dbGet("settings", null);
-  const fileSettings = fs.existsSync(SETTINGS_FILE) ? JSON.parse(fs.readFileSync(SETTINGS_FILE)) : null;
   const dbIncomplete = !dbSettings || (!dbSettings.theme && !dbSettings.background);
   _store.settings    = (dbIncomplete && fileSettings) ? fileSettings : (dbSettings || fileSettings || {});
 
-  // Seed MongoDB from files if empty
+  // Seed MongoDB in parallel for any missing collections
   if (await getDb()) {
-    if (!await dbGet("products",    null)) await dbSet("products",    _store.products);
-    if (!await dbGet("orders",      null)) await dbSet("orders",      _store.orders);
-    if (!await dbGet("collections", null)) await dbSet("collections", _store.collections);
-    // Always sync settings to DB when file has richer data
-    if (dbIncomplete && fileSettings) await dbSet("settings", fileSettings);
-    else if (!await dbGet("settings", null)) await dbSet("settings", _store.settings);
+    const seeds = [];
+    if (!dbProducts)              seeds.push(dbSet("products",    _store.products));
+    if (!dbOrders)                seeds.push(dbSet("orders",      _store.orders));
+    if (!dbCollections)           seeds.push(dbSet("collections", _store.collections));
+    if (dbIncomplete && fileSettings) seeds.push(dbSet("settings", fileSettings));
+    else if (!dbSettings)         seeds.push(dbSet("settings",    _store.settings));
+    if (seeds.length) await Promise.all(seeds);
   }
 }
 
