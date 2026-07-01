@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DRIP VAULT — Shop</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;800&family=Rubik+Dirt&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="shop-page page-enter">
+
+  <!-- Effects layer -->
+  <div class="grain-overlay" id="grainOverlay"></div>
+  <canvas id="particleCanvas" style="display:none"></canvas>
+
+  <!-- HEADER -->
+  <header class="shop-header">
+    <div class="header-inner">
+      <h1 class="site-title">DRIP VAULT</h1>
+      <nav class="header-nav">
+        <button class="btn-cart" id="cartToggle">
+          Warenkorb <span class="cart-count" id="cartCount">0</span>
+        </button>
+        <button class="btn-logout" id="logoutBtn">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- HERO BANNER -->
+  <section class="hero-banner" id="heroBanner" style="display:none">
+    <h1 id="heroTitle"></h1>
+    <p id="heroSubtitle"></p>
+    <button id="heroBtn"></button>
+  </section>
+
+  <!-- PRODUCTS -->
+  <main class="shop-main">
+    <h2 class="section-title products-section">Alle Produkte</h2>
+    <div class="product-grid" id="productGrid"></div>
+    <p class="empty-state hidden" id="emptyState">Noch keine Produkte im Shop. Komm später wieder.</p>
+  </main>
+
+  <!-- CART SIDEBAR -->
+  <aside class="cart-sidebar" id="cartSidebar">
+    <div class="cart-header">
+      <h3>Warenkorb</h3>
+      <button class="cart-close" id="cartClose">✕</button>
+    </div>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-footer">
+      <div class="cart-total">Gesamt: <strong id="cartTotal">0,00 €</strong></div>
+      <button class="btn-checkout" id="checkoutBtn">Zur Kasse</button>
+    </div>
+  </aside>
+  <div class="cart-overlay hidden" id="cartOverlay"></div>
+
+  <!-- PRODUCT DETAIL MODAL -->
+  <div class="product-detail" id="productDetail" role="dialog" aria-modal="true">
+    <div class="pd-backdrop" id="pdBackdrop"></div>
+    <div class="pd-panel">
+      <button class="pd-close" id="pdClose" aria-label="Schließen">✕</button>
+      <div class="pd-inner">
+
+        <!-- Gallery -->
+        <div class="pd-gallery">
+          <div class="pd-main-wrap" id="pdMainWrap">
+            <img class="pd-main-img" id="pdMainImg" src="" alt="" style="display:none">
+            <div class="pd-main-placeholder" id="pdMainPlaceholder">NO IMAGE</div>
+            <button class="pd-fullscreen-btn" id="pdFullscreenBtn" title="Vollbild">⛶</button>
+          </div>
+          <div class="pd-thumbs" id="pdThumbs"></div>
+        </div>
+
+        <!-- Info -->
+        <div class="pd-info">
+          <div class="pd-badge-wrap" id="pdBadgeWrap"></div>
+
+          <h1 class="pd-name" id="pdName"></h1>
+
+          <div class="pd-pricing">
+            <span class="pd-price" id="pdPrice"></span>
+            <span class="pd-original-price" id="pdOriginalPrice" style="display:none"></span>
+            <span class="pd-discount-badge" id="pdDiscountBadge" style="display:none"></span>
+          </div>
+
+          <p class="pd-desc" id="pdDesc"></p>
+
+          <!-- Sizes -->
+          <div id="pdSizesSection" style="display:none">
+            <div class="pd-option-label">Größe</div>
+            <div class="pd-size-btns" id="pdSizes"></div>
+          </div>
+
+          <!-- Colors -->
+          <div id="pdColorsSection" style="display:none">
+            <div class="pd-option-label">Farbe</div>
+            <div class="pd-color-btns" id="pdColors"></div>
+          </div>
+
+          <div class="pd-divider"></div>
+
+          <!-- Qty + Add to cart -->
+          <div class="pd-cart-row">
+            <div class="pd-qty">
+              <button class="pd-qty-btn" id="pdQtyMinus">−</button>
+              <span class="pd-qty-num" id="pdQtyNum">1</span>
+              <button class="pd-qty-btn" id="pdQtyPlus">+</button>
+            </div>
+            <button class="pd-add-cart" id="pdAddCart">In den Warenkorb</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- LIGHTBOX -->
+  <div class="pd-lightbox" id="pdLightbox">
+    <button class="pd-lightbox-close" id="pdLightboxClose">✕</button>
+    <img id="pdLightboxImg" src="" alt="">
+  </div>
+
+  <!-- CHECKOUT MODAL (multi-step) -->
+  <div class="co-modal" id="checkoutModal" aria-hidden="true">
+    <div class="co-backdrop" id="checkoutBackdrop"></div>
+    <div class="co-panel" role="dialog" aria-modal="true" aria-label="Checkout">
+
+      <button class="co-close" id="checkoutClose" aria-label="Schließen">✕</button>
+
+      <!-- Steps bar -->
+      <div class="co-steps-bar">
+        <div class="co-sdot active" id="coStepDot1"><span class="co-snum">1</span><span class="co-slbl">Daten</span></div>
+        <div class="co-sline"></div>
+        <div class="co-sdot" id="coStepDot2"><span class="co-snum">2</span><span class="co-slbl">Zahlung</span></div>
+        <div class="co-sline"></div>
+        <div class="co-sdot" id="coStepDot3"><span class="co-snum">✓</span><span class="co-slbl">Fertig</span></div>
+      </div>
+
+      <!-- ── STEP 1: Customer Info ───────────────────────────── -->
+      <div class="co-pane active" id="coPane1">
+        <h2 class="co-title">Deine Daten</h2>
+        <form id="coForm1" class="co-form" novalidate>
+          <div class="co-grid-2">
+            <div class="co-field">
+              <label>Name *</label>
+              <input type="text" id="co_name" placeholder="Max Mustermann" required autocomplete="name">
+            </div>
+            <div class="co-field">
+              <label>E-Mail *</label>
+              <input type="email" id="co_email" placeholder="max@example.com" required autocomplete="email">
+            </div>
+          </div>
+          <div class="co-field">
+            <label>Telefon</label>
+            <input type="tel" id="co_phone" placeholder="+49 123 456789" autocomplete="tel">
+          </div>
+          <div class="co-field">
+            <label>Straße & Hausnummer *</label>
+            <input type="text" id="co_street" placeholder="Musterstraße 42" required autocomplete="street-address">
+          </div>
+          <div class="co-grid-2">
+            <div class="co-field">
+              <label>PLZ *</label>
+              <input type="text" id="co_zip" placeholder="12345" required autocomplete="postal-code">
+            </div>
+            <div class="co-field">
+              <label>Stadt *</label>
+              <input type="text" id="co_city" placeholder="Berlin" required autocomplete="address-level2">
+            </div>
+          </div>
+          <div class="co-field">
+            <label>Land</label>
+            <select id="co_country" autocomplete="country">
+              <option value="DE">Deutschland</option>
+              <option value="AT">Österreich</option>
+              <option value="CH">Schweiz</option>
+              <option value="NL">Niederlande</option>
+              <option value="FR">Frankreich</option>
+              <option value="GB">Vereinigtes Königreich</option>
+            </select>
+          </div>
+          <div class="co-field">
+            <label>Anmerkung</label>
+            <textarea id="co_note" rows="2" placeholder="Optionale Anmerkungen zur Bestellung..."></textarea>
+          </div>
+
+          <!-- Order summary -->
+          <div class="co-summary">
+            <div class="co-sum-head">Bestellübersicht</div>
+            <div id="co_items_list" class="co-items-list"></div>
+            <div class="co-sum-rows">
+              <div class="co-sum-row"><span>Zwischensumme</span><span id="co_subtotal"></span></div>
+              <div class="co-sum-row"><span>Versand</span><span id="co_shipping">Kostenlos</span></div>
+              <div class="co-sum-row co-sum-total"><span>Gesamt</span><span id="co_total"></span></div>
+            </div>
+          </div>
+          <button type="submit" class="co-btn-primary">Weiter zur Zahlung →</button>
+        </form>
+      </div>
+
+      <!-- ── STEP 2: Payment ────────────────────────────────── -->
+      <div class="co-pane" id="coPane2">
+        <h2 class="co-title">Zahlung</h2>
+        <div class="co-pay-info-box" id="co_pay_summary"></div>
+
+        <div class="co-pay-loading" id="coPayLoading">
+          <div class="co-spinner"></div>
+          <span>Zahlungsoptionen werden geladen…</span>
+        </div>
+
+        <div id="coPaypalWrap" style="display:none">
+          <div class="co-pay-section-lbl">Sicher bezahlen mit</div>
+          <div id="paypal-button-container" class="co-paypal-container"></div>
+        </div>
+
+        <div id="coPayDivider" class="co-pay-divider" style="display:none"><span>oder</span></div>
+
+        <div id="coManualWrap" style="display:none">
+          <button class="co-btn-manual" id="coBtnManual">
+            📧 Bestellung ohne Vorauszahlung senden
+          </button>
+          <p class="co-manual-hint" id="coManualHint"></p>
+        </div>
+
+        <button class="co-btn-back" id="coBack">← Zurück</button>
+      </div>
+
+      <!-- ── STEP 3: Success ────────────────────────────────── -->
+      <div class="co-pane" id="coPane3">
+        <div class="co-success">
+          <div class="co-success-icon">✓</div>
+          <h2 class="co-success-title">Bestellung eingegangen!</h2>
+          <p class="co-success-msg" id="coSuccessMsg"></p>
+          <div class="co-order-num" id="coOrderNum"></div>
+          <button class="co-btn-primary" id="coDone">Weiter shoppen</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/cursor.js"></script>
+  <script src="js/drops.js"></script>
+  <script src="js/shop.js"></script>
+</body>
+</html>

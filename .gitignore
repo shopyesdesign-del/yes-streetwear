@@ -1,0 +1,7 @@
+node_modules/
+*.json.bak
+uploads/
+settings.json
+orders.json
+.DS_Store
+*.log

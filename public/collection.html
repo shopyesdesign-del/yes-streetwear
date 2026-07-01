@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Collection — DRIP VAULT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;800&family=Rubik+Dirt&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+  <style id="col-dyn"></style>
+  <style>
+    .col-hero {
+      position: relative;
+      width: 100%;
+      min-height: 60vh;
+      display: flex;
+      align-items: flex-end;
+      overflow: hidden;
+      background: var(--col-bg, #0f0f0f);
+    }
+    .col-hero-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.55;
+    }
+    .col-hero-overlay {
+      position: relative;
+      z-index: 2;
+      padding: 60px 48px;
+      max-width: 900px;
+    }
+    .col-status-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .status-coming_soon { background: #ff9500; color: #000; }
+    .status-live        { background: #34d399; color: #000; }
+    .status-sold_out    { background: #6b7280; color: #fff; }
+
+    .col-hero-name {
+      font-family: "Bangers", cursive;
+      font-size: clamp(3rem, 8vw, 7rem);
+      letter-spacing: 2px;
+      line-height: 1;
+      color: #fff;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+    .col-hero-desc {
+      font-size: 15px;
+      color: rgba(255,255,255,0.55);
+      max-width: 480px;
+      line-height: 1.6;
+    }
+
+    /* Countdown */
+    .col-countdown {
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255,255,255,.08);
+      padding: 48px 0;
+      text-align: center;
+    }
+    .col-countdown h2 {
+      font-family: "Bangers", cursive;
+      font-size: 2rem;
+      letter-spacing: 2px;
+      margin-bottom: 32px;
+      color: var(--col-accent, #ff2d55);
+    }
+    .countdown-units {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .countdown-unit {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 12px;
+      padding: 24px 28px;
+      min-width: 100px;
+    }
+    .countdown-unit .num {
+      font-family: "Bangers", cursive;
+      font-size: 3.5rem;
+      letter-spacing: 2px;
+      line-height: 1;
+      display: block;
+      color: var(--col-accent, #ff2d55);
+    }
+    .countdown-unit .lbl {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: rgba(255,255,255,.4);
+      margin-top: 6px;
+      display: block;
+    }
+    .coming-soon-notify {
+      margin-top: 40px;
+      font-size: 14px;
+      color: rgba(255,255,255,.45);
+    }
+
+    /* Products grid */
+    .col-products-section {
+      padding: 64px 48px;
+    }
+    @media (max-width:640px) { .col-products-section { padding: 32px 20px; } }
+    .col-products-title {
+      font-family: "Bangers", cursive;
+      font-size: 2.4rem;
+      letter-spacing: 2px;
+      margin-bottom: 32px;
+      text-transform: uppercase;
+    }
+    .col-product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 20px;
+    }
+    .col-product-card {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: transform .2s, box-shadow .2s;
+      cursor: pointer;
+      position: relative;
+    }
+    .col-product-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 48px -8px rgba(0,0,0,.7);
+    }
+    .col-product-card.blurred .col-product-img,
+    .col-product-card.blurred .col-no-img {
+      filter: blur(18px);
+      transform: scale(1.05);
+    }
+    .col-product-card.sold-out-card::after {
+      content: 'SOLD OUT';
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Bangers", cursive;
+      font-size: 1.8rem;
+      letter-spacing: 4px;
+      color: rgba(255,255,255,.7);
+    }
+    .col-product-img, .col-no-img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      display: block;
+    }
+    .col-no-img {
+      background: rgba(255,255,255,.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: rgba(255,255,255,.2);
+      letter-spacing: 0.1em;
+    }
+    .col-product-info {
+      padding: 16px;
+    }
+    .col-product-name {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .col-product-price {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--col-accent, #ff2d55);
+    }
+
+    /* Header */
+    .col-header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px;
+      background: rgba(0,0,0,.7);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .col-back { color: rgba(255,255,255,.6); font-size: 13px; font-weight: 600; transition: color .15s; }
+    .col-back:hover { color: #fff; }
+    .col-header-title {
+      font-family: "Bangers", cursive;
+      font-size: 1.3rem;
+      letter-spacing: 2px;
+    }
+
+    body { padding-top: 60px; }
+  </style>
+</head>
+<body class="page-enter" style="background:#0f0f0f;color:#fff;min-height:100vh;">
+
+  <header class="col-header">
+    <a href="/shop.html" class="col-back">← SHOP</a>
+    <span class="col-header-title" id="colHeaderTitle">DROP</span>
+    <span id="colHeaderBadge" class="col-status-badge" style="margin:0;"></span>
+  </header>
+
+  <!-- Hero -->
+  <section class="col-hero" id="colHero">
+    <img class="col-hero-img" id="colBanner" src="" alt="" style="display:none">
+    <div class="col-hero-overlay">
+      <div class="col-status-badge" id="colStatusBadge"></div>
+      <div class="col-hero-name" id="colName">LOADING...</div>
+      <div class="col-hero-desc" id="colDesc"></div>
+    </div>
+  </section>
+
+  <!-- Countdown -->
+  <section class="col-countdown" id="colCountdown" style="display:none">
+    <h2>Drop startet in</h2>
+    <div class="countdown-units">
+      <div class="countdown-unit">
+        <span class="num" id="cdDays">00</span>
+        <span class="lbl">Tage</span>
+      </div>
+      <div class="countdown-unit">
+        <span class="num" id="cdHours">00</span>
+        <span class="lbl">Stunden</span>
+      </div>
+      <div class="countdown-unit">
+        <span class="num" id="cdMins">00</span>
+        <span class="lbl">Minuten</span>
+      </div>
+      <div class="countdown-unit">
+        <span class="num" id="cdSecs">00</span>
+        <span class="lbl">Sekunden</span>
+      </div>
+    </div>
+    <p class="coming-soon-notify">Sei dabei wenn der Drop live geht.</p>
+  </section>
+
+  <!-- Products -->
+  <section class="col-products-section" id="colProductsSection" style="display:none">
+    <div class="col-products-title" id="colProductsTitle">COLLECTION PIECES</div>
+    <div class="col-product-grid" id="colProductGrid"></div>
+  </section>
+
+  <script src="js/auth.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/cursor.js"></script>
+  <script src="js/drops.js"></script>
+  <script>
+    Auth.requireRole('customer');
+
+    const slug = new URLSearchParams(location.search).get('slug');
+    if (!slug) window.location = '/shop.html';
+
+    function statusLabel(s) {
+      return { coming_soon:'COMING SOON', live:'LIVE NOW', sold_out:'SOLD OUT' }[s] || s.toUpperCase();
+    }
+
+    function applyColTheme(col) {
+      const c = col.colors || {};
+      const f = col.fonts  || {};
+      document.getElementById('col-dyn').textContent = `
+        :root {
+          --col-bg:     ${c.bg     || '#0f0f0f'};
+          --col-text:   ${c.text   || '#ffffff'};
+          --col-accent: ${c.accent || '#ff2d55'};
+          --col-button: ${c.button || '#ff2d55'};
+        }
+        body { background:var(--col-bg); color:var(--col-text); }
+        .col-hero { background:var(--col-bg); }
+        h1,h2,h3 { font-family:"${f.display||'Bangers'}",cursive; }
+      `;
+    }
+
+    function renderProducts(prods, soldOut, blur) {
+      const section = document.getElementById('colProductsSection');
+      const grid    = document.getElementById('colProductGrid');
+      section.style.display = '';
+
+      if (!prods || prods.length === 0) {
+        grid.innerHTML = '<p style="color:rgba(255,255,255,.35);font-size:14px;">Keine Produkte in dieser Kollektion.</p>';
+        return;
+      }
+
+      grid.innerHTML = prods.map(p => `
+        <div class="col-product-card ${blur ? 'blurred' : ''} ${soldOut ? 'sold-out-card' : ''}"
+          onclick="${!blur && !soldOut ? `window.location='/shop.html'` : ''}">
+          ${p.image
+            ? `<img class="col-product-img" src="${p.image}" alt="${p.name||''}" loading="lazy">`
+            : `<div class="col-no-img">NO IMAGE</div>`}
+          <div class="col-product-info">
+            <div class="col-product-name">${p.name||''}</div>
+            <div class="col-product-price">${parseFloat(p.price||0).toLocaleString('de-DE',{style:'currency',currency:'EUR'})}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadCollection() {
+      const res = await fetch('/collection/' + encodeURIComponent(slug)).catch(() => null);
+      if (!res || !res.ok) { window.location = '/shop.html'; return; }
+      const col = await res.json();
+
+      // Apply theme
+      applyColTheme(col);
+
+      // Populate header + hero
+      document.title = col.name + ' — DRIP VAULT';
+      document.getElementById('colHeaderTitle').textContent  = col.name;
+      document.getElementById('colName').textContent         = col.name;
+      document.getElementById('colDesc').textContent         = col.description || '';
+
+      const badge1 = document.getElementById('colStatusBadge');
+      const badge2 = document.getElementById('colHeaderBadge');
+      const label  = statusLabel(col.status);
+      badge1.textContent = label;
+      badge2.textContent = label;
+      badge1.className   = 'col-status-badge status-' + col.status;
+      badge2.className   = 'col-status-badge status-' + col.status;
+      badge2.style.margin = '0';
+
+      if (col.banner) {
+        const img = document.getElementById('colBanner');
+        img.src = col.banner;
+        img.style.display = '';
+      }
+
+      // Status-based content
+      if (col.status === 'coming_soon') {
+        if (col.releaseDate) {
+          document.getElementById('colCountdown').style.display = '';
+          DVDrop.startCountdown(col.releaseDate, {
+            days:'cdDays', hours:'cdHours', mins:'cdMins', secs:'cdSecs',
+          });
+        }
+        // Blurred product preview (coming soon teaser)
+        if (col.productData?.length > 0) {
+          document.getElementById('colProductsTitle').textContent = 'TEASER';
+          renderProducts(col.productData.slice(0, 4), false, true);
+        }
+      } else if (col.status === 'live') {
+        renderProducts(col.productData || [], false, false);
+      } else if (col.status === 'sold_out') {
+        renderProducts(col.productData || [], true, false);
+      }
+
+      // Effects
+      if (typeof DVEffects !== 'undefined') {
+        DVEffects.initVisualEffects({ visualEffects: col.effects || {} });
+      }
+
+      // Cursor
+      const globalSettings = await fetch('/settings').then(r => r.json()).catch(() => ({}));
+      if (typeof DVCursor !== 'undefined') DVCursor.init(globalSettings);
+
+      // Play intro (once per session per collection)
+      const key = 'intro_' + col.id;
+      if (col.intro && col.intro !== 'none' && !sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, '1');
+        DVDrop.playIntro(col.intro, col.name, col.colors?.accent);
+      }
+    }
+
+    loadCollection();
+  </script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+[
+  {
+    "id": 1782926079563,
+    "name": "YES x ALCOS TEE",
+    "price": 39.99,
+    "discountPrice": null,
+    "description": "YES X ALOCS COLLABO TEE 4 ALOCS CHALLENGE ",
+    "category": "T-Shirt",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [],
+    "badge": "NEW",
+    "visible": true,
+    "images": [
+      "/uploads/a9e244c8304c95a9bb37bfd3d1d0c4b2",
+      "/uploads/2d08155322e3e805129a78ca8ffb03db",
+      "/uploads/8bae189edc7375a4788a7c41ccae3662"
+    ],
+    "image": "/uploads/a9e244c8304c95a9bb37bfd3d1d0c4b2"
+  },
+  {
+    "id": 1782926181039,
+    "name": "YES x ALOCS TEE",
+    "price": 39.99,
+    "discountPrice": null,
+    "description": "YES x ALOCS COLLABO TEE",
+    "category": "T-shirt",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [],
+    "badge": "NEW",
+    "visible": true,
+    "images": [
+      "/uploads/8146625a9c9eb87bf94eafebba70a4d2",
+      "/uploads/cde473071e3fcf2d1b1924dd104db80a"
+    ],
+    "image": "/uploads/8146625a9c9eb87bf94eafebba70a4d2"
+  },
+  {
+    "id": 1782926340053,
+    "name": "YES x ALOCS TRACKSUITE",
+    "price": 279.99,
+    "discountPrice": null,
+    "description": "",
+    "category": "",
+    "sizes": [
+      "M",
+      "L"
+    ],
+    "colors": [],
+    "badge": "LIMITED",
+    "visible": true,
+    "images": [
+      "/uploads/60d79f164ee83eddb01a73744a956a94",
+      "/uploads/63fd019296aa8a48595ac6b94fdc2ba3",
+      "/uploads/de5e92f449ab79358be8210828c5fbe2",
+      "/uploads/a57a17937f05fce44ac4a44c8f1c4341"
+    ],
+    "image": "/uploads/60d79f164ee83eddb01a73744a956a94"
+  }
+]

@@ -1,0 +1,3715 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — DRIP VAULT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700;800&family=Rubik+Dirt&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body class="admin-page" style="background:#111;padding:0;margin:0;">
+
+<div class="admin-shell">
+
+  <!-- ══════════════════════ SIDEBAR ═══════════════════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">DV</div>
+      <div>
+        <div class="logo-name">Drip Vault</div>
+        <div class="logo-sub">Shop Management</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="nav-item active" data-sec="dashboard" href="#">
+        <span class="ni">▦</span> Dashboard
+      </a>
+      <a class="nav-item" data-sec="products" href="#">
+        <span class="ni">⊞</span> Produkte
+      </a>
+      <a class="nav-item" data-sec="design" href="#">
+        <span class="ni">◑</span> Design
+      </a>
+      <a class="nav-item" data-sec="homepage" href="#">
+        <span class="ni">⌂</span> Startseite
+      </a>
+      <a class="nav-item" data-sec="media" href="#">
+        <span class="ni">◫</span> Medien
+      </a>
+      <a class="nav-item" data-sec="collections" href="#">
+        <span class="ni">◈</span> Collections
+      </a>
+      <a class="nav-item" data-sec="cursor" href="#">
+        <span class="ni">◎</span> Brand Cursor
+      </a>
+      <a class="nav-item" data-sec="vfx" href="#">
+        <span class="ni">✦</span> Visual Effects
+      </a>
+      <a class="nav-item" data-sec="logineditor" href="#">
+        <span class="ni">🔐</span> Passwort Seite
+      </a>
+      <div class="nav-divider"></div>
+      <a class="nav-item" data-sec="orders" href="#">
+        <span class="ni">📦</span> Bestellungen
+      </a>
+      <a class="nav-item" data-sec="payment" href="#">
+        <span class="ni">💳</span> Zahlung
+      </a>
+      <div class="nav-divider"></div>
+      <a class="nav-item" data-sec="settings" href="#">
+        <span class="ni">⚙</span> Einstellungen
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a href="/shop.html" target="_blank" class="btn-view-shop">
+        <span>↗</span> Shop öffnen
+      </a>
+      <button class="btn-logout" id="logoutBtn">Abmelden</button>
+    </div>
+  </aside>
+
+  <!-- ══════════════════════ MAIN ══════════════════════════════ -->
+  <div class="main-area">
+
+    <!-- ─────────────────── DASHBOARD ────────────────────────── -->
+    <section id="sec-dashboard" class="page active">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-sub">Willkommen zurück im DRIP VAULT Admin.</p>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-icon">📦</div>
+          <div class="stat-num" id="statProducts">—</div>
+          <div class="stat-label">Produkte</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-num" id="statVisible">—</div>
+          <div class="stat-label">Sichtbar</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🛒</div>
+          <div class="stat-num" id="statOrders">—</div>
+          <div class="stat-label">Bestellungen</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">💶</div>
+          <div class="stat-num" id="statRevenue">—</div>
+          <div class="stat-label">Ø Preis</div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="dash-card">
+          <div class="card-title">Quick Actions</div>
+          <div class="quick-btns">
+            <button class="qbtn" onclick="navigate('products');setTimeout(openAddModal,120)">+ Neues Produkt</button>
+            <button class="qbtn" onclick="navigate('design')">Farben anpassen</button>
+            <button class="qbtn" onclick="navigate('homepage')">Banner bearbeiten</button>
+            <button class="qbtn" onclick="navigate('media')">Medien verwalten</button>
+          </div>
+        </div>
+        <div class="dash-card">
+          <div class="card-title">Shop Info</div>
+          <div id="shopInfoCard">
+            <div class="info-row"><span>Shop-Name</span><strong id="siTitle">—</strong></div>
+            <div class="info-row"><span>Layout</span><strong id="siLayout">—</strong></div>
+            <div class="info-row"><span>Login-Text</span><strong id="siLogin">—</strong></div>
+            <div class="info-row"><span>Hero Banner</span><strong id="siBanner">—</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────── PRODUCTS ─────────────────────────── -->
+    <section id="sec-products" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Produkte</h1>
+          <p class="page-sub" id="productCountLabel">Lädt...</p>
+        </div>
+        <button class="btn-primary" onclick="openAddModal()">+ Produkt hinzufügen</button>
+      </div>
+
+      <div class="search-bar">
+        <input type="text" id="productSearch" placeholder="Produkte durchsuchen..." oninput="filterProducts()">
+      </div>
+
+      <div class="product-admin-grid" id="productAdminGrid">
+        <div class="loading-state">Lädt Produkte...</div>
+      </div>
+    </section>
+
+    <!-- ─────────────────── DESIGN ───────────────────────────── -->
+    <section id="sec-design" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Design Editor</h1>
+          <p class="page-sub">Farben, Schriften und Hintergrund anpassen.</p>
+        </div>
+        <a href="/shop.html" target="_blank" class="btn-outline">↗ Live-Vorschau</a>
+      </div>
+
+      <div class="tabs" id="designTabs">
+        <button class="tab active" data-tab="colors">Farben</button>
+        <button class="tab" data-tab="fonts">Schriften</button>
+        <button class="tab" data-tab="bg">Hintergrund</button>
+        <button class="tab" data-tab="button">Button</button>
+        <button class="tab" data-tab="effects">Effekte</button>
+      </div>
+
+      <!-- Tab: Colors -->
+      <div class="tab-pane active" id="tab-colors">
+        <div class="editor-card">
+          <div class="card-title">Farbschema</div>
+          <div class="color-grid">
+            <div class="color-item">
+              <label>Hintergrund</label>
+              <div class="color-row">
+                <input type="color" id="t_bgColor">
+                <input type="text" class="hex-input" id="t_bgColor_hex">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Sek. Hintergrund</label>
+              <div class="color-row">
+                <input type="color" id="t_bgSecondary">
+                <input type="text" class="hex-input" id="t_bgSecondary_hex">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Karten</label>
+              <div class="color-row">
+                <input type="color" id="t_cardColor">
+                <input type="text" class="hex-input" id="t_cardColor_hex">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Text</label>
+              <div class="color-row">
+                <input type="color" id="t_textColor">
+                <input type="text" class="hex-input" id="t_textColor_hex">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Überschriften</label>
+              <div class="color-row">
+                <input type="color" id="t_headingColor">
+                <input type="text" class="hex-input" id="t_headingColor_hex">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Akzent / Preise</label>
+              <div class="color-row">
+                <input type="color" id="t_accentColor">
+                <input type="text" class="hex-input" id="t_accentColor_hex">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Buttons</label>
+              <div class="color-row">
+                <input type="color" id="t_buttonColor">
+                <input type="text" class="hex-input" id="t_buttonColor_hex">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Rahmen</label>
+              <div class="color-row">
+                <input type="color" id="t_borderColor">
+                <input type="text" class="hex-input" id="t_borderColor_hex">
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-primary" onclick="saveColors()">Farben speichern</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Fonts -->
+      <div class="tab-pane" id="tab-fonts">
+        <div class="editor-card">
+          <div class="card-title">Schriftarten</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Display-Schrift (Überschriften)</label>
+              <select id="fontDisplay" class="input-field" onchange="updateFontPreview('fontDisplay','fontDisplayPreview',true)">
+                <option value="Bangers">Bangers — Graffiti</option>
+                <option value="Rubik Dirt">Rubik Dirt — Street</option>
+                <option value="Inter">Inter — Clean</option>
+              </select>
+              <div class="font-preview" id="fontDisplayPreview" style="font-family:'Bangers',cursive">DRIP VAULT</div>
+            </div>
+            <div class="form-group">
+              <label>Body-Schrift (Fließtext)</label>
+              <select id="fontMain" class="input-field" onchange="updateFontPreview('fontMain','fontMainPreview',false)">
+                <option value="Inter">Inter — Clean</option>
+                <option value="Bangers">Bangers — Graffiti</option>
+                <option value="Rubik Dirt">Rubik Dirt — Street</option>
+              </select>
+              <div class="font-preview body-preview" id="fontMainPreview" style="font-family:'Inter',sans-serif">Produktbeschreibung Beispieltext</div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-primary" onclick="saveFonts()">Schriften speichern</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Background -->
+      <div class="tab-pane" id="tab-bg">
+        <div class="editor-card">
+          <div class="card-title">Shop-Hintergrund</div>
+          <form id="bgForm">
+            <div class="form-group">
+              <label>Hintergrundbild hochladen</label>
+              <div class="upload-zone" id="bgDropZone">
+                <input type="file" name="background" id="bgFile" accept="image/*" class="file-input"
+                  onchange="previewFile(this,'bgPreview','bgDropZone')">
+                <div class="upload-label">
+                  <span class="upload-icon">⬆</span>
+                  <span>Bild hochladen oder hierhin ziehen</span>
+                  <span class="upload-hint">JPG, PNG, WebP — max 10 MB</span>
+                </div>
+                <div id="bgPreview" class="upload-preview"></div>
+              </div>
+            </div>
+
+            <div class="toggle-row">
+              <span class="toggle-label">Hintergrundbild aktivieren</span>
+              <label class="toggle">
+                <input type="checkbox" id="t_bgImageEnabled">
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Größe</label>
+                <select id="t_bgSize" class="input-field">
+                  <option value="cover">Cover (füllt alles aus)</option>
+                  <option value="contain">Contain (vollständig sichtbar)</option>
+                  <option value="auto">Auto</option>
+                  <option value="100% 100%">Strecken</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Position</label>
+                <select id="t_bgPosition" class="input-field">
+                  <option value="center">Mitte</option>
+                  <option value="top">Oben</option>
+                  <option value="bottom">Unten</option>
+                  <option value="top center">Oben Mitte</option>
+                  <option value="left">Links</option>
+                  <option value="right">Rechts</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Overlay-Stärke: <span id="overlayVal">0</span></label>
+              <input type="range" id="t_overlayOpacity" min="0" max="0.95" step="0.05" class="range-input"
+                oninput="document.getElementById('overlayVal').textContent=parseFloat(this.value).toFixed(2)">
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary">Hintergrund speichern</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <!-- Tab: Button -->
+      <div class="tab-pane" id="tab-button">
+        <div class="editor-card">
+          <div class="card-title">Warenkorb-Button</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Button-Text</label>
+              <input type="text" id="btn_text" class="input-field" placeholder="In den Warenkorb">
+            </div>
+            <div class="form-group">
+              <label>Schriftgröße (px)</label>
+              <input type="number" id="btn_fontSize" class="input-field" value="13" min="10" max="24">
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Hintergrundfarbe</label>
+              <div class="color-row">
+                <input type="color" id="btn_bgColor">
+                <input type="text" class="hex-input" id="btn_bgColor_hex">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Textfarbe</label>
+              <div class="color-row">
+                <input type="color" id="btn_textColor">
+                <input type="text" class="hex-input" id="btn_textColor_hex">
+              </div>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Ecken-Radius (px)</label>
+              <input type="range" id="btn_borderRadius" min="0" max="32" value="6" class="range-input">
+              <span id="btn_radiusVal" style="font-size:12px;color:rgba(255,255,255,.4);">6px</span>
+            </div>
+            <div class="form-group">
+              <label>Letter-Spacing (em)</label>
+              <input type="range" id="btn_letterSpacing" min="0" max="0.3" step="0.01" value="0.07" class="range-input">
+              <span id="btn_lsVal" style="font-size:12px;color:rgba(255,255,255,.4);">0.07em</span>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Animation</label>
+              <select id="btn_animation" class="input-field">
+                <option value="none">Keine</option>
+                <option value="pulse">Pulse</option>
+                <option value="glow">Glow</option>
+                <option value="bounce">Bounce</option>
+                <option value="slide">Slide-Shimmer</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Glow-Farbe (Schatten)</label>
+              <div class="color-row">
+                <input type="color" id="btn_shadowColor">
+                <input type="text" class="hex-input" id="btn_shadowColor_hex">
+              </div>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label">Großbuchstaben</span>
+            <label class="toggle"><input type="checkbox" id="btn_uppercase" checked><span class="toggle-track"></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label">Glow-Schatten aktivieren</span>
+            <label class="toggle"><input type="checkbox" id="btn_shadow"><span class="toggle-track"></span></label>
+          </div>
+          <!-- Live preview -->
+          <div style="margin:20px 0 8px;">
+            <div class="card-title">Vorschau</div>
+            <div id="btnPreviewWrap" style="padding:16px;background:#0f0f0f;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+              <button id="btnPreview" style="padding:10px 22px;border:none;cursor:default;">In den Warenkorb</button>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-primary" onclick="saveButtonStyle()">Button speichern</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Effects -->
+      <div class="tab-pane" id="tab-effects">
+        <div class="editor-card">
+          <div class="card-title">Visuelle Effekte</div>
+
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-label">Film-Grain / Körnige Textur</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.25);margin-top:2px;">Subtile Rausch-Textur über dem Shop</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="fx_grain"><span class="toggle-track"></span></label>
+          </div>
+
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-label">Partikel-Effekt</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.25);margin-top:2px;">Schwebende Partikel in Akzentfarbe</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="fx_particles"><span class="toggle-track"></span></label>
+          </div>
+
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-label">Neon Glow</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.25);margin-top:2px;">Leuchtender Glow-Effekt auf Produkt-Karten</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="fx_neonGlow"><span class="toggle-track"></span></label>
+          </div>
+
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-label">Benutzerdefinierter Cursor</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.25);margin-top:2px;">Punkt + Kreis-Trail-Effekt</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="fx_cursor"><span class="toggle-track"></span></label>
+          </div>
+
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-label">Scroll-Animationen</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.25);margin-top:2px;">Produkte erscheinen beim Scrollen</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="fx_scrollAnimations" checked><span class="toggle-track"></span></label>
+          </div>
+
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-label">Karten Hover-Glow</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.25);margin-top:2px;">Glow unter Produkt-Karten beim Hover</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="fx_hoverGlow" checked><span class="toggle-track"></span></label>
+          </div>
+
+          <div class="form-actions" style="margin-top:24px;">
+            <button class="btn-primary" onclick="saveEffects()">Effekte speichern</button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ─────────────────── HOMEPAGE ─────────────────────────── -->
+    <section id="sec-homepage" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Startseite</h1>
+          <p class="page-sub">Hero Banner und Seiteninhalte anpassen.</p>
+        </div>
+        <a href="/shop.html" target="_blank" class="btn-outline">↗ Vorschau</a>
+      </div>
+
+      <div class="editor-card">
+        <div class="card-header-row">
+          <div class="card-title">Hero Banner</div>
+          <label class="toggle">
+            <input type="checkbox" id="heroEnabled">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+
+        <form id="bannerForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Überschrift</label>
+              <input type="text" id="heroTitle" class="input-field" placeholder="DEIN TEXT HIER">
+            </div>
+            <div class="form-group">
+              <label>Button-Text</label>
+              <input type="text" id="heroBtn" class="input-field" placeholder="Jetzt shoppen">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Untertitel</label>
+            <input type="text" id="heroSubtitle" class="input-field" placeholder="Deine Beschreibung">
+          </div>
+
+          <div class="form-group">
+            <label>Hintergrundbild</label>
+            <div class="upload-zone">
+              <input type="file" name="bannerImage" id="bannerImageFile" accept="image/*" class="file-input"
+                onchange="previewFile(this,'bannerPreview',null)">
+              <div class="upload-label">
+                <span class="upload-icon">⬆</span>
+                <span>Banner-Bild hochladen</span>
+              </div>
+              <div id="bannerPreview" class="upload-preview"></div>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Textfarbe</label>
+              <div class="color-row">
+                <input type="color" id="heroTextColor" value="#ffffff">
+                <input type="text" class="hex-input" id="heroTextColor_hex" value="#ffffff">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Schriftart</label>
+              <select id="heroFont" class="input-field">
+                <option value="Bangers">Bangers — Graffiti</option>
+                <option value="Rubik Dirt">Rubik Dirt — Street</option>
+                <option value="Inter">Inter — Clean</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Overlay-Abdunkelung: <span id="heroOverlayVal">0</span></label>
+            <input type="range" id="heroOverlay" min="0" max="0.95" step="0.05" class="range-input"
+              oninput="document.getElementById('heroOverlayVal').textContent=parseFloat(this.value).toFixed(2)">
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Banner speichern</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ─────────────────── MEDIA ─────────────────────────────── -->
+    <section id="sec-media" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Medien</h1>
+          <p class="page-sub" id="mediaCountLabel">Lädt...</p>
+        </div>
+        <label class="btn-primary" style="cursor:pointer;">
+          + Hochladen
+          <input type="file" id="mediaUploadInput" accept="image/*" multiple style="display:none"
+            onchange="uploadMediaFiles(this.files)">
+        </label>
+      </div>
+
+      <div class="media-grid" id="mediaGrid">
+        <div class="loading-state">Lädt Medien...</div>
+      </div>
+    </section>
+
+    <!-- ─────────────────── SETTINGS ─────────────────────────── -->
+    <section id="sec-settings" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Einstellungen</h1>
+          <p class="page-sub">Allgemeine Shop-Konfiguration.</p>
+        </div>
+      </div>
+
+      <div class="editor-card">
+        <div class="card-title">Shop-Grundeinstellungen</div>
+        <form id="settingsForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Shop-Name</label>
+              <input type="text" id="shopTitle" class="input-field" placeholder="DRIP VAULT">
+            </div>
+            <div class="form-group">
+              <label>Login-Text (Untertitel)</label>
+              <input type="text" id="loginText" class="input-field" placeholder="Welcome Back">
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Produkt-Layout</label>
+              <select id="settingsLayout" class="input-field">
+                <option value="grid">Grid (Kacheln)</option>
+                <option value="list">Liste</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Speichern</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="editor-card">
+        <div class="card-title">Login-Seite & Branding</div>
+        <form id="loginPageForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Login-Hintergrundbild</label>
+              <div class="upload-zone">
+                <input type="file" name="loginBackground" id="loginBgFile" accept="image/*" class="file-input"
+                  onchange="previewFile(this,'loginBgPreview',null)">
+                <div class="upload-label">
+                  <span class="upload-icon">⬆</span>
+                  <span>Login-Hintergrund hochladen</span>
+                </div>
+                <div id="loginBgPreview" class="upload-preview"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Logo</label>
+              <div class="upload-zone">
+                <input type="file" name="logo" id="logoFile" accept="image/*" class="file-input"
+                  onchange="previewFile(this,'logoPreview',null)">
+                <div class="upload-label">
+                  <span class="upload-icon">⬆</span>
+                  <span>Logo hochladen</span>
+                </div>
+                <div id="logoPreview" class="upload-preview"></div>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Speichern</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ─────────────────── COLLECTIONS ────────────────────── -->
+    <section id="sec-collections" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Collections / Drops</h1>
+          <p class="page-sub" id="colCountLabel">Lädt...</p>
+        </div>
+        <button class="btn-primary" onclick="openAddCollection()">+ Neue Kollektion</button>
+      </div>
+
+      <div class="collection-admin-grid" id="collectionAdminGrid">
+        <div class="loading-state">Lädt Collections...</div>
+      </div>
+    </section>
+
+    <!-- ─────────────────── BRAND CURSOR ─────────────────────── -->
+    <section id="sec-cursor" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Brand Cursor</h1>
+          <p class="page-sub">Eigener Cursor mit Logo und Animationen.</p>
+        </div>
+        <a href="/shop.html" target="_blank" class="btn-outline">↗ Im Shop testen</a>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start;">
+        <!-- Controls -->
+        <div>
+          <div class="editor-card">
+            <div class="card-title">Cursor aktivieren</div>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Brand Cursor einschalten</div>
+                <div style="font-size:11px;color:rgba(255,255,255,.25)">Ersetzt den Standard-Cursor auf Desktop (nicht mobil)</div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="cur_enabled"><span class="toggle-track"></span></label>
+            </div>
+          </div>
+
+          <div class="editor-card">
+            <div class="card-title">Cursor-Bild</div>
+            <div class="toggle-row" style="margin-bottom:16px;">
+              <div>
+                <div class="toggle-label">Shop-Logo verwenden</div>
+                <div style="font-size:11px;color:rgba(255,255,255,.25)">Lädt das hochgeladene Logo als Cursor</div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="cur_useLogo" checked><span class="toggle-track"></span></label>
+            </div>
+            <div class="form-group">
+              <label>Eigenes Cursor-Bild (PNG mit Transparenz ideal)</label>
+              <div class="upload-zone">
+                <input type="file" id="cur_imageFile" accept="image/*" class="file-input"
+                  onchange="previewCursorImage(this)">
+                <div class="upload-label">
+                  <span class="upload-icon">⬆</span>
+                  <span>Cursor-Bild hochladen</span>
+                  <span class="upload-hint">PNG mit Transparenz empfohlen</span>
+                </div>
+                <div id="cur_imagePreview" class="upload-preview"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="editor-card">
+            <div class="card-title">Größe & Aussehen</div>
+            <div class="form-group">
+              <label>Größe: <span id="cur_size_val">36</span>px</label>
+              <input type="range" id="cur_size" min="16" max="80" value="36" class="range-input"
+                oninput="document.getElementById('cur_size_val').textContent=this.value;updateCursorPreview()">
+            </div>
+            <div class="form-group">
+              <label>Transparenz: <span id="cur_opacity_val">0.90</span></label>
+              <input type="range" id="cur_opacity" min="0.1" max="1" step="0.05" value="0.9" class="range-input"
+                oninput="document.getElementById('cur_opacity_val').textContent=parseFloat(this.value).toFixed(2);updateCursorPreview()">
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Hover Button: <span id="cur_bscale_val">1.6</span>×</label>
+                <input type="range" id="cur_buttonScale" min="1" max="3" step="0.1" value="1.6" class="range-input"
+                  oninput="document.getElementById('cur_bscale_val').textContent=parseFloat(this.value).toFixed(1)">
+              </div>
+              <div class="form-group">
+                <label>Hover Produkt: <span id="cur_pscale_val">1.3</span>×</label>
+                <input type="range" id="cur_productScale" min="1" max="2.5" step="0.1" value="1.3" class="range-input"
+                  oninput="document.getElementById('cur_pscale_val').textContent=parseFloat(this.value).toFixed(1)">
+              </div>
+            </div>
+          </div>
+
+          <div class="editor-card">
+            <div class="card-title">Animation</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Animation</label>
+                <select id="cur_animation" class="input-field" onchange="updateCursorPreview()">
+                  <option value="none">Keine</option>
+                  <option value="glow">Glow Effekt</option>
+                  <option value="pulse">Pulse</option>
+                  <option value="rotate">Leichte Rotation</option>
+                  <option value="trail">Trail Effekt</option>
+                  <option value="particles">Partikel Spur</option>
+                  <option value="sticker">Sticker (doppelt)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Glow Farbe</label>
+                <div class="color-row">
+                  <input type="color" id="cur_glowColor" value="#ff2d55" oninput="updateCursorPreview()">
+                  <input type="text" class="hex-input" id="cur_glowColor_hex" value="#FF2D55">
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Glow Stärke: <span id="cur_glowSize_val">20</span>px</label>
+              <input type="range" id="cur_glowSize" min="5" max="60" value="20" class="range-input"
+                oninput="document.getElementById('cur_glowSize_val').textContent=this.value;updateCursorPreview()">
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-primary" onclick="saveCursor()">💾 Cursor speichern</button>
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div style="position:sticky;top:80px;">
+          <div class="editor-card">
+            <div class="card-title">Live-Vorschau</div>
+            <div id="cursorPreviewArea" style="position:relative;height:320px;background:var(--color-bg);border-radius:8px;overflow:hidden;cursor:none;">
+              <!-- simulated cursor -->
+              <div id="previewCursor" style="
+                position:absolute; top:50%; left:50%;
+                transform:translate(-50%,-50%);
+                width:36px; height:36px;
+                background:rgba(255,45,85,0.9);
+                border-radius:50%;
+                transition:width .15s,height .15s;
+                pointer-events:none;
+                background-size:contain;
+                background-repeat:no-repeat;
+                background-position:center;
+              "></div>
+              <!-- labels -->
+              <div style="position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,.3)">Normal</div>
+              <!-- preview zones -->
+              <div id="pvzBtn" style="position:absolute;top:30px;left:20px;right:20px;background:rgba(255,45,85,.15);border:1px dashed rgba(255,45,85,.3);border-radius:8px;padding:12px;text-align:center;font-size:12px;color:rgba(255,255,255,.5);cursor:none;"
+                onmouseenter="simulateCursorState('button')" onmouseleave="simulateCursorState('normal')">
+                Button Bereich (Hover testen)
+              </div>
+              <div id="pvzPrd" style="position:absolute;top:110px;left:20px;right:20px;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.15);border-radius:8px;padding:12px;text-align:center;font-size:12px;color:rgba(255,255,255,.4);cursor:none;"
+                onmouseenter="simulateCursorState('product')" onmouseleave="simulateCursorState('normal')">
+                Produkt-Karte (Hover testen)
+              </div>
+              <div id="pvzImg" style="position:absolute;top:190px;left:20px;right:20px;background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.08);border-radius:8px;padding:12px;text-align:center;font-size:12px;color:rgba(255,255,255,.3);cursor:none;"
+                onmouseenter="simulateCursorState('image')" onmouseleave="simulateCursorState('normal')">
+                Bild-Bereich (Hover testen)
+              </div>
+            </div>
+          </div>
+
+          <div class="editor-card" style="margin-top:12px;">
+            <div class="card-title">Intro Vorschau testen</div>
+            <div class="form-group">
+              <label>Intro-Typ</label>
+              <select id="previewIntroType" class="input-field">
+                <option value="graffiti">Graffiti Reveal</option>
+                <option value="chrome">Chrome Luxury</option>
+                <option value="money">Money Drop</option>
+                <option value="album">Album Cover Style</option>
+                <option value="street">Street Night</option>
+                <option value="glitch">Glitch Drop</option>
+                <option value="spray">Spray Paint Reveal</option>
+              </select>
+            </div>
+            <button class="btn-outline" style="width:100%" onclick="testIntroPreview()">▶ Intro abspielen</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────── VISUAL EFFECTS ─────────────────── -->
+    <section id="sec-vfx" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Visual Effects</h1>
+          <p class="page-sub">Premium Effekte für deinen Shop.</p>
+        </div>
+        <a href="/shop.html" target="_blank" class="btn-outline">↗ Vorschau</a>
+      </div>
+
+      <!-- Dollar Effect -->
+      <div class="vfx-card">
+        <div class="vfx-card-head">
+          <div>
+            <div class="vfx-title">💰 Dollar Regen</div>
+            <div class="vfx-desc">Animierte 3D-Dollarzeichen fallen vom Himmel</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="vfx_dollars_enabled"><span class="toggle-track"></span></label>
+        </div>
+        <div class="vfx-controls">
+          <div class="vfx-row">
+            <label>Anzahl <span class="vfx-val" id="vfx_dollars_count_v">15</span></label>
+            <input type="range" id="vfx_dollars_count" min="3" max="60" value="15"
+              oninput="document.getElementById('vfx_dollars_count_v').textContent=this.value">
+          </div>
+          <div class="vfx-row">
+            <label>Geschwindigkeit <span class="vfx-val" id="vfx_dollars_speed_v">1.0</span></label>
+            <input type="range" id="vfx_dollars_speed" min="0.2" max="5" step="0.1" value="1"
+              oninput="document.getElementById('vfx_dollars_speed_v').textContent=parseFloat(this.value).toFixed(1)">
+          </div>
+          <div class="vfx-row">
+            <label>Opazität <span class="vfx-val" id="vfx_dollars_opacity_v">0.20</span></label>
+            <input type="range" id="vfx_dollars_opacity" min="0.05" max="1" step="0.05" value="0.2"
+              oninput="document.getElementById('vfx_dollars_opacity_v').textContent=parseFloat(this.value).toFixed(2)">
+          </div>
+          <div class="vfx-row">
+            <label>Min. Größe <span class="vfx-val" id="vfx_dollars_minSize_v">24</span>px</label>
+            <input type="range" id="vfx_dollars_minSize" min="10" max="50" value="24"
+              oninput="document.getElementById('vfx_dollars_minSize_v').textContent=this.value">
+          </div>
+          <div class="vfx-row">
+            <label>Max. Größe <span class="vfx-val" id="vfx_dollars_maxSize_v">56</span>px</label>
+            <input type="range" id="vfx_dollars_maxSize" min="30" max="120" value="56"
+              oninput="document.getElementById('vfx_dollars_maxSize_v').textContent=this.value">
+          </div>
+          <div class="vfx-row">
+            <label>Farbe</label>
+            <div class="color-row" style="gap:8px;">
+              <input type="color" id="vfx_dollars_color" value="#4CAF50">
+              <input type="text" class="hex-input" id="vfx_dollars_color_hex" value="#4CAF50" style="width:80px;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gold Particles -->
+      <div class="vfx-card">
+        <div class="vfx-card-head">
+          <div>
+            <div class="vfx-title">✨ Gold Partikel</div>
+            <div class="vfx-desc">Funkelnde Goldpartikel steigen auf</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="vfx_gp_enabled"><span class="toggle-track"></span></label>
+        </div>
+        <div class="vfx-controls">
+          <div class="vfx-row">
+            <label>Anzahl <span class="vfx-val" id="vfx_gp_count_v">40</span></label>
+            <input type="range" id="vfx_gp_count" min="5" max="120" value="40"
+              oninput="document.getElementById('vfx_gp_count_v').textContent=this.value">
+          </div>
+          <div class="vfx-row">
+            <label>Geschwindigkeit <span class="vfx-val" id="vfx_gp_speed_v">0.4</span></label>
+            <input type="range" id="vfx_gp_speed" min="0.1" max="3" step="0.1" value="0.4"
+              oninput="document.getElementById('vfx_gp_speed_v').textContent=parseFloat(this.value).toFixed(1)">
+          </div>
+          <div class="vfx-row">
+            <label>Größe <span class="vfx-val" id="vfx_gp_size_v">2.5</span>px</label>
+            <input type="range" id="vfx_gp_size" min="0.5" max="8" step="0.5" value="2.5"
+              oninput="document.getElementById('vfx_gp_size_v').textContent=parseFloat(this.value).toFixed(1)">
+          </div>
+          <div class="vfx-row">
+            <label>Opazität <span class="vfx-val" id="vfx_gp_opacity_v">0.70</span></label>
+            <input type="range" id="vfx_gp_opacity" min="0.1" max="1" step="0.05" value="0.7"
+              oninput="document.getElementById('vfx_gp_opacity_v').textContent=parseFloat(this.value).toFixed(2)">
+          </div>
+        </div>
+      </div>
+
+      <!-- Confetti -->
+      <div class="vfx-card">
+        <div class="vfx-card-head">
+          <div>
+            <div class="vfx-title">🎊 Confetti Drop</div>
+            <div class="vfx-desc">Bunte Konfetti-Teilchen fallen herunter</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="vfx_confetti_enabled"><span class="toggle-track"></span></label>
+        </div>
+        <div class="vfx-controls">
+          <div class="vfx-row">
+            <label>Anzahl <span class="vfx-val" id="vfx_confetti_count_v">40</span></label>
+            <input type="range" id="vfx_confetti_count" min="5" max="100" value="40"
+              oninput="document.getElementById('vfx_confetti_count_v').textContent=this.value">
+          </div>
+          <div class="vfx-row">
+            <label>Geschwindigkeit <span class="vfx-val" id="vfx_confetti_speed_v">1.5</span></label>
+            <input type="range" id="vfx_confetti_speed" min="0.3" max="5" step="0.1" value="1.5"
+              oninput="document.getElementById('vfx_confetti_speed_v').textContent=parseFloat(this.value).toFixed(1)">
+          </div>
+          <div class="vfx-row">
+            <label>Opazität <span class="vfx-val" id="vfx_confetti_opacity_v">0.90</span></label>
+            <input type="range" id="vfx_confetti_opacity" min="0.2" max="1" step="0.05" value="0.9"
+              oninput="document.getElementById('vfx_confetti_opacity_v').textContent=parseFloat(this.value).toFixed(2)">
+          </div>
+        </div>
+      </div>
+
+      <!-- Sparkle -->
+      <div class="vfx-card">
+        <div class="vfx-card-head">
+          <div>
+            <div class="vfx-title">⭐ Sparkle / Sterne</div>
+            <div class="vfx-desc">Funkelnde Sterne erscheinen und verschwinden</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="vfx_sparkle_enabled"><span class="toggle-track"></span></label>
+        </div>
+        <div class="vfx-controls">
+          <div class="vfx-row">
+            <label>Anzahl <span class="vfx-val" id="vfx_sparkle_count_v">20</span></label>
+            <input type="range" id="vfx_sparkle_count" min="3" max="60" value="20"
+              oninput="document.getElementById('vfx_sparkle_count_v').textContent=this.value">
+          </div>
+          <div class="vfx-row">
+            <label>Größe <span class="vfx-val" id="vfx_sparkle_size_v">4</span>px</label>
+            <input type="range" id="vfx_sparkle_size" min="1" max="16" value="4"
+              oninput="document.getElementById('vfx_sparkle_size_v').textContent=this.value">
+          </div>
+          <div class="vfx-row">
+            <label>Geschwindigkeit <span class="vfx-val" id="vfx_sparkle_speed_v">1.0</span></label>
+            <input type="range" id="vfx_sparkle_speed" min="0.2" max="4" step="0.1" value="1"
+              oninput="document.getElementById('vfx_sparkle_speed_v').textContent=parseFloat(this.value).toFixed(1)">
+          </div>
+          <div class="vfx-row">
+            <label>Farbe</label>
+            <div class="color-row" style="gap:8px;">
+              <input type="color" id="vfx_sparkle_color" value="#FFD700">
+              <input type="text" class="hex-input" id="vfx_sparkle_color_hex" value="#FFD700" style="width:80px;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Light Leak -->
+      <div class="vfx-card">
+        <div class="vfx-card-head">
+          <div>
+            <div class="vfx-title">🌈 Light Leak</div>
+            <div class="vfx-desc">Filmreife Lichtleck-Überblendung</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="vfx_ll_enabled"><span class="toggle-track"></span></label>
+        </div>
+        <div class="vfx-controls">
+          <div class="vfx-row">
+            <label>Opazität <span class="vfx-val" id="vfx_ll_opacity_v">0.12</span></label>
+            <input type="range" id="vfx_ll_opacity" min="0.02" max="0.5" step="0.02" value="0.12"
+              oninput="document.getElementById('vfx_ll_opacity_v').textContent=parseFloat(this.value).toFixed(2)">
+          </div>
+          <div class="vfx-row">
+            <label>Geschwindigkeit <span class="vfx-val" id="vfx_ll_speed_v">8</span>s</label>
+            <input type="range" id="vfx_ll_speed" min="2" max="30" value="8"
+              oninput="document.getElementById('vfx_ll_speed_v').textContent=this.value">
+          </div>
+        </div>
+      </div>
+
+      <!-- Glitch -->
+      <div class="vfx-card">
+        <div class="vfx-card-head">
+          <div>
+            <div class="vfx-title">📺 Glitch Animation</div>
+            <div class="vfx-desc">Digitaler Glitch-Effekt auf Shop-Titel</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="vfx_glitch_enabled"><span class="toggle-track"></span></label>
+        </div>
+        <div class="vfx-controls">
+          <div class="vfx-row">
+            <label>Frequenz <span class="vfx-val" id="vfx_glitch_freq_v">4</span>s</label>
+            <input type="range" id="vfx_glitch_freq" min="1" max="20" value="4"
+              oninput="document.getElementById('vfx_glitch_freq_v').textContent=this.value">
+          </div>
+        </div>
+      </div>
+
+      <!-- 3D Card Tilt -->
+      <div class="vfx-card">
+        <div class="vfx-card-head">
+          <div>
+            <div class="vfx-title">🎴 3D Karten-Tilt</div>
+            <div class="vfx-desc">Produkt-Karten kippen 3D beim Hover + Shine</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="vfx_tilt_enabled"><span class="toggle-track"></span></label>
+        </div>
+        <div class="vfx-controls">
+          <div class="vfx-row">
+            <label>Intensität <span class="vfx-val" id="vfx_tilt_intensity_v">12</span>°</label>
+            <input type="range" id="vfx_tilt_intensity" min="2" max="25" value="12"
+              oninput="document.getElementById('vfx_tilt_intensity_v').textContent=this.value">
+          </div>
+          <div class="toggle-row" style="margin-top:10px;">
+            <span class="toggle-label" style="font-size:13px;">Lichtreflex-Shine</span>
+            <label class="toggle"><input type="checkbox" id="vfx_tilt_shine" checked><span class="toggle-track"></span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions" style="margin-top:8px;">
+        <button class="btn-primary" onclick="saveVisualEffects()">💾 Visual Effects speichern</button>
+      </div>
+    </section>
+
+    <!-- ─────────────────── LOGIN EDITOR ──────────────────────── -->
+    <section id="sec-logineditor" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Passwort Seite</h1>
+          <p class="page-sub">Login-Seite gestalten und Zugänge verwalten.</p>
+        </div>
+        <button class="btn-outline" onclick="reloadLoginPreview()">↺ Vorschau aktualisieren</button>
+      </div>
+
+      <div class="login-editor-layout">
+
+        <!-- ── Left: Controls ── -->
+        <div class="login-editor-controls">
+
+          <!-- PASSWORDS -->
+          <div class="editor-card">
+            <div class="card-title">🔐 Zugänge & Passwörter</div>
+
+            <div class="form-group">
+              <label>Kunden-Passwort</label>
+              <div style="display:flex;gap:8px;">
+                <input type="password" id="lp_customerPass" class="input-field" placeholder="Neues Passwort" style="flex:1;">
+                <button type="button" class="btn-outline" style="padding:0 14px;font-size:18px;"
+                  onclick="this.previousElementSibling.type=this.previousElementSibling.type==='password'?'text':'password'">👁</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Admin-Passwort</label>
+              <div style="display:flex;gap:8px;">
+                <input type="password" id="lp_adminPass" class="input-field" placeholder="Neues Admin-Passwort" style="flex:1;">
+                <button type="button" class="btn-outline" style="padding:0 14px;font-size:18px;"
+                  onclick="this.previousElementSibling.type=this.previousElementSibling.type==='password'?'text':'password'">👁</button>
+              </div>
+            </div>
+
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Kunden-Zugang aktiv</div>
+                <div style="font-size:11px;color:rgba(255,255,255,.25);">Wenn deaktiviert, können nur Admins einloggen</div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lp_customerEnabled" checked><span class="toggle-track"></span></label>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-primary" onclick="savePasswords()">🔑 Passwörter speichern</button>
+            </div>
+          </div>
+
+          <!-- BACKGROUND -->
+          <div class="editor-card">
+            <div class="card-title">🖼️ Hintergrund</div>
+
+            <div class="form-group">
+              <label>Hintergrundfarbe</label>
+              <div class="color-row">
+                <input type="color" id="lp_bgColor" value="#0f0f0f">
+                <input type="text" class="hex-input" id="lp_bgColor_hex" value="#0F0F0F">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Hintergrundbild</label>
+              <div class="upload-zone">
+                <input type="file" id="lp_bgImageFile" accept="image/*" class="file-input"
+                  onchange="previewFile(this,'lp_bgPreview')">
+                <div class="upload-label">
+                  <span class="upload-icon">⬆</span><span>Bild hochladen</span>
+                </div>
+                <div id="lp_bgPreview" class="upload-preview"></div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Hintergrundvideo (MP4)</label>
+              <div class="upload-zone">
+                <input type="file" id="lp_videoFile" accept="video/*" class="file-input"
+                  onchange="document.getElementById('lp_videoName').textContent=this.files[0]?.name||''">
+                <div class="upload-label">
+                  <span class="upload-icon">▶</span><span>Video hochladen (MP4)</span>
+                  <span id="lp_videoName" style="font-size:11px;color:rgba(255,255,255,.4);"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Overlay Abdunkelung: <span id="lp_overlay_val">0.45</span></label>
+              <input type="range" id="lp_bgOverlay" min="0" max="0.95" step="0.05" value="0.45" class="range-input"
+                oninput="document.getElementById('lp_overlay_val').textContent=parseFloat(this.value).toFixed(2)">
+            </div>
+            <div class="form-group">
+              <label>Blur Stärke: <span id="lp_blur_val">0.0</span>px</label>
+              <input type="range" id="lp_bgBlur" min="0" max="20" step="0.5" value="0" class="range-input"
+                oninput="document.getElementById('lp_blur_val').textContent=parseFloat(this.value).toFixed(1)">
+            </div>
+            <div class="form-group">
+              <label>Helligkeit: <span id="lp_bright_val">1.00</span></label>
+              <input type="range" id="lp_bgBrightness" min="0.3" max="1.8" step="0.05" value="1" class="range-input"
+                oninput="document.getElementById('lp_bright_val').textContent=parseFloat(this.value).toFixed(2)">
+            </div>
+            <div class="form-group">
+              <label>Vignette: <span id="lp_vig_val">0.60</span></label>
+              <input type="range" id="lp_vignette" min="0" max="1" step="0.05" value="0.6" class="range-input"
+                oninput="document.getElementById('lp_vig_val').textContent=parseFloat(this.value).toFixed(2)">
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Kamerabewegung (Parallax)</div>
+                <div style="font-size:11px;color:rgba(255,255,255,.25);">Hintergrund folgt dem Mauszeiger</div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lp_cameraMove"><span class="toggle-track"></span></label>
+            </div>
+          </div>
+
+          <!-- TEXTS & FONTS -->
+          <div class="editor-card">
+            <div class="card-title">✍️ Texte & Schriften</div>
+
+            <div class="form-group">
+              <label>Hauptüberschrift</label>
+              <input type="text" id="lp_headline" class="input-field" placeholder="DRIP VAULT">
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Schriftart</label>
+                <select id="lp_headlineFont" class="input-field">
+                  <option value="Bangers">Bangers</option>
+                  <option value="Rubik Dirt">Rubik Dirt</option>
+                  <option value="Inter">Inter</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Größe (px)</label>
+                <input type="number" id="lp_headlineSize" class="input-field" value="52" min="20" max="120">
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Farbe</label>
+                <div class="color-row">
+                  <input type="color" id="lp_headlineColor" value="#ffffff">
+                  <input type="text" class="hex-input" id="lp_headlineColor_hex" value="#FFFFFF">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Animation</label>
+                <select id="lp_headlineAnim" class="input-field">
+                  <option value="none">Keine</option>
+                  <option value="fade">Fade In</option>
+                  <option value="slide">Slide Down</option>
+                  <option value="glitch">Glitch</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top:16px;">
+              <label>Untertitel</label>
+              <input type="text" id="lp_subtitle" class="input-field" placeholder="It's YES Baby">
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Farbe</label>
+                <div class="color-row">
+                  <input type="color" id="lp_subtitleColor" value="#666666">
+                  <input type="text" class="hex-input" id="lp_subtitleColor_hex" value="#666666">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Größe (px)</label>
+                <input type="number" id="lp_subtitleSize" class="input-field" value="14" min="10" max="32">
+              </div>
+            </div>
+          </div>
+
+          <!-- LOGO -->
+          <div class="editor-card">
+            <div class="card-title">🏷️ Logo</div>
+            <div class="form-group">
+              <label>Logo-Bild</label>
+              <div class="upload-zone">
+                <input type="file" id="lp_logoFile" accept="image/*" class="file-input"
+                  onchange="previewFile(this,'lp_logoPreview')">
+                <div class="upload-label">
+                  <span class="upload-icon">⬆</span><span>Logo hochladen</span>
+                </div>
+                <div id="lp_logoPreview" class="upload-preview"></div>
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Größe (px)</label>
+                <input type="number" id="lp_logoSize" class="input-field" value="60" min="20" max="300">
+              </div>
+              <div class="form-group">
+                <label>Animation</label>
+                <select id="lp_logoAnim" class="input-field">
+                  <option value="none">Keine</option>
+                  <option value="pulse">Pulse</option>
+                  <option value="bounce">Bounce</option>
+                  <option value="fade">Fade</option>
+                  <option value="rotate">Rotate</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- INPUT & BUTTON -->
+          <div class="editor-card">
+            <div class="card-title">🎛️ Input & Button Design</div>
+
+            <div class="form-group">
+              <label>Placeholder-Text</label>
+              <input type="text" id="lp_inputPlaceholder" class="input-field" placeholder="Zugangscode eingeben">
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Input Hintergrund</label>
+                <div class="color-row">
+                  <input type="color" id="lp_inputBg" value="#111111">
+                  <input type="text" class="hex-input" id="lp_inputBg_hex" value="#111111">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Input Rahmen</label>
+                <div class="color-row">
+                  <input type="color" id="lp_inputBorder" value="#333333">
+                  <input type="text" class="hex-input" id="lp_inputBorder_hex" value="#333333">
+                </div>
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Input Textfarbe</label>
+                <div class="color-row">
+                  <input type="color" id="lp_inputTextColor" value="#ffffff">
+                  <input type="text" class="hex-input" id="lp_inputTextColor_hex" value="#FFFFFF">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Input Radius (px)</label>
+                <input type="number" id="lp_inputRadius" class="input-field" value="14" min="0" max="50">
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Fokus Glow Farbe</label>
+                <div class="color-row">
+                  <input type="color" id="lp_inputGlow" value="#ff2d55">
+                  <input type="text"  class="hex-input" id="lp_inputGlow_hex" value="#FF2D55">
+                </div>
+              </div>
+              <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
+                <div class="toggle-row" style="margin:0;">
+                  <div class="toggle-label" style="font-size:12px;">Schatten</div>
+                  <label class="toggle"><input type="checkbox" id="lp_inputShadow"><span class="toggle-track"></span></label>
+                </div>
+              </div>
+            </div>
+
+            <div style="border-top:1px solid var(--color-border);margin:16px 0;"></div>
+
+            <div class="form-group">
+              <label>Button-Text</label>
+              <input type="text" id="lp_btnText" class="input-field" placeholder="EINTRETEN">
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Button Farbe</label>
+                <div class="color-row">
+                  <input type="color" id="lp_btnBg" value="#ff2d55">
+                  <input type="text" class="hex-input" id="lp_btnBg_hex" value="#FF2D55">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Button Text</label>
+                <div class="color-row">
+                  <input type="color" id="lp_btnColor" value="#ffffff">
+                  <input type="text" class="hex-input" id="lp_btnColor_hex" value="#FFFFFF">
+                </div>
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Button Radius (px)</label>
+                <input type="number" id="lp_btnRadius" class="input-field" value="8" min="0" max="50">
+              </div>
+              <div class="form-group">
+                <label>Animation</label>
+                <select id="lp_btnAnim" class="input-field">
+                  <option value="none">Keine</option>
+                  <option value="pulse">Pulse</option>
+                  <option value="glow">Glow</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Hover Hintergrund</label>
+                <div class="color-row">
+                  <input type="color" id="lp_btnHoverBg" value="#cc0033">
+                  <input type="text"  class="hex-input" id="lp_btnHoverBg_hex" value="#CC0033">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Icon (Emoji)</label>
+                <input type="text" id="lp_btnIcon" class="input-field" placeholder="🔥 ⚡ 💎">
+              </div>
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Button Glow Effekt</div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lp_btnGlow"><span class="toggle-track"></span></label>
+            </div>
+            <div class="form-group">
+              <label>Glow Farbe</label>
+              <div class="color-row">
+                <input type="color" id="lp_btnGlowColor" value="#ff2d55">
+                <input type="text"  class="hex-input" id="lp_btnGlowColor_hex" value="#FF2D55">
+              </div>
+            </div>
+          </div>
+
+          <!-- PAGE REVEAL -->
+          <div class="editor-card">
+            <div class="card-title">✨ Seiten-Animation (Reveal)</div>
+            <div class="form-group">
+              <label>Intro-Animation beim Laden</label>
+              <select id="lp_pageReveal" class="input-field">
+                <option value="fade">Fade</option>
+                <option value="zoom">Zoom</option>
+                <option value="slide">Slide Up</option>
+                <option value="glitch">Glitch</option>
+                <option value="graffiti">Graffiti Reveal</option>
+                <option value="chrome">Chrome Reveal</option>
+                <option value="money">Money Reveal</option>
+                <option value="neon">Neon Reveal</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- HINT TEXT -->
+          <div class="editor-card">
+            <div class="card-title">💬 Hinweis Text</div>
+            <div class="form-group">
+              <label>Text unter dem Button</label>
+              <input type="text" id="lp_hintText" class="input-field" placeholder="z.B. Exklusiver Zugang">
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Farbe</label>
+                <div class="color-row">
+                  <input type="color" id="lp_hintColor" value="#555555">
+                  <input type="text"  class="hex-input" id="lp_hintColor_hex" value="#555555">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Größe (px)</label>
+                <input type="number" id="lp_hintSize" class="input-field" value="11" min="8" max="24">
+              </div>
+            </div>
+          </div>
+
+          <!-- MONEY ATMOSPHÄRE -->
+          <div class="editor-card">
+            <div class="card-title">💰 Money Atmosphäre</div>
+            <div class="toggle-row" style="margin-bottom:16px;">
+              <div><div class="toggle-label">Aktiviert</div></div>
+              <label class="toggle"><input type="checkbox" id="lp_moneyEnabled" checked><span class="toggle-track"></span></label>
+            </div>
+            <div class="form-group">
+              <label>Anzahl Geldscheine: <span id="lp_moneyCount_val">12</span></label>
+              <input type="range" id="lp_moneyCount" min="1" max="30" step="1" value="12" class="range-input"
+                oninput="document.getElementById('lp_moneyCount_val').textContent=this.value">
+            </div>
+            <div class="form-group">
+              <label>Geschwindigkeit: <span id="lp_moneySpeed_val">0.60</span></label>
+              <input type="range" id="lp_moneySpeed" min="0.1" max="3" step="0.1" value="0.6" class="range-input"
+                oninput="document.getElementById('lp_moneySpeed_val').textContent=parseFloat(this.value).toFixed(2)">
+            </div>
+            <div class="form-group">
+              <label>Größe: <span id="lp_moneySize_val">1.00</span></label>
+              <input type="range" id="lp_moneySize" min="0.3" max="2.5" step="0.1" value="1" class="range-input"
+                oninput="document.getElementById('lp_moneySize_val').textContent=parseFloat(this.value).toFixed(2)">
+            </div>
+            <div class="form-group">
+              <label>Transparenz: <span id="lp_moneyOp_val">0.22</span></label>
+              <input type="range" id="lp_moneyOpacity" min="0.05" max="1" step="0.05" value="0.22" class="range-input"
+                oninput="document.getElementById('lp_moneyOp_val').textContent=parseFloat(this.value).toFixed(2)">
+            </div>
+          </div>
+
+          <!-- FILM GRAIN -->
+          <div class="editor-card">
+            <div class="card-title">📽️ Film Grain</div>
+            <div class="toggle-row" style="margin-bottom:16px;">
+              <div>
+                <div class="toggle-label">Aktiviert</div>
+                <div style="font-size:11px;color:rgba(255,255,255,.25);">Leichte Filmkorn-Textur über der Seite</div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lp_grainEnabled"><span class="toggle-track"></span></label>
+            </div>
+            <div class="form-group">
+              <label>Intensität: <span id="lp_grainInt_val">0.35</span></label>
+              <input type="range" id="lp_grainIntensity" min="0.05" max="1" step="0.05" value="0.35" class="range-input"
+                oninput="document.getElementById('lp_grainInt_val').textContent=parseFloat(this.value).toFixed(2)">
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-primary" onclick="saveLoginPage()">💾 Login-Seite speichern</button>
+          </div>
+
+        </div><!-- /login-editor-controls -->
+
+        <!-- ── Right: Live Preview ── -->
+        <div class="login-editor-preview">
+          <div class="preview-panel-head">
+            <span>Live-Vorschau</span>
+            <button class="btn-outline" onclick="reloadLoginPreview()" style="font-size:12px;padding:6px 12px;">↺ Neu laden</button>
+          </div>
+          <div class="preview-frame-wrap">
+            <iframe id="loginPreviewFrame" src="/index.html" scrolling="no" frameborder="0"></iframe>
+          </div>
+        </div>
+
+      </div><!-- /login-editor-layout -->
+    </section>
+
+    <!-- ─────────────────── ORDERS ──────────────────────────── -->
+    <section id="sec-orders" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Bestellungen</h1>
+          <p class="page-sub">Alle Kundenbestellungen auf einen Blick.</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-outline" onclick="exportOrdersCSV()">⬇ CSV</button>
+          <button class="btn-outline" onclick="loadOrdersAdmin()">↺ Aktualisieren</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="ord-stats-row">
+        <div class="ord-stat-card">
+          <div class="ord-stat-num" id="ordStatTotal">—</div>
+          <div class="ord-stat-lbl">Bestellungen</div>
+        </div>
+        <div class="ord-stat-card">
+          <div class="ord-stat-num" id="ordStatPending">—</div>
+          <div class="ord-stat-lbl">Ausstehend</div>
+        </div>
+        <div class="ord-stat-card ord-stat-accent">
+          <div class="ord-stat-num" id="ordStatRevenue">—</div>
+          <div class="ord-stat-lbl">Umsatz gesamt</div>
+        </div>
+      </div>
+
+      <!-- Filter tabs + search -->
+      <div class="ord-controls">
+        <div class="ord-tabs" id="ordTabs">
+          <button class="ord-tab active" data-status="all">Alle</button>
+          <button class="ord-tab" data-status="pending">Ausstehend</button>
+          <button class="ord-tab" data-status="processing">Bearbeitung</button>
+          <button class="ord-tab" data-status="shipped">Versendet</button>
+          <button class="ord-tab" data-status="delivered">Geliefert</button>
+          <button class="ord-tab" data-status="cancelled">Storniert</button>
+        </div>
+        <input type="text" class="input-field" id="ordSearch"
+          placeholder="Name, E-Mail, Bestellnr…" style="width:240px;max-width:100%"
+          oninput="renderOrderList()">
+      </div>
+
+      <!-- Order list -->
+      <div id="ordList" class="ord-list"></div>
+    </section>
+
+    <!-- ─────────────────── PAYMENT ──────────────────────────── -->
+    <section id="sec-payment" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Zahlungseinstellungen</h1>
+          <p class="page-sub">PayPal, Apple Pay, Kreditkarte und Rechnungskauf konfigurieren.</p>
+        </div>
+        <button class="btn-primary" onclick="savePaymentSettings()">Speichern</button>
+      </div>
+
+      <!-- PayPal -->
+      <div class="editor-card">
+        <div class="card-title">🅿 PayPal / Apple Pay / Kreditkarte</div>
+        <p class="field-hint" style="margin:0 0 18px">
+          PayPal ermöglicht auch Apple Pay (Safari/iOS), Google Pay (Chrome/Android) und
+          Kreditkarten in einem einzigen Button-Block. Du benötigst ein
+          <a href="https://developer.paypal.com" target="_blank" style="color:var(--admin-accent)">PayPal Developer</a>-Konto.
+        </p>
+        <div class="field-row">
+          <div class="field-group" style="flex:1">
+            <label class="field-label">Client ID (öffentlich)</label>
+            <input type="text" class="input-field" id="pay_clientId" placeholder="AXxxxxx…">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group" style="flex:1">
+            <label class="field-label">Client Secret (privat)</label>
+            <input type="password" class="input-field" id="pay_clientSecret" placeholder="EGxxxxx…">
+            <span class="field-hint">Nur serverseitig genutzt — nie an Kunden übermittelt.</span>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Modus</label>
+            <select class="input-field" id="pay_mode">
+              <option value="sandbox">Sandbox (Testmodus)</option>
+              <option value="live">Live (Produktiv)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Währung</label>
+            <select class="input-field" id="pay_currency">
+              <option value="EUR">EUR — Euro</option>
+              <option value="USD">USD — US Dollar</option>
+              <option value="CHF">CHF — Schweizer Franken</option>
+              <option value="GBP">GBP — Britisches Pfund</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row" style="align-items:center">
+          <label class="toggle-label">
+            <input type="checkbox" id="pay_paypalEnabled" class="toggle-cb">
+            <span class="toggle-track"></span>
+            PayPal aktivieren
+          </label>
+        </div>
+      </div>
+
+      <!-- Manual payment -->
+      <div class="editor-card">
+        <div class="card-title">📋 Manuelle Zahlung / Auf Rechnung</div>
+        <div class="field-row" style="align-items:center">
+          <label class="toggle-label">
+            <input type="checkbox" id="pay_manualEnabled" class="toggle-cb" checked>
+            <span class="toggle-track"></span>
+            Manuelle Zahlung aktivieren
+          </label>
+        </div>
+        <div class="field-group" style="margin-top:16px">
+          <label class="field-label">Anweisungen für den Kunden</label>
+          <textarea class="input-field" id="pay_manualInstructions" rows="3"
+            placeholder="z.B. Bitte überweise den Betrag an IBAN DE12…"></textarea>
+          <span class="field-hint">Wird im Checkout neben dem manuellen Bestellbutton angezeigt.</span>
+        </div>
+      </div>
+
+      <!-- Email notifications -->
+      <div class="editor-card">
+        <div class="card-title">✉ Automatische Bestätigungs-E-Mail</div>
+        <p class="field-hint" style="margin:0 0 18px">
+          Kunden erhalten nach jeder Bestellung automatisch eine E-Mail.
+          Verwende <code>{{name}}</code>, <code>{{orderId}}</code>, <code>{{total}}</code>,
+          <code>{{items}}</code>, <code>{{address}}</code>, <code>{{paymentMethod}}</code>, <code>{{note}}</code>
+          als Platzhalter im Betreff und Text.
+        </p>
+        <div class="field-row" style="align-items:center">
+          <label class="toggle-label">
+            <input type="checkbox" id="em_enabled" class="toggle-cb">
+            <span class="toggle-track"></span>
+            E-Mail-Benachrichtigungen aktivieren
+          </label>
+        </div>
+
+        <div class="field-row" style="margin-top:16px">
+          <div class="field-group" style="flex:1">
+            <label class="field-label">SMTP-Host</label>
+            <input type="text" class="input-field" id="em_smtpHost"
+              placeholder="smtp.gmail.com  /  smtp.strato.de  /  …">
+          </div>
+          <div class="field-group" style="max-width:110px">
+            <label class="field-label">Port</label>
+            <input type="number" class="input-field" id="em_smtpPort" value="587" min="1" max="65535">
+          </div>
+          <div class="field-group" style="max-width:120px;align-self:flex-end;padding-bottom:4px">
+            <label class="toggle-label" style="font-size:12px">
+              <input type="checkbox" id="em_smtpSecure" class="toggle-cb">
+              <span class="toggle-track"></span>
+              SSL (Port 465)
+            </label>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group" style="flex:1">
+            <label class="field-label">SMTP-Benutzer / E-Mail</label>
+            <input type="email" class="input-field" id="em_smtpUser" placeholder="shop@example.com">
+          </div>
+          <div class="field-group" style="flex:1">
+            <label class="field-label">SMTP-Passwort / App-Passwort</label>
+            <input type="password" class="input-field" id="em_smtpPass" placeholder="••••••••">
+            <span class="field-hint">Wird nicht angezeigt wenn bereits gespeichert.</span>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group" style="flex:1">
+            <label class="field-label">Absender-Name</label>
+            <input type="text" class="input-field" id="em_senderName" placeholder="DRIP VAULT">
+          </div>
+          <div class="field-group" style="flex:1">
+            <label class="field-label">Absender-E-Mail (optional)</label>
+            <input type="email" class="input-field" id="em_senderEmail"
+              placeholder="noreply@example.com  (Standard: SMTP-Benutzer)">
+          </div>
+        </div>
+
+        <div class="field-group" style="margin-top:4px">
+          <label class="field-label">Betreff</label>
+          <input type="text" class="input-field" id="em_subject"
+            placeholder="Deine Bestellung {{orderId}} ist eingegangen 🛍">
+        </div>
+
+        <div class="field-group" style="margin-top:12px">
+          <label class="field-label">E-Mail-Text</label>
+          <textarea class="input-field" id="em_body" rows="12"
+            style="font-family:monospace;font-size:13px;line-height:1.6;resize:vertical"
+            placeholder="Hallo {{name}},&#10;&#10;danke für deine Bestellung!&#10;…"></textarea>
+          <span class="field-hint">Zeilenumbrüche werden als &lt;br&gt; ins HTML umgewandelt.</span>
+        </div>
+
+        <div class="field-row" style="margin-top:12px;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="field-group" style="flex:1;min-width:200px">
+            <label class="field-label">Test-E-Mail senden an</label>
+            <input type="email" class="input-field" id="em_testAddress"
+              placeholder="deine@email.de">
+          </div>
+          <button class="btn-outline" style="align-self:flex-end"
+            onclick="sendTestEmail()">⚡ Test senden</button>
+        </div>
+      </div>
+
+      <!-- Shipping -->
+      <div class="editor-card">
+        <div class="card-title">📦 Versandkosten</div>
+        <div class="field-row" style="align-items:center">
+          <label class="toggle-label">
+            <input type="checkbox" id="pay_shippingFree" class="toggle-cb" checked
+              onchange="document.getElementById('payShippingCostRow').style.display=this.checked?'none':''">
+            <span class="toggle-track"></span>
+            Kostenloser Versand
+          </label>
+        </div>
+        <div class="field-row" id="payShippingCostRow" style="margin-top:16px;display:none">
+          <div class="field-group">
+            <label class="field-label">Versandkosten (€)</label>
+            <input type="number" class="input-field" id="pay_shippingCost"
+              value="4.99" step="0.01" min="0" style="max-width:160px">
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /main-area -->
+
+  <!-- Order detail modal -->
+  <div id="orderDetailOverlay" style="display:none;position:fixed;inset:0;z-index:8000;
+    background:rgba(0,0,0,.85);backdrop-filter:blur(6px);
+    align-items:center;justify-content:center;padding:20px">
+    <div class="ord-detail-box">
+      <button class="modal-close" style="position:absolute;top:14px;right:14px"
+        onclick="closeOrderDetail()">✕</button>
+      <div id="ordDetailContent"></div>
+    </div>
+  </div>
+</div><!-- /admin-shell -->
+
+<!-- ══════════════════════ COLLECTION MODAL ══════════════════ -->
+<div class="modal" id="collectionModal">
+  <div class="modal-backdrop" onclick="closeColModal()"></div>
+  <div class="modal-panel" style="max-width:760px;max-height:92vh;overflow-y:auto;">
+    <div class="modal-header">
+      <h2 id="colModalTitle">Kollektion erstellen</h2>
+      <button class="modal-close" onclick="closeColModal()">✕</button>
+    </div>
+    <form id="collectionForm" style="display:flex;flex-direction:column;gap:0;">
+      <input type="hidden" id="col_id">
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Name <span class="required">*</span></label>
+          <input type="text" id="col_name" class="input-field" placeholder="SUMMER DROP 001" required>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="col_status" class="input-field">
+            <option value="coming_soon">COMING SOON</option>
+            <option value="live">LIVE</option>
+            <option value="sold_out">SOLD OUT</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Beschreibung</label>
+        <textarea id="col_desc" class="input-field textarea" rows="2" placeholder="Limitierte Kollektion..."></textarea>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Veröffentlichungsdatum</label>
+          <input type="datetime-local" id="col_releaseDate" class="input-field">
+        </div>
+        <div class="form-group">
+          <label>Intro Animation</label>
+          <select id="col_intro" class="input-field">
+            <option value="none">Kein Intro</option>
+            <option value="graffiti">Graffiti Reveal</option>
+            <option value="chrome">Chrome Luxury</option>
+            <option value="money">Money Drop</option>
+            <option value="album">Album Cover Style</option>
+            <option value="street">Street Night</option>
+            <option value="glitch">Glitch Drop</option>
+            <option value="spray">Spray Paint Reveal</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Titelbild</label>
+          <div class="upload-zone">
+            <input type="file" id="col_titleImg" accept="image/*" class="file-input"
+              onchange="previewFile(this,'col_titlePreview')">
+            <div class="upload-label">
+              <span class="upload-icon">⬆</span><span>Titelbild</span>
+            </div>
+            <div id="col_titlePreview" class="upload-preview"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Banner</label>
+          <div class="upload-zone">
+            <input type="file" id="col_bannerImg" accept="image/*" class="file-input"
+              onchange="previewFile(this,'col_bannerPreview')">
+            <div class="upload-label">
+              <span class="upload-icon">⬆</span><span>Banner-Bild</span>
+            </div>
+            <div id="col_bannerPreview" class="upload-preview"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Products -->
+      <div class="form-group">
+        <label>Produkte in dieser Kollektion</label>
+        <div id="col_productSelect" class="col-product-select">
+          <p style="color:rgba(255,255,255,.3);font-size:12px;">Wird geladen...</p>
+        </div>
+      </div>
+
+      <!-- Colors -->
+      <div class="form-group">
+        <label>Farbschema</label>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+          <div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:4px;">Hintergrund</div>
+            <div class="color-row"><input type="color" id="col_colBg" value="#0f0f0f"><input type="text" class="hex-input" id="col_colBg_hex" value="#0F0F0F"></div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:4px;">Text</div>
+            <div class="color-row"><input type="color" id="col_colText" value="#ffffff"><input type="text" class="hex-input" id="col_colText_hex" value="#FFFFFF"></div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:4px;">Akzent</div>
+            <div class="color-row"><input type="color" id="col_colAccent" value="#ff2d55"><input type="text" class="hex-input" id="col_colAccent_hex" value="#FF2D55"></div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:4px;">Button</div>
+            <div class="color-row"><input type="color" id="col_colButton" value="#ff2d55"><input type="text" class="hex-input" id="col_colButton_hex" value="#FF2D55"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fonts -->
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Display-Schrift</label>
+          <select id="col_fontDisplay" class="input-field">
+            <option value="Bangers">Bangers</option>
+            <option value="Rubik Dirt">Rubik Dirt</option>
+            <option value="Inter">Inter</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Sichtbar</label>
+          <select id="col_visible" class="input-field">
+            <option value="true">Öffentlich sichtbar</option>
+            <option value="false">Versteckt</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Effects -->
+      <div class="form-group">
+        <label>Kollektion-Effekte</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="toggle-row" style="padding:8px;">
+            <span class="toggle-label" style="font-size:12px;">Dollar Regen</span>
+            <label class="toggle"><input type="checkbox" id="colfx_dollars"><span class="toggle-track"></span></label>
+          </div>
+          <div class="toggle-row" style="padding:8px;">
+            <span class="toggle-label" style="font-size:12px;">Gold Partikel</span>
+            <label class="toggle"><input type="checkbox" id="colfx_goldParticles"><span class="toggle-track"></span></label>
+          </div>
+          <div class="toggle-row" style="padding:8px;">
+            <span class="toggle-label" style="font-size:12px;">Confetti</span>
+            <label class="toggle"><input type="checkbox" id="colfx_confetti"><span class="toggle-track"></span></label>
+          </div>
+          <div class="toggle-row" style="padding:8px;">
+            <span class="toggle-label" style="font-size:12px;">Neon Glow</span>
+            <label class="toggle"><input type="checkbox" id="colfx_neonGlow"><span class="toggle-track"></span></label>
+          </div>
+          <div class="toggle-row" style="padding:8px;">
+            <span class="toggle-label" style="font-size:12px;">Film Grain</span>
+            <label class="toggle"><input type="checkbox" id="colfx_grain"><span class="toggle-track"></span></label>
+          </div>
+          <div class="toggle-row" style="padding:8px;">
+            <span class="toggle-label" style="font-size:12px;">Glitch</span>
+            <label class="toggle"><input type="checkbox" id="colfx_glitch"><span class="toggle-track"></span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-outline" onclick="closeColModal()">Abbrechen</button>
+        <button type="submit" class="btn-primary" id="saveColBtn">Speichern</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════════════════ PRODUCT MODAL ═════════════════════ -->
+<div class="modal" id="productModal">
+  <div class="modal-backdrop" onclick="closeProductModal()"></div>
+  <div class="modal-panel" style="max-width:620px">
+    <div class="modal-header">
+      <h2 id="modalTitle">Produkt hinzufügen</h2>
+      <button class="modal-close" onclick="closeProductModal()">✕</button>
+    </div>
+    <form id="productForm">
+      <input type="hidden" id="editProductId">
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Name <span class="required">*</span></label>
+          <input type="text" id="p_name" class="input-field" placeholder="Produkt Name" required>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="p_visible" class="input-field">
+            <option value="true">Sichtbar im Shop</option>
+            <option value="false">Versteckt</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Preis (€) <span class="required">*</span></label>
+          <input type="number" id="p_price" class="input-field" placeholder="49.99" step="0.01" min="0" required>
+        </div>
+        <div class="form-group">
+          <label>Rabattpreis (€)</label>
+          <input type="number" id="p_discountPrice" class="input-field" placeholder="Optional" step="0.01" min="0">
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Kategorie</label>
+          <input type="text" id="p_category" class="input-field" placeholder="Hoodies, Caps...">
+        </div>
+        <div class="form-group">
+          <label>Badge</label>
+          <select id="p_badge" class="input-field">
+            <option value="">— Kein Badge —</option>
+            <option value="NEW">NEW</option>
+            <option value="LIMITED">LIMITED</option>
+            <option value="DROP">DROP</option>
+            <option value="SOLD OUT">SOLD OUT</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Beschreibung</label>
+        <textarea id="p_description" class="input-field textarea" placeholder="Produktbeschreibung..." rows="3"></textarea>
+      </div>
+
+      <!-- Sizes -->
+      <div class="form-group">
+        <label>Größen</label>
+        <div class="tag-input-wrap" id="sizeTagWrap">
+          <div class="tag-list" id="sizeTagList"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <input type="text" id="sizeTagInput" class="input-field" placeholder="XS, S, M, L, XL..." style="flex:1">
+            <button type="button" class="btn-outline" onclick="addSizeTag()" style="flex-shrink:0;padding:8px 14px;font-size:12px;">+ Hinzufügen</button>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+            <button type="button" class="tag-preset" onclick="addPresetSizes()">XS S M L XL</button>
+            <button type="button" class="tag-preset" onclick="addSizeTag('One Size')">One Size</button>
+          </div>
+        </div>
+        <input type="hidden" id="p_sizes">
+      </div>
+
+      <!-- Colors -->
+      <div class="form-group">
+        <label>Farben</label>
+        <div class="color-tags-wrap" id="colorTagWrap">
+          <div class="color-tag-list" id="colorTagList"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <input type="color" id="colorTagPicker" style="width:44px;height:36px;">
+            <button type="button" class="btn-outline" onclick="addColorTag()" style="padding:8px 14px;font-size:12px;">+ Farbe hinzufügen</button>
+          </div>
+        </div>
+        <input type="hidden" id="p_colors">
+      </div>
+
+      <!-- Images -->
+      <div class="form-group">
+        <label>Produktbilder (mehrere möglich)</label>
+        <div class="upload-zone">
+          <input type="file" name="images" id="p_images" accept="image/*" multiple class="file-input"
+            onchange="previewMultipleFiles(this)">
+          <div class="upload-label">
+            <span class="upload-icon">⬆</span>
+            <span>Bilder hochladen (mehrere wählbar)</span>
+            <span class="upload-hint">JPG, PNG, WebP</span>
+          </div>
+        </div>
+        <!-- Existing images -->
+        <div class="existing-images" id="p_existingImages" style="margin-top:10px;"></div>
+        <!-- New image previews -->
+        <div class="new-images-preview" id="p_newImgPreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;"></div>
+        <input type="hidden" id="p_keepImages">
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-outline" onclick="closeProductModal()">Abbrechen</button>
+        <button type="submit" class="btn-primary" id="saveProductBtn">Speichern</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════════════════ DELETE MODAL ══════════════════════ -->
+<div class="modal" id="deleteModal">
+  <div class="modal-backdrop" onclick="closeDeleteModal()"></div>
+  <div class="modal-panel modal-sm">
+    <div class="modal-header">
+      <h2>Produkt löschen?</h2>
+      <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+    </div>
+    <p class="modal-body-text">Diese Aktion kann nicht rückgängig gemacht werden.</p>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeDeleteModal()">Abbrechen</button>
+      <button class="btn-danger" id="confirmDeleteBtn">Löschen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ TOAST ══════════════════════════════ -->
+<div class="toast" id="toast"></div>
+
+<script src="js/auth.js"></script>
+<script>
+'use strict';
+
+Auth.requireRole('admin');
+document.getElementById('logoutBtn').addEventListener('click', () => Auth.logout());
+
+// ── Global state ──────────────────────────────────────────────
+let allProducts     = [];
+let currentSettings = {};
+let editingProductId = null;
+let pendingDeleteId  = null;
+let mediaLoaded     = false;
+let designLoaded    = false;
+let homepageLoaded  = false;
+let settingsLoaded  = false;
+
+// Per-product tag state
+let _pSizes  = [];
+let _pColors = [];
+let _pKeepImages = [];  // existing image URLs to keep
+
+// ── Navigation ────────────────────────────────────────────────
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate(item.dataset.sec);
+  });
+});
+
+function navigate(sec) {
+  document.querySelectorAll('.nav-item').forEach(n =>
+    n.classList.toggle('active', n.dataset.sec === sec)
+  );
+  document.querySelectorAll('.page').forEach(p =>
+    p.classList.toggle('active', p.id === 'sec-' + sec)
+  );
+  if (sec === 'dashboard')   loadDashboard();
+  if (sec === 'products')    loadProductsAdmin();
+  if (sec === 'design')      { if (!designLoaded) loadDesign(); }
+  if (sec === 'homepage')    { if (!homepageLoaded) loadHomepage(); }
+  if (sec === 'media')       loadMedia();
+  if (sec === 'settings')    { if (!settingsLoaded) loadSettingsPage(); }
+  if (sec === 'vfx')         loadVFX();
+  if (sec === 'logineditor') loadLoginEditor();
+}
+
+// ── Dashboard ─────────────────────────────────────────────────
+async function loadDashboard() {
+  const [products, orders, settings] = await Promise.all([
+    fetch('/products').then(r => r.json()),
+    fetch('/admin/orders').then(r => r.json()).catch(() => []),
+    fetch('/settings').then(r => r.json()),
+  ]);
+
+  currentSettings = settings;
+
+  document.getElementById('statProducts').textContent = products.length;
+  document.getElementById('statVisible').textContent  = products.filter(p => p.visible).length;
+  document.getElementById('statOrders').textContent   = orders.length;
+
+  const avg = products.length
+    ? (products.reduce((s, p) => s + p.price, 0) / products.length).toFixed(2).replace('.', ',') + ' €'
+    : '—';
+  document.getElementById('statRevenue').textContent = avg;
+
+  document.getElementById('siTitle').textContent  = settings.shopTitle  || '—';
+  document.getElementById('siLayout').textContent = settings.layout     || '—';
+  document.getElementById('siLogin').textContent  = settings.loginText  || '—';
+  document.getElementById('siBanner').textContent = settings.heroBanner?.enabled ? 'Aktiv' : 'Inaktiv';
+}
+
+// ── Products ──────────────────────────────────────────────────
+async function loadProductsAdmin() {
+  document.getElementById('productAdminGrid').innerHTML = '<div class="loading-state">Lädt...</div>';
+  const res = await fetch('/products');
+  allProducts = await res.json();
+  renderProducts(allProducts);
+}
+
+function filterProducts() {
+  const q = document.getElementById('productSearch').value.toLowerCase();
+  renderProducts(allProducts.filter(p =>
+    p.name.toLowerCase().includes(q) ||
+    (p.category || '').toLowerCase().includes(q)
+  ));
+}
+
+function renderProducts(list) {
+  const grid = document.getElementById('productAdminGrid');
+  document.getElementById('productCountLabel').textContent =
+    allProducts.length + ' Produkte total';
+
+  if (list.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><h3>Keine Produkte</h3><p>Noch keine Produkte angelegt.</p></div>';
+    return;
+  }
+
+  grid.innerHTML = list.map(p => `
+    <div class="product-admin-card" data-id="${p.id}">
+      ${p.image
+        ? `<img src="${p.image}" class="pac-img" alt="${esc(p.name)}">`
+        : `<div class="pac-img-placeholder">KEIN BILD</div>`}
+      <div class="pac-body">
+        <div class="pac-name">${esc(p.name)}</div>
+        <div class="pac-price">${fmtPrice(p.price)}</div>
+        <div class="pac-meta">
+          <span class="badge-vis ${p.visible ? 'on' : 'off'}">${p.visible ? 'Sichtbar' : 'Versteckt'}</span>
+          ${p.category ? `<span class="badge-cat">${esc(p.category)}</span>` : ''}
+        </div>
+        <div class="pac-actions">
+          <button class="pac-btn btn-edit" onclick="openEditModal(${p.id})">Bearbeiten</button>
+          <button class="pac-btn btn-vis ${p.visible ? 'on' : ''}" onclick="toggleVisible(${p.id},this)">
+            ${p.visible ? 'Ausblenden' : 'Einblenden'}
+          </button>
+          <button class="pac-btn btn-del" onclick="confirmDelete(${p.id})">Löschen</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Product modal ─────────────────────────────────────────────
+function resetProductModal() {
+  _pSizes  = [];
+  _pColors = [];
+  _pKeepImages = [];
+  document.getElementById('productForm').reset();
+  document.getElementById('editProductId').value = '';
+  document.getElementById('p_newImgPreview').innerHTML   = '';
+  document.getElementById('p_existingImages').innerHTML  = '';
+  renderSizeTags();
+  renderColorTags();
+}
+
+function openAddModal() {
+  editingProductId = null;
+  document.getElementById('modalTitle').textContent = 'Produkt hinzufügen';
+  resetProductModal();
+  document.getElementById('productModal').classList.add('open');
+}
+
+function openEditModal(id) {
+  const p = allProducts.find(x => x.id === id);
+  if (!p) return;
+  editingProductId = id;
+  resetProductModal();
+  document.getElementById('modalTitle').textContent = 'Produkt bearbeiten';
+  document.getElementById('editProductId').value    = id;
+  document.getElementById('p_name').value           = p.name;
+  document.getElementById('p_price').value          = p.price;
+  document.getElementById('p_discountPrice').value  = p.discountPrice || '';
+  document.getElementById('p_description').value    = p.description   || '';
+  document.getElementById('p_category').value       = p.category      || '';
+  document.getElementById('p_badge').value          = p.badge         || '';
+  document.getElementById('p_visible').value        = p.visible ? 'true' : 'false';
+
+  // Load sizes
+  _pSizes = Array.isArray(p.sizes) ? [...p.sizes] : [];
+  renderSizeTags();
+
+  // Load colors
+  _pColors = Array.isArray(p.colors) ? [...p.colors] : [];
+  renderColorTags();
+
+  // Existing images
+  const imgs = (p.images && p.images.length) ? p.images : (p.image ? [p.image] : []);
+  _pKeepImages = [...imgs];
+  renderExistingImages();
+
+  document.getElementById('productModal').classList.add('open');
+}
+
+// ── Sizes tag system ──────────────────────────────────────────
+function renderSizeTags() {
+  const list = document.getElementById('sizeTagList');
+  list.innerHTML = _pSizes.map((s, i) => `
+    <span class="size-tag">${esc(s)}<button type="button" onclick="removeSize(${i})">✕</button></span>
+  `).join('');
+  document.getElementById('p_sizes').value = JSON.stringify(_pSizes);
+}
+
+function addSizeTag(preset) {
+  const input = document.getElementById('sizeTagInput');
+  const val = preset || input.value.trim();
+  if (!val) return;
+  const vals = val.split(/[,\s]+/).filter(Boolean);
+  vals.forEach(v => { if (!_pSizes.includes(v)) _pSizes.push(v); });
+  input.value = '';
+  renderSizeTags();
+}
+
+function addPresetSizes() {
+  ['XS','S','M','L','XL'].forEach(s => { if (!_pSizes.includes(s)) _pSizes.push(s); });
+  renderSizeTags();
+}
+
+function removeSize(idx) {
+  _pSizes.splice(idx, 1);
+  renderSizeTags();
+}
+
+document.getElementById('sizeTagInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addSizeTag(); }
+});
+
+// ── Colors tag system ─────────────────────────────────────────
+function renderColorTags() {
+  const list = document.getElementById('colorTagList');
+  list.innerHTML = _pColors.map((c, i) => `
+    <span class="color-tag">
+      <span class="color-swatch" style="background:${esc(c)}"></span>
+      ${esc(c)}
+      <button type="button" onclick="removeColor(${i})">✕</button>
+    </span>
+  `).join('');
+  document.getElementById('p_colors').value = JSON.stringify(_pColors);
+}
+
+function addColorTag() {
+  const c = document.getElementById('colorTagPicker').value;
+  if (!_pColors.includes(c)) _pColors.push(c);
+  renderColorTags();
+}
+
+function removeColor(idx) {
+  _pColors.splice(idx, 1);
+  renderColorTags();
+}
+
+// ── Existing image management ─────────────────────────────────
+function renderExistingImages() {
+  const wrap = document.getElementById('p_existingImages');
+  if (_pKeepImages.length === 0) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = _pKeepImages.map((src, i) => `
+    <div class="existing-img-item">
+      <img src="${esc(src)}" alt="Bild ${i+1}">
+      ${i === 0 ? '<span class="existing-img-primary">MAIN</span>' : ''}
+      <button class="existing-img-remove" type="button" onclick="removeExistingImage(${i})">✕</button>
+    </div>
+  `).join('');
+  document.getElementById('p_keepImages').value = JSON.stringify(_pKeepImages);
+}
+
+function removeExistingImage(idx) {
+  _pKeepImages.splice(idx, 1);
+  renderExistingImages();
+}
+
+function previewMultipleFiles(input) {
+  const wrap = document.getElementById('p_newImgPreview');
+  wrap.innerHTML = '';
+  Array.from(input.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.className = 'new-img-preview-item';
+      wrap.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function closeProductModal() {
+  document.getElementById('productModal').classList.remove('open');
+}
+
+document.getElementById('productForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('saveProductBtn');
+  btn.textContent = 'Speichert...';
+  btn.disabled = true;
+
+  const fd = new FormData();
+  fd.append('name',          document.getElementById('p_name').value);
+  fd.append('price',         document.getElementById('p_price').value);
+  fd.append('discountPrice', document.getElementById('p_discountPrice').value);
+  fd.append('description',   document.getElementById('p_description').value);
+  fd.append('category',      document.getElementById('p_category').value);
+  fd.append('badge',         document.getElementById('p_badge').value);
+  fd.append('visible',       document.getElementById('p_visible').value);
+  fd.append('sizes',         JSON.stringify(_pSizes));
+  fd.append('colors',        JSON.stringify(_pColors));
+  fd.append('keepImages',    JSON.stringify(_pKeepImages));
+
+  // Append all new images
+  const imgFiles = document.getElementById('p_images').files;
+  Array.from(imgFiles).forEach(f => fd.append('images', f));
+
+  let res;
+  if (editingProductId) {
+    res = await fetch(`/admin/product/${editingProductId}`, { method: 'PUT', body: fd });
+  } else {
+    res = await fetch('/admin/add-product', { method: 'POST', body: fd });
+  }
+
+  const data = await res.json();
+  btn.textContent = 'Speichern';
+  btn.disabled = false;
+
+  if (data.success) {
+    closeProductModal();
+    toast(editingProductId ? 'Produkt aktualisiert ✓' : 'Produkt hinzugefügt ✓', 'success');
+    loadProductsAdmin();
+  } else {
+    toast(data.error || 'Fehler beim Speichern.', 'error');
+  }
+});
+
+// ── Toggle visibility ─────────────────────────────────────────
+async function toggleVisible(id, btn) {
+  const res = await fetch(`/admin/toggle/${id}`, { method: 'PATCH' });
+  const data = await res.json();
+  if (data.success) {
+    const p = allProducts.find(x => x.id === id);
+    if (p) p.visible = data.visible;
+    const card = btn.closest('.product-admin-card');
+    if (card) {
+      const badge = card.querySelector('.badge-vis');
+      if (badge) {
+        badge.className = 'badge-vis ' + (data.visible ? 'on' : 'off');
+        badge.textContent = data.visible ? 'Sichtbar' : 'Versteckt';
+      }
+      btn.textContent = data.visible ? 'Ausblenden' : 'Einblenden';
+      btn.classList.toggle('on', data.visible);
+    }
+    toast(data.visible ? 'Produkt sichtbar' : 'Produkt ausgeblendet', 'success');
+  }
+}
+
+// ── Delete product ────────────────────────────────────────────
+function confirmDelete(id) {
+  pendingDeleteId = id;
+  document.getElementById('deleteModal').classList.add('open');
+}
+
+function closeDeleteModal() {
+  pendingDeleteId = null;
+  document.getElementById('deleteModal').classList.remove('open');
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+  if (!pendingDeleteId) return;
+  const res = await fetch(`/admin/product/${pendingDeleteId}`, { method: 'DELETE' });
+  const data = await res.json();
+  closeDeleteModal();
+  if (data.success) {
+    toast('Produkt gelöscht', 'success');
+    loadProductsAdmin();
+  } else {
+    toast('Fehler beim Löschen.', 'error');
+  }
+});
+
+// ── Design ────────────────────────────────────────────────────
+async function loadDesign() {
+  designLoaded = true;
+  const s = await fetch('/settings').then(r => r.json());
+  currentSettings = s;
+  const t = s.theme || {};
+
+  const colorMap = {
+    t_bgColor:      t.bgColor,
+    t_bgSecondary:  t.bgSecondary,
+    t_cardColor:    t.cardColor,
+    t_textColor:    t.textColor,
+    t_headingColor: t.headingColor,
+    t_accentColor:  t.accentColor,
+    t_buttonColor:  t.buttonColor,
+    t_borderColor:  t.borderColor,
+  };
+
+  Object.entries(colorMap).forEach(([id, val]) => {
+    if (!val) return;
+    initColorPicker(id, val);
+  });
+
+  // Background
+  document.getElementById('t_bgImageEnabled').checked = !!t.bgImageEnabled;
+  if (t.bgSize)     document.getElementById('t_bgSize').value     = t.bgSize;
+  if (t.bgPosition) document.getElementById('t_bgPosition').value = t.bgPosition;
+  const ov = t.overlayOpacity || 0;
+  document.getElementById('t_overlayOpacity').value = ov;
+  document.getElementById('overlayVal').textContent = parseFloat(ov).toFixed(2);
+
+  // Fonts
+  if (s.fontDisplay) document.getElementById('fontDisplay').value = s.fontDisplay;
+  if (s.fontMain)    document.getElementById('fontMain').value    = s.fontMain;
+  updateFontPreview('fontDisplay', 'fontDisplayPreview', true);
+  updateFontPreview('fontMain',    'fontMainPreview',    false);
+}
+
+function initColorPicker(id, hex) {
+  const picker = document.getElementById(id);
+  const hexIn  = document.getElementById(id + '_hex');
+  if (!picker || !hexIn) return;
+  picker.value = hex;
+  hexIn.value  = hex.toUpperCase();
+  picker.addEventListener('input', () => {
+    hexIn.value = picker.value.toUpperCase();
+  });
+  hexIn.addEventListener('input', () => {
+    const v = hexIn.value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) picker.value = v;
+  });
+}
+
+function getColor(id) {
+  return document.getElementById(id).value;
+}
+
+async function saveColors() {
+  const fd = new FormData();
+  fd.append('theme', JSON.stringify({
+    bgColor:      getColor('t_bgColor'),
+    bgSecondary:  getColor('t_bgSecondary'),
+    cardColor:    getColor('t_cardColor'),
+    textColor:    getColor('t_textColor'),
+    headingColor: getColor('t_headingColor'),
+    accentColor:  getColor('t_accentColor'),
+    buttonColor:  getColor('t_buttonColor'),
+    borderColor:  getColor('t_borderColor'),
+  }));
+  await postSettings(fd);
+  toast('Farben gespeichert ✓', 'success');
+}
+
+async function saveFonts() {
+  const fd = new FormData();
+  fd.append('fontDisplay', document.getElementById('fontDisplay').value);
+  fd.append('fontMain',    document.getElementById('fontMain').value);
+  await postSettings(fd);
+  toast('Schriften gespeichert ✓', 'success');
+}
+
+document.getElementById('bgForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  fd.append('theme', JSON.stringify({
+    bgImageEnabled: document.getElementById('t_bgImageEnabled').checked,
+    bgSize:         document.getElementById('t_bgSize').value,
+    bgPosition:     document.getElementById('t_bgPosition').value,
+    overlayOpacity: parseFloat(document.getElementById('t_overlayOpacity').value),
+  }));
+  await postSettings(fd);
+  toast('Hintergrund gespeichert ✓', 'success');
+});
+
+// Design tabs
+document.getElementById('designTabs').addEventListener('click', (e) => {
+  if (!e.target.classList.contains('tab')) return;
+  const tab = e.target.dataset.tab;
+  document.querySelectorAll('#designTabs .tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === tab)
+  );
+  document.querySelectorAll('.tab-pane').forEach(p =>
+    p.classList.toggle('active', p.id === 'tab-' + tab)
+  );
+  if (tab === 'button')  loadButtonStyle();
+  if (tab === 'effects') loadEffects();
+});
+
+// ── Button Style ──────────────────────────────────────────────
+async function loadButtonStyle() {
+  const s  = await fetch('/settings').then(r => r.json());
+  const bs = s.buttonStyle || {};
+  document.getElementById('btn_text').value    = bs.text    || 'In den Warenkorb';
+  document.getElementById('btn_fontSize').value = bs.fontSize || 13;
+  document.getElementById('btn_animation').value = bs.animation || 'none';
+  document.getElementById('btn_uppercase').checked = bs.uppercase !== false;
+  document.getElementById('btn_shadow').checked    = !!bs.shadow;
+
+  const radius = bs.borderRadius ?? 6;
+  document.getElementById('btn_borderRadius').value = radius;
+  document.getElementById('btn_radiusVal').textContent = radius + 'px';
+
+  const ls = bs.letterSpacing ?? 0.07;
+  document.getElementById('btn_letterSpacing').value = ls;
+  document.getElementById('btn_lsVal').textContent = ls + 'em';
+
+  initColorPicker('btn_bgColor',      bs.bgColor      || '#ff2d55');
+  initColorPicker('btn_textColor',    bs.textColor    || '#ffffff');
+  initColorPicker('btn_shadowColor',  bs.shadowColor  || '#ff2d55');
+  updateBtnPreview();
+}
+
+function updateBtnPreview() {
+  const preview = document.getElementById('btnPreview');
+  if (!preview) return;
+  const bg    = document.getElementById('btn_bgColor')?.value    || '#ff2d55';
+  const tc    = document.getElementById('btn_textColor')?.value  || '#ffffff';
+  const r     = document.getElementById('btn_borderRadius')?.value || 6;
+  const fs    = document.getElementById('btn_fontSize')?.value   || 13;
+  const ls    = document.getElementById('btn_letterSpacing')?.value || 0.07;
+  const upper = document.getElementById('btn_uppercase')?.checked;
+  const shadow = document.getElementById('btn_shadow')?.checked;
+  const sc    = document.getElementById('btn_shadowColor')?.value || '#ff2d55';
+  const text  = document.getElementById('btn_text')?.value       || 'In den Warenkorb';
+  preview.textContent = text;
+  preview.style.cssText = `
+    background:${bg};color:${tc};border-radius:${r}px;
+    font-size:${fs}px;letter-spacing:${ls}em;
+    text-transform:${upper?'uppercase':'none'};padding:10px 22px;
+    border:none;cursor:default;font-family:"Inter",sans-serif;font-weight:700;
+    box-shadow:${shadow?`0 4px 20px -4px ${sc}40`:'none'};
+    transition:filter .15s;
+  `;
+}
+
+// Wire preview updates
+['btn_bgColor','btn_textColor','btn_borderRadius','btn_fontSize',
+ 'btn_letterSpacing','btn_animation','btn_shadowColor'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', () => {
+    if (id === 'btn_borderRadius') document.getElementById('btn_radiusVal').textContent = el.value + 'px';
+    if (id === 'btn_letterSpacing') document.getElementById('btn_lsVal').textContent = el.value + 'em';
+    updateBtnPreview();
+  });
+});
+['btn_uppercase','btn_shadow'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', updateBtnPreview);
+});
+document.getElementById('btn_text').addEventListener('input', updateBtnPreview);
+
+async function saveButtonStyle() {
+  const fd = new FormData();
+  fd.append('buttonStyle', JSON.stringify({
+    text:          document.getElementById('btn_text').value,
+    bgColor:       document.getElementById('btn_bgColor').value,
+    textColor:     document.getElementById('btn_textColor').value,
+    shadowColor:   document.getElementById('btn_shadowColor').value,
+    borderRadius:  parseInt(document.getElementById('btn_borderRadius').value),
+    fontSize:      parseInt(document.getElementById('btn_fontSize').value),
+    letterSpacing: parseFloat(document.getElementById('btn_letterSpacing').value),
+    uppercase:     document.getElementById('btn_uppercase').checked,
+    shadow:        document.getElementById('btn_shadow').checked,
+    animation:     document.getElementById('btn_animation').value,
+    fontWeight:    700,
+  }));
+  await postSettings(fd);
+  toast('Button gespeichert ✓', 'success');
+}
+
+// ── Effects ───────────────────────────────────────────────────
+async function loadEffects() {
+  const s  = await fetch('/settings').then(r => r.json());
+  const fx = s.effects || {};
+  document.getElementById('fx_grain').checked            = !!fx.grain;
+  document.getElementById('fx_particles').checked        = !!fx.particles;
+  document.getElementById('fx_neonGlow').checked         = !!fx.neonGlow;
+  document.getElementById('fx_cursor').checked           = !!fx.cursor;
+  document.getElementById('fx_scrollAnimations').checked = fx.scrollAnimations !== false;
+  document.getElementById('fx_hoverGlow').checked        = fx.hoverGlow !== false;
+}
+
+async function saveEffects() {
+  const fd = new FormData();
+  fd.append('effects', JSON.stringify({
+    grain:            document.getElementById('fx_grain').checked,
+    particles:        document.getElementById('fx_particles').checked,
+    neonGlow:         document.getElementById('fx_neonGlow').checked,
+    cursor:           document.getElementById('fx_cursor').checked,
+    scrollAnimations: document.getElementById('fx_scrollAnimations').checked,
+    hoverGlow:        document.getElementById('fx_hoverGlow').checked,
+  }));
+  await postSettings(fd);
+  toast('Effekte gespeichert ✓', 'success');
+}
+
+function updateFontPreview(selectId, previewId, isDisplay) {
+  const val = document.getElementById(selectId).value;
+  const el  = document.getElementById(previewId);
+  el.style.fontFamily = `"${val}", ${isDisplay ? 'cursive' : 'sans-serif'}`;
+}
+
+// ── Homepage (Banner) ─────────────────────────────────────────
+async function loadHomepage() {
+  homepageLoaded = true;
+  const s = await fetch('/settings').then(r => r.json());
+  const h = s.heroBanner || {};
+  document.getElementById('heroEnabled').checked    = !!h.enabled;
+  document.getElementById('heroTitle').value        = h.title      || '';
+  document.getElementById('heroSubtitle').value     = h.subtitle   || '';
+  document.getElementById('heroBtn').value          = h.buttonText || '';
+  document.getElementById('heroFont').value         = h.font       || 'Bangers';
+  const htc = h.textColor || '#ffffff';
+  initColorPicker('heroTextColor', htc);
+  const ho = h.overlayOpacity || 0;
+  document.getElementById('heroOverlay').value = ho;
+  document.getElementById('heroOverlayVal').textContent = parseFloat(ho).toFixed(2);
+
+  if (h.image) {
+    document.getElementById('bannerPreview').innerHTML =
+      `<img src="${h.image}" style="max-height:180px;object-fit:cover;width:100%;">`;
+  }
+}
+
+document.getElementById('bannerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData();
+  const imgFile = document.getElementById('bannerImageFile').files[0];
+  if (imgFile) fd.append('bannerImage', imgFile);
+  fd.append('heroBanner', JSON.stringify({
+    enabled:        document.getElementById('heroEnabled').checked,
+    title:          document.getElementById('heroTitle').value,
+    subtitle:       document.getElementById('heroSubtitle').value,
+    buttonText:     document.getElementById('heroBtn').value,
+    textColor:      document.getElementById('heroTextColor').value,
+    font:           document.getElementById('heroFont').value,
+    overlayOpacity: parseFloat(document.getElementById('heroOverlay').value),
+  }));
+  await postSettings(fd);
+  toast('Banner gespeichert ✓', 'success');
+});
+
+// Init heroTextColor hex sync
+document.addEventListener('DOMContentLoaded', () => {
+  // Color sync for heroTextColor (no auto-init since loaded async)
+});
+
+// ── Media library ─────────────────────────────────────────────
+async function loadMedia() {
+  mediaLoaded = true;
+  const grid = document.getElementById('mediaGrid');
+  grid.innerHTML = '<div class="loading-state">Lädt...</div>';
+  const files = await fetch('/admin/media').then(r => r.json());
+
+  document.getElementById('mediaCountLabel').textContent =
+    files.length + ' Dateien in der Mediathek';
+
+  if (files.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><h3>Keine Medien</h3><p>Noch keine Bilder hochgeladen.</p></div>';
+    return;
+  }
+
+  grid.innerHTML = files.map(f => `
+    <div class="media-card">
+      <img class="media-thumb" src="${f.url}" alt="${f.name}" loading="lazy"
+        onerror="this.style.background='#222';this.style.height='120px'">
+      <div class="media-overlay">
+        <button class="media-del-btn" onclick="deleteMedia('${f.name}',this)">Löschen</button>
+      </div>
+      <div class="media-info">
+        <div class="media-name">${f.name.substring(0,20)}</div>
+        <div class="media-size">${fmtSize(f.size)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function deleteMedia(name, btn) {
+  if (!confirm('Datei wirklich löschen?')) return;
+  const card = btn.closest('.media-card');
+  card.style.opacity = '.4';
+  const res = await fetch(`/admin/media/${name}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) {
+    card.remove();
+    toast('Datei gelöscht', 'success');
+    const remaining = document.querySelectorAll('.media-card').length;
+    document.getElementById('mediaCountLabel').textContent =
+      remaining + ' Dateien in der Mediathek';
+  } else {
+    card.style.opacity = '1';
+    toast('Fehler beim Löschen.', 'error');
+  }
+}
+
+async function uploadMediaFiles(files) {
+  if (!files.length) return;
+  toast('Lädt hoch...', '');
+  for (const file of Array.from(files)) {
+    const fd = new FormData();
+    fd.append('background', file);
+    await fetch('/admin/settings', { method: 'POST', body: fd });
+  }
+  toast(files.length + ' Datei(en) hochgeladen ✓', 'success');
+  loadMedia();
+  document.getElementById('mediaUploadInput').value = '';
+}
+
+// ── Settings page ─────────────────────────────────────────────
+async function loadSettingsPage() {
+  settingsLoaded = true;
+  const s = await fetch('/settings').then(r => r.json());
+  currentSettings = s;
+  document.getElementById('shopTitle').value     = s.shopTitle  || '';
+  document.getElementById('loginText').value     = s.loginText  || '';
+  document.getElementById('settingsLayout').value = s.layout   || 'grid';
+}
+
+document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData();
+  fd.append('shopTitle', document.getElementById('shopTitle').value);
+  fd.append('loginText', document.getElementById('loginText').value);
+  fd.append('layout',    document.getElementById('settingsLayout').value);
+  await postSettings(fd);
+  toast('Einstellungen gespeichert ✓', 'success');
+});
+
+document.getElementById('loginPageForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  await postSettings(fd);
+  toast('Gespeichert ✓', 'success');
+});
+
+// ── Shared helpers ────────────────────────────────────────────
+async function postSettings(formData) {
+  const res = await fetch('/admin/settings', { method: 'POST', body: formData });
+  return res.json();
+}
+
+function previewFile(input, previewId) {
+  const file = input.files[0];
+  const el   = document.getElementById(previewId);
+  if (!file || !el) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    el.innerHTML = `<img src="${e.target.result}" style="max-height:180px;object-fit:contain;width:100%;padding:4px;box-sizing:border-box;">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function fmtPrice(n) {
+  return parseFloat(n).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+}
+
+function fmtSize(bytes) {
+  if (bytes < 1024)       return bytes + ' B';
+  if (bytes < 1024*1024)  return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+let _toastTimer;
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// ── Visual Effects ────────────────────────────────────────────
+let vfxLoaded = false;
+async function loadVFX() {
+  if (vfxLoaded) return; vfxLoaded = true;
+  const s  = await fetch('/settings').then(r => r.json());
+  const ve = s.visualEffects || {};
+
+  // helper
+  function set(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
+  function setChk(id, v) { const el = document.getElementById(id); if (el) el.checked = !!v; }
+
+  const d  = ve.dollars      || {};
+  setChk('vfx_dollars_enabled', d.enabled);
+  set('vfx_dollars_count',   d.count   || 15);
+  set('vfx_dollars_speed',   d.speed   || 1);
+  set('vfx_dollars_opacity', d.opacity || 0.2);
+  set('vfx_dollars_minSize', d.minSize || 24);
+  set('vfx_dollars_maxSize', d.maxSize || 56);
+  initColorPicker('vfx_dollars_color', d.color || '#4CAF50');
+  document.getElementById('vfx_dollars_count_v').textContent   = d.count   || 15;
+  document.getElementById('vfx_dollars_speed_v').textContent   = parseFloat(d.speed   || 1).toFixed(1);
+  document.getElementById('vfx_dollars_opacity_v').textContent = parseFloat(d.opacity || 0.2).toFixed(2);
+  document.getElementById('vfx_dollars_minSize_v').textContent = d.minSize || 24;
+  document.getElementById('vfx_dollars_maxSize_v').textContent = d.maxSize || 56;
+
+  const gp = ve.goldParticles || {};
+  setChk('vfx_gp_enabled', gp.enabled);
+  set('vfx_gp_count',   gp.count   || 40);
+  set('vfx_gp_speed',   gp.speed   || 0.4);
+  set('vfx_gp_size',    gp.size    || 2.5);
+  set('vfx_gp_opacity', gp.opacity || 0.7);
+  document.getElementById('vfx_gp_count_v').textContent   = gp.count   || 40;
+  document.getElementById('vfx_gp_speed_v').textContent   = parseFloat(gp.speed   || 0.4).toFixed(1);
+  document.getElementById('vfx_gp_size_v').textContent    = parseFloat(gp.size    || 2.5).toFixed(1);
+  document.getElementById('vfx_gp_opacity_v').textContent = parseFloat(gp.opacity || 0.7).toFixed(2);
+
+  const cf = ve.confetti || {};
+  setChk('vfx_confetti_enabled', cf.enabled);
+  set('vfx_confetti_count',   cf.count   || 40);
+  set('vfx_confetti_speed',   cf.speed   || 1.5);
+  set('vfx_confetti_opacity', cf.opacity || 0.9);
+  document.getElementById('vfx_confetti_count_v').textContent   = cf.count   || 40;
+  document.getElementById('vfx_confetti_speed_v').textContent   = parseFloat(cf.speed   || 1.5).toFixed(1);
+  document.getElementById('vfx_confetti_opacity_v').textContent = parseFloat(cf.opacity || 0.9).toFixed(2);
+
+  const sp = ve.sparkle || {};
+  setChk('vfx_sparkle_enabled', sp.enabled);
+  set('vfx_sparkle_count', sp.count || 20);
+  set('vfx_sparkle_size',  sp.size  || 4);
+  set('vfx_sparkle_speed', sp.speed || 1);
+  initColorPicker('vfx_sparkle_color', sp.color || '#FFD700');
+  document.getElementById('vfx_sparkle_count_v').textContent = sp.count || 20;
+  document.getElementById('vfx_sparkle_size_v').textContent  = sp.size  || 4;
+  document.getElementById('vfx_sparkle_speed_v').textContent = parseFloat(sp.speed || 1).toFixed(1);
+
+  const ll = ve.lightLeak || {};
+  setChk('vfx_ll_enabled', ll.enabled);
+  set('vfx_ll_opacity', ll.opacity || 0.12);
+  set('vfx_ll_speed',   ll.speed   || 8);
+  document.getElementById('vfx_ll_opacity_v').textContent = parseFloat(ll.opacity || 0.12).toFixed(2);
+  document.getElementById('vfx_ll_speed_v').textContent   = ll.speed || 8;
+
+  const gl = ve.glitch || {};
+  setChk('vfx_glitch_enabled', gl.enabled);
+  set('vfx_glitch_freq', gl.frequency || 4);
+  document.getElementById('vfx_glitch_freq_v').textContent = gl.frequency || 4;
+
+  const ti = ve.cardTilt3D || {};
+  setChk('vfx_tilt_enabled', ti.enabled);
+  setChk('vfx_tilt_shine',   ti.shine !== false);
+  set('vfx_tilt_intensity', ti.intensity || 12);
+  document.getElementById('vfx_tilt_intensity_v').textContent = ti.intensity || 12;
+}
+
+async function saveVisualEffects() {
+  const v = id => document.getElementById(id)?.value;
+  const c = id => document.getElementById(id)?.checked;
+  const f = (id, dec=1) => parseFloat(document.getElementById(id)?.value||0);
+
+  const fd = new FormData();
+  fd.append('visualEffects', JSON.stringify({
+    dollars: {
+      enabled: c('vfx_dollars_enabled'),
+      count:   parseInt(v('vfx_dollars_count')),
+      speed:   f('vfx_dollars_speed'),
+      opacity: f('vfx_dollars_opacity'),
+      minSize: parseInt(v('vfx_dollars_minSize')),
+      maxSize: parseInt(v('vfx_dollars_maxSize')),
+      color:   v('vfx_dollars_color'),
+    },
+    goldParticles: {
+      enabled: c('vfx_gp_enabled'),
+      count:   parseInt(v('vfx_gp_count')),
+      speed:   f('vfx_gp_speed'),
+      size:    f('vfx_gp_size'),
+      opacity: f('vfx_gp_opacity'),
+    },
+    confetti: {
+      enabled: c('vfx_confetti_enabled'),
+      count:   parseInt(v('vfx_confetti_count')),
+      speed:   f('vfx_confetti_speed'),
+      opacity: f('vfx_confetti_opacity'),
+    },
+    sparkle: {
+      enabled: c('vfx_sparkle_enabled'),
+      count:   parseInt(v('vfx_sparkle_count')),
+      size:    parseInt(v('vfx_sparkle_size')),
+      speed:   f('vfx_sparkle_speed'),
+      color:   v('vfx_sparkle_color'),
+    },
+    lightLeak: {
+      enabled: c('vfx_ll_enabled'),
+      opacity: f('vfx_ll_opacity'),
+      speed:   parseInt(v('vfx_ll_speed')),
+    },
+    glitch: {
+      enabled:   c('vfx_glitch_enabled'),
+      frequency: parseInt(v('vfx_glitch_freq')),
+    },
+    cardTilt3D: {
+      enabled:   c('vfx_tilt_enabled'),
+      intensity: parseInt(v('vfx_tilt_intensity')),
+      shine:     c('vfx_tilt_shine'),
+    },
+  }));
+  await postSettings(fd);
+  toast('Visual Effects gespeichert ✓', 'success');
+}
+
+// ── Login Page Editor ─────────────────────────────────────────
+let loginEditorLoaded = false;
+async function loadLoginEditor() {
+  loginEditorLoaded = true;
+  const s  = await fetch('/settings').then(r => r.json());
+  const lp = s.loginPage || {};
+  const pw = s.passwords || {};
+  const mn = lp.money    || {};
+  const gr = lp.grain    || {};
+
+  function sv(id, val) { const e = document.getElementById(id); if (e) e.value = String(val ?? ''); }
+  function sn(id, val, def) { const e = document.getElementById(id); if (e) e.value = parseFloat(val ?? def); }
+  function ss(spanId, val) { const e = document.getElementById(spanId); if (e) e.textContent = val; }
+
+  // passwords
+  document.getElementById('lp_customerEnabled').checked = pw.customerEnabled !== false;
+
+  // background
+  initColorPicker('lp_bgColor', lp.bgColor || '#080808');
+  const ov = parseFloat(lp.bgOverlay ?? 0.5);
+  sv('lp_bgOverlay', ov); ss('lp_overlay_val', ov.toFixed(2));
+  const bl = parseFloat(lp.bgBlur ?? 0);
+  sv('lp_bgBlur', bl); ss('lp_blur_val', bl.toFixed(1));
+  const br = parseFloat(lp.bgBrightness ?? 1);
+  sv('lp_bgBrightness', br); ss('lp_bright_val', br.toFixed(2));
+  const vg = parseFloat(lp.vignette ?? 0.6);
+  sv('lp_vignette', vg); ss('lp_vig_val', vg.toFixed(2));
+  document.getElementById('lp_cameraMove').checked = !!lp.cameraMove;
+  if (lp.bgImage) document.getElementById('lp_bgPreview').innerHTML =
+    `<img src="${lp.bgImage}" style="max-height:100px;object-fit:cover;width:100%;">`;
+
+  // texts
+  sv('lp_headline',     lp.headline     || s.shopTitle || 'DRIP VAULT');
+  sv('lp_headlineFont', lp.headlineFont || 'Bangers');
+  sv('lp_headlineSize', lp.headlineSize || 72);
+  sv('lp_headlineAnim', lp.headlineAnim || 'none');
+  initColorPicker('lp_headlineColor', lp.headlineColor || '#ffffff');
+  sv('lp_subtitle',     lp.subtitle     || '');
+  sv('lp_subtitleSize', lp.subtitleSize || 12);
+  initColorPicker('lp_subtitleColor', lp.subtitleColor || '#999999');
+
+  // logo
+  sv('lp_logoSize', lp.logoSize || 72);
+  sv('lp_logoAnim', lp.logoAnim || 'none');
+  if (lp.logoUrl) document.getElementById('lp_logoPreview').innerHTML =
+    `<img src="${lp.logoUrl}" style="max-height:80px;object-fit:contain;">`;
+
+  // input
+  sv('lp_inputPlaceholder', lp.inputPlaceholder || 'Zugangscode eingeben');
+  initColorPicker('lp_inputBg',        lp.inputBg        || 'rgba(255,255,255,0.07)');
+  initColorPicker('lp_inputBorder',    lp.inputBorder    || 'rgba(255,255,255,0.11)');
+  initColorPicker('lp_inputTextColor', lp.inputTextColor || '#ffffff');
+  sv('lp_inputRadius', lp.inputRadius ?? 14);
+  initColorPicker('lp_inputGlow',      lp.inputGlow      || '#ff2d55');
+  document.getElementById('lp_inputShadow').checked = !!lp.inputShadow;
+
+  // button
+  sv('lp_btnText',   lp.btnText   || 'EINTRETEN');
+  initColorPicker('lp_btnBg',        lp.btnBg        || '#ff2d55');
+  initColorPicker('lp_btnColor',     lp.btnColor     || '#ffffff');
+  sv('lp_btnRadius', lp.btnRadius ?? 12);
+  sv('lp_btnAnim',   lp.btnAnim   || 'none');
+  sv('lp_btnIcon',   lp.btnIcon   || '');
+  initColorPicker('lp_btnHoverBg',   lp.btnHoverBg   || '#cc0033');
+  document.getElementById('lp_btnGlow').checked = !!lp.btnGlow;
+  initColorPicker('lp_btnGlowColor', lp.btnGlowColor || '#ff2d55');
+
+  // page reveal
+  sv('lp_pageReveal', lp.pageReveal || 'fade');
+
+  // hint
+  sv('lp_hintText', lp.hintText || '');
+  sv('lp_hintSize', lp.hintSize || 11);
+  initColorPicker('lp_hintColor', lp.hintColor || '#555555');
+
+  // money
+  document.getElementById('lp_moneyEnabled').checked = mn.enabled !== false;
+  sn('lp_moneyCount',   mn.count,   12); ss('lp_moneyCount_val', mn.count   ?? 12);
+  sn('lp_moneySpeed',   mn.speed,   0.6); ss('lp_moneySpeed_val', parseFloat(mn.speed   ?? 0.6).toFixed(2));
+  sn('lp_moneySize',    mn.size,    1.0); ss('lp_moneySize_val',  parseFloat(mn.size    ?? 1.0).toFixed(2));
+  sn('lp_moneyOpacity', mn.opacity, 0.22); ss('lp_moneyOp_val',  parseFloat(mn.opacity ?? 0.22).toFixed(2));
+
+  // grain
+  document.getElementById('lp_grainEnabled').checked = !!gr.enabled;
+  sn('lp_grainIntensity', gr.intensity, 0.35); ss('lp_grainInt_val', parseFloat(gr.intensity ?? 0.35).toFixed(2));
+}
+
+async function savePasswords() {
+  const customerPass = document.getElementById('lp_customerPass').value;
+  const adminPass    = document.getElementById('lp_adminPass').value;
+  const custEnabled  = document.getElementById('lp_customerEnabled').checked;
+
+  if (!customerPass && !adminPass) {
+    toast('Kein Passwort eingegeben.', 'error'); return;
+  }
+
+  const body = { customerEnabled: custEnabled };
+  if (customerPass) body.customer = customerPass;
+  if (adminPass)    body.admin    = adminPass;
+
+  const res = await fetch('/admin/passwords', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById('lp_customerPass').value = '';
+    document.getElementById('lp_adminPass').value    = '';
+    toast('Passwörter gespeichert ✓', 'success');
+  } else {
+    toast('Fehler beim Speichern.', 'error');
+  }
+}
+
+async function saveLoginPage() {
+  const v   = id => document.getElementById(id)?.value || '';
+  const cb  = id => document.getElementById(id)?.checked || false;
+  const fd  = new FormData();
+
+  const bgImgFile = document.getElementById('lp_bgImageFile').files[0];
+  if (bgImgFile) fd.append('loginBackground', bgImgFile);
+  const vidFile   = document.getElementById('lp_videoFile').files[0];
+  if (vidFile)   fd.append('loginVideo', vidFile);
+  const logoFile  = document.getElementById('lp_logoFile').files[0];
+  if (logoFile)  fd.append('loginLogo', logoFile);
+
+  fd.append('loginPage', JSON.stringify({
+    bgColor:          v('lp_bgColor'),
+    bgOverlay:        parseFloat(v('lp_bgOverlay')),
+    bgBlur:           parseFloat(v('lp_bgBlur')),
+    bgBrightness:     parseFloat(v('lp_bgBrightness')),
+    vignette:         parseFloat(v('lp_vignette')),
+    cameraMove:       cb('lp_cameraMove'),
+    pageReveal:       v('lp_pageReveal'),
+
+    headline:         v('lp_headline'),
+    headlineFont:     v('lp_headlineFont'),
+    headlineColor:    v('lp_headlineColor'),
+    headlineSize:     parseInt(v('lp_headlineSize')) || 72,
+    headlineAnim:     v('lp_headlineAnim'),
+
+    subtitle:         v('lp_subtitle'),
+    subtitleColor:    v('lp_subtitleColor'),
+    subtitleSize:     parseInt(v('lp_subtitleSize')) || 12,
+
+    hintText:         v('lp_hintText'),
+    hintColor:        v('lp_hintColor'),
+    hintSize:         parseInt(v('lp_hintSize')) || 11,
+
+    logoSize:         parseInt(v('lp_logoSize')) || 72,
+    logoAnim:         v('lp_logoAnim'),
+
+    inputPlaceholder: v('lp_inputPlaceholder'),
+    inputBg:          v('lp_inputBg'),
+    inputBorder:      v('lp_inputBorder'),
+    inputTextColor:   v('lp_inputTextColor'),
+    inputRadius:      parseInt(v('lp_inputRadius')) || 14,
+    inputGlow:        v('lp_inputGlow'),
+    inputGlowEnabled: true,
+    inputShadow:      cb('lp_inputShadow'),
+
+    btnText:          v('lp_btnText'),
+    btnBg:            v('lp_btnBg'),
+    btnColor:         v('lp_btnColor'),
+    btnRadius:        parseInt(v('lp_btnRadius')) || 12,
+    btnAnim:          v('lp_btnAnim'),
+    btnIcon:          v('lp_btnIcon'),
+    btnHoverBg:       v('lp_btnHoverBg'),
+    btnGlow:          cb('lp_btnGlow'),
+    btnGlowColor:     v('lp_btnGlowColor'),
+
+    money: {
+      enabled: cb('lp_moneyEnabled'),
+      count:   parseInt(v('lp_moneyCount'))   || 12,
+      speed:   parseFloat(v('lp_moneySpeed')) || 0.6,
+      size:    parseFloat(v('lp_moneySize'))  || 1.0,
+      opacity: parseFloat(v('lp_moneyOpacity')) || 0.22,
+    },
+    grain: {
+      enabled:   cb('lp_grainEnabled'),
+      intensity: parseFloat(v('lp_grainIntensity')) || 0.35,
+    },
+  }));
+
+  await postSettings(fd);
+  toast('Login-Seite gespeichert ✓', 'success');
+  reloadLoginPreview();
+}
+
+function reloadLoginPreview() {
+  const frame = document.getElementById('loginPreviewFrame');
+  if (frame) frame.src = frame.src; // force reload
+}
+
+// ── Collections ───────────────────────────────────────────────
+let allCollections = [];
+let editingColId   = null;
+let colProductIds  = [];
+
+navigate = (function(orig) {
+  return function(sec) {
+    orig(sec);
+    if (sec === 'collections') loadCollections();
+    if (sec === 'cursor')      loadCursorSettings();
+    if (sec === 'orders')      loadOrdersAdmin();
+    if (sec === 'payment')     loadPaymentSettings();
+  };
+})(navigate);
+
+async function loadCollections() {
+  const grid = document.getElementById('collectionAdminGrid');
+  grid.innerHTML = '<div class="loading-state">Lädt...</div>';
+  allCollections = await fetch('/admin/collections').then(r => r.json()).catch(() => []);
+  document.getElementById('colCountLabel').textContent = allCollections.length + ' Kollektionen';
+
+  if (allCollections.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><h3>Noch keine Kollektionen</h3><p>Erstelle deinen ersten Drop.</p></div>';
+    return;
+  }
+
+  const statusBadge = { coming_soon:'COMING SOON', live:'LIVE', sold_out:'SOLD OUT' };
+  const statusCls   = { coming_soon:'badge-cs', live:'badge-live', sold_out:'badge-so' };
+
+  grid.innerHTML = allCollections.map(c => `
+    <div class="col-admin-card">
+      ${c.titleImage || c.banner
+        ? `<img src="${c.titleImage || c.banner}" class="col-admin-img" alt="${esc(c.name)}">`
+        : `<div class="col-admin-img-placeholder">NO IMAGE</div>`}
+      <div class="col-admin-body">
+        <div class="col-admin-name">${esc(c.name)}</div>
+        <div class="col-admin-meta">
+          <span class="col-status-pill ${statusCls[c.status] || ''}">${statusBadge[c.status] || c.status}</span>
+          <span class="col-product-count">${(c.products||[]).length} Produkte</span>
+          ${c.intro !== 'none' && c.intro ? `<span class="col-intro-pill">${esc(c.intro)}</span>` : ''}
+        </div>
+        ${c.releaseDate ? `<div class="col-date">📅 ${new Date(c.releaseDate).toLocaleDateString('de-DE')}</div>` : ''}
+        <div class="pac-actions">
+          <button class="pac-btn btn-edit" onclick="openEditCollection(${c.id})">Bearbeiten</button>
+          <button class="pac-btn" onclick="window.open('/collection.html?slug=${encodeURIComponent(c.slug)}','_blank')" style="background:rgba(91,141,238,.15);color:#5b8dee;">↗ Ansehen</button>
+          <button class="pac-btn btn-del" onclick="deleteCollection(${c.id})">Löschen</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function resetColModal() {
+  colProductIds = [];
+  document.getElementById('collectionForm').reset();
+  document.getElementById('col_id').value = '';
+  document.getElementById('col_titlePreview').innerHTML = '';
+  document.getElementById('col_bannerPreview').innerHTML = '';
+  initColorPicker('col_colBg',    '#0f0f0f');
+  initColorPicker('col_colText',  '#ffffff');
+  initColorPicker('col_colAccent','#ff2d55');
+  initColorPicker('col_colButton','#ff2d55');
+  populateColProducts([]);
+}
+
+async function populateColProducts(selectedIds) {
+  const wrap = document.getElementById('col_productSelect');
+  const prods = await fetch('/products').then(r => r.json()).catch(() => []);
+  if (!prods.length) {
+    wrap.innerHTML = '<p style="color:rgba(255,255,255,.3);font-size:12px;">Noch keine Produkte vorhanden.</p>';
+    return;
+  }
+  colProductIds = [...selectedIds];
+  wrap.innerHTML = prods.map(p => `
+    <label class="col-product-chk">
+      <input type="checkbox" value="${p.id}" ${selectedIds.includes(p.id) ? 'checked' : ''}
+        onchange="toggleColProduct(${p.id},this.checked)">
+      <img src="${p.image||''}" onerror="this.style.display='none'">
+      <span>${esc(p.name)} — ${parseFloat(p.price).toLocaleString('de-DE',{style:'currency',currency:'EUR'})}</span>
+    </label>
+  `).join('');
+}
+
+function toggleColProduct(id, checked) {
+  if (checked && !colProductIds.includes(id)) colProductIds.push(id);
+  else colProductIds = colProductIds.filter(x => x !== id);
+}
+
+function openAddCollection() {
+  editingColId = null;
+  resetColModal();
+  document.getElementById('colModalTitle').textContent = 'Kollektion erstellen';
+  document.getElementById('collectionModal').classList.add('open');
+}
+
+function openEditCollection(id) {
+  const col = allCollections.find(c => c.id === id);
+  if (!col) return;
+  editingColId = id;
+  resetColModal();
+  document.getElementById('colModalTitle').textContent  = 'Kollektion bearbeiten';
+  document.getElementById('col_id').value       = id;
+  document.getElementById('col_name').value     = col.name        || '';
+  document.getElementById('col_desc').value     = col.description || '';
+  document.getElementById('col_status').value   = col.status      || 'coming_soon';
+  document.getElementById('col_intro').value    = col.intro       || 'none';
+  document.getElementById('col_visible').value  = col.visible !== false ? 'true' : 'false';
+  document.getElementById('col_fontDisplay').value = (col.fonts||{}).display || 'Bangers';
+  if (col.releaseDate) {
+    const dt = new Date(col.releaseDate).toISOString().slice(0,16);
+    document.getElementById('col_releaseDate').value = dt;
+  }
+  const c = col.colors || {};
+  initColorPicker('col_colBg',    c.bg     || '#0f0f0f');
+  initColorPicker('col_colText',  c.text   || '#ffffff');
+  initColorPicker('col_colAccent',c.accent || '#ff2d55');
+  initColorPicker('col_colButton',c.button || '#ff2d55');
+  const fx = col.effects || {};
+  document.getElementById('colfx_dollars').checked     = !!(fx.dollars?.enabled     || fx.dollars);
+  document.getElementById('colfx_goldParticles').checked = !!(fx.goldParticles?.enabled || fx.goldParticles);
+  document.getElementById('colfx_confetti').checked    = !!(fx.confetti?.enabled    || fx.confetti);
+  document.getElementById('colfx_neonGlow').checked    = !!(fx.neonGlow             || (fx.glitch?.enabled));
+  document.getElementById('colfx_grain').checked       = !!(fx.grain);
+  document.getElementById('colfx_glitch').checked      = !!(fx.glitch?.enabled      || fx.glitch);
+
+  if (col.titleImage) document.getElementById('col_titlePreview').innerHTML =
+    `<img src="${col.titleImage}" style="max-height:120px;object-fit:cover;width:100%;">`;
+  if (col.banner)     document.getElementById('col_bannerPreview').innerHTML =
+    `<img src="${col.banner}" style="max-height:120px;object-fit:cover;width:100%;">`;
+
+  populateColProducts(col.products || []);
+  document.getElementById('collectionModal').classList.add('open');
+}
+
+function closeColModal() {
+  document.getElementById('collectionModal').classList.remove('open');
+}
+
+document.getElementById('collectionForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('saveColBtn');
+  btn.textContent = 'Speichert...'; btn.disabled = true;
+
+  const fd = new FormData();
+  const tif = document.getElementById('col_titleImg').files[0];
+  const bif = document.getElementById('col_bannerImg').files[0];
+  if (tif) fd.append('titleImage',  tif);
+  if (bif) fd.append('bannerImage', bif);
+
+  fd.append('name',        document.getElementById('col_name').value);
+  fd.append('description', document.getElementById('col_desc').value);
+  fd.append('status',      document.getElementById('col_status').value);
+  fd.append('intro',       document.getElementById('col_intro').value);
+  fd.append('visible',     document.getElementById('col_visible').value);
+  fd.append('releaseDate', document.getElementById('col_releaseDate').value);
+  fd.append('products',    JSON.stringify(colProductIds));
+  fd.append('colors', JSON.stringify({
+    bg:     document.getElementById('col_colBg').value,
+    text:   document.getElementById('col_colText').value,
+    accent: document.getElementById('col_colAccent').value,
+    button: document.getElementById('col_colButton').value,
+  }));
+  fd.append('fonts', JSON.stringify({
+    display: document.getElementById('col_fontDisplay').value,
+    body:    'Inter',
+  }));
+  fd.append('effects', JSON.stringify({
+    dollars:       { enabled: document.getElementById('colfx_dollars').checked, count:15, opacity:0.2, speed:1, minSize:24, maxSize:56, color:'#4CAF50' },
+    goldParticles: { enabled: document.getElementById('colfx_goldParticles').checked, count:40, opacity:0.7, speed:0.4, size:2.5 },
+    confetti:      { enabled: document.getElementById('colfx_confetti').checked, count:40, speed:1.5, opacity:0.9 },
+    glitch:        { enabled: document.getElementById('colfx_glitch').checked, frequency:4 },
+    grain:         document.getElementById('colfx_grain').checked,
+    neonGlow:      document.getElementById('colfx_neonGlow').checked,
+  }));
+
+  let res;
+  if (editingColId) {
+    res = await fetch(`/admin/collection/${editingColId}`, { method:'PUT', body:fd });
+  } else {
+    res = await fetch('/admin/collections', { method:'POST', body:fd });
+  }
+  const data = await res.json();
+  btn.textContent = 'Speichern'; btn.disabled = false;
+
+  if (data.success) {
+    closeColModal();
+    toast(editingColId ? 'Kollektion aktualisiert ✓' : 'Kollektion erstellt ✓', 'success');
+    loadCollections();
+  } else {
+    toast(data.error || 'Fehler', 'error');
+  }
+});
+
+async function deleteCollection(id) {
+  if (!confirm('Kollektion wirklich löschen?')) return;
+  const res = await fetch(`/admin/collection/${id}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) {
+    toast('Kollektion gelöscht', 'success');
+    loadCollections();
+  } else {
+    toast('Fehler beim Löschen', 'error');
+  }
+}
+
+// ── Brand Cursor ──────────────────────────────────────────────
+let cursorLoaded = false;
+
+async function loadCursorSettings() {
+  if (cursorLoaded) return; cursorLoaded = true;
+  const s  = await fetch('/settings').then(r => r.json());
+  const c  = s.cursor || {};
+  document.getElementById('cur_enabled').checked    = !!c.enabled;
+  document.getElementById('cur_useLogo').checked    = c.useLogo !== false;
+  document.getElementById('cur_size').value         = c.size        || 36;
+  document.getElementById('cur_size_val').textContent = c.size || 36;
+  document.getElementById('cur_opacity').value      = c.opacity     || 0.9;
+  document.getElementById('cur_opacity_val').textContent = parseFloat(c.opacity||0.9).toFixed(2);
+  document.getElementById('cur_buttonScale').value  = c.buttonScale  || 1.6;
+  document.getElementById('cur_bscale_val').textContent = parseFloat(c.buttonScale||1.6).toFixed(1);
+  document.getElementById('cur_productScale').value = c.productScale || 1.3;
+  document.getElementById('cur_pscale_val').textContent = parseFloat(c.productScale||1.3).toFixed(1);
+  document.getElementById('cur_animation').value    = c.animation    || 'none';
+  document.getElementById('cur_glowSize').value     = c.glowSize     || 20;
+  document.getElementById('cur_glowSize_val').textContent = c.glowSize || 20;
+  initColorPicker('cur_glowColor', c.glowColor || '#ff2d55');
+  if (c.imageUrl) {
+    document.getElementById('cur_imagePreview').innerHTML =
+      `<img src="${c.imageUrl}" style="max-height:80px;object-fit:contain;">`;
+  }
+  updateCursorPreview();
+}
+
+function updateCursorPreview() {
+  const prev  = document.getElementById('previewCursor');
+  if (!prev) return;
+  const size  = parseInt(document.getElementById('cur_size')?.value || 36);
+  const op    = parseFloat(document.getElementById('cur_opacity')?.value || 0.9);
+  const anim  = document.getElementById('cur_animation')?.value || 'none';
+  const gc    = document.getElementById('cur_glowColor')?.value || '#ff2d55';
+  const gs    = parseInt(document.getElementById('cur_glowSize')?.value || 20);
+
+  prev.style.width   = size + 'px';
+  prev.style.height  = size + 'px';
+  prev.style.opacity = op;
+
+  const previewImg = document.getElementById('cur_imagePreview')?.querySelector('img');
+  if (previewImg) {
+    prev.style.backgroundImage    = `url(${previewImg.src})`;
+    prev.style.backgroundSize     = 'contain';
+    prev.style.backgroundRepeat   = 'no-repeat';
+    prev.style.backgroundPosition = 'center';
+    prev.style.background         = '';
+  } else {
+    prev.style.backgroundImage = '';
+    prev.style.background      = (gc || '#ff2d55') + 'cc';
+    prev.style.borderRadius    = '50%';
+  }
+
+  prev.style.boxShadow  = anim === 'glow' ? `0 0 ${gs}px ${gc}` : '';
+  prev.style.animation  = anim === 'pulse' ? 'cursorPulse 1.5s ease-in-out infinite' : '';
+}
+
+function previewCursorImage(input) {
+  previewFile(input, 'cur_imagePreview');
+  setTimeout(updateCursorPreview, 100);
+}
+
+function simulateCursorState(state) {
+  const prev = document.getElementById('previewCursor');
+  if (!prev) return;
+  const size    = parseInt(document.getElementById('cur_size')?.value || 36);
+  const bScale  = parseFloat(document.getElementById('cur_buttonScale')?.value || 1.6);
+  const pScale  = parseFloat(document.getElementById('cur_productScale')?.value || 1.3);
+  const gc      = document.getElementById('cur_glowColor')?.value || '#ff2d55';
+  const gs      = parseInt(document.getElementById('cur_glowSize')?.value || 20);
+  const anim    = document.getElementById('cur_animation')?.value || 'none';
+
+  if (state === 'button') {
+    prev.style.width  = (size * bScale) + 'px';
+    prev.style.height = (size * bScale) + 'px';
+    prev.style.boxShadow = `0 0 ${gs * 2}px ${gc}`;
+    prev.style.filter = 'drop-shadow(0 0 8px ' + gc + ')';
+  } else if (state === 'product') {
+    prev.style.width  = (size * pScale) + 'px';
+    prev.style.height = (size * pScale) + 'px';
+    prev.style.boxShadow = '';
+    prev.style.filter = '';
+  } else {
+    prev.style.width  = size + 'px';
+    prev.style.height = size + 'px';
+    prev.style.boxShadow = anim === 'glow' ? `0 0 ${gs}px ${gc}` : '';
+    prev.style.filter = '';
+  }
+}
+
+async function saveCursor() {
+  const fd = new FormData();
+  const imgFile = document.getElementById('cur_imageFile').files[0];
+  if (imgFile) fd.append('cursorImage', imgFile);
+
+  fd.append('cursor', JSON.stringify({
+    enabled:      document.getElementById('cur_enabled').checked,
+    useLogo:      document.getElementById('cur_useLogo').checked,
+    size:         parseInt(document.getElementById('cur_size').value),
+    opacity:      parseFloat(document.getElementById('cur_opacity').value),
+    animation:    document.getElementById('cur_animation').value,
+    glowColor:    document.getElementById('cur_glowColor').value,
+    glowSize:     parseInt(document.getElementById('cur_glowSize').value),
+    buttonScale:  parseFloat(document.getElementById('cur_buttonScale').value),
+    productScale: parseFloat(document.getElementById('cur_productScale').value),
+  }));
+
+  await postSettings(fd);
+  toast('Cursor gespeichert ✓', 'success');
+}
+
+function testIntroPreview() {
+  if (typeof DVDrop === 'undefined') {
+    alert('drops.js nicht geladen. Öffne den Shop und teste dort.');
+    return;
+  }
+  const type = document.getElementById('previewIntroType').value;
+  DVDrop.playIntro(type, 'DRIP VAULT DROP', '#ff2d55');
+}
+
+// ── Orders ────────────────────────────────────────────────────
+let allOrders        = [];
+let ordActiveStatus  = 'all';
+
+async function loadOrdersAdmin() {
+  const list = document.getElementById('ordList');
+  if (!list) return;
+  list.innerHTML = '<div class="loading-state">Lädt…</div>';
+  allOrders = await fetch('/admin/orders').then(r => r.json()).catch(() => []);
+  updateOrderStats();
+  renderOrderList();
+}
+
+function updateOrderStats() {
+  const pending = allOrders.filter(o => o.status === 'pending').length;
+  const revenue = allOrders.reduce((s, o) => s + (parseFloat(o.total) || 0), 0);
+  const fmt     = n => n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+  document.getElementById('ordStatTotal').textContent   = allOrders.length;
+  document.getElementById('ordStatPending').textContent = pending;
+  document.getElementById('ordStatRevenue').textContent = fmt(revenue);
+}
+
+function renderOrderList() {
+  const list   = document.getElementById('ordList');
+  const query  = (document.getElementById('ordSearch')?.value || '').toLowerCase();
+  const status = ordActiveStatus;
+
+  const filtered = allOrders.filter(o => {
+    const matchStatus = status === 'all' || o.status === status;
+    const matchQuery  = !query ||
+      (o.name  || '').toLowerCase().includes(query) ||
+      (o.email || '').toLowerCase().includes(query) ||
+      (o.id    || '').toLowerCase().includes(query);
+    return matchStatus && matchQuery;
+  });
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-state" style="padding:40px 0"><p>Keine Bestellungen gefunden.</p></div>';
+    return;
+  }
+
+  const statusCfg = {
+    pending:    { lbl: 'Ausstehend',  cls: 'ord-badge-pending'  },
+    processing: { lbl: 'Bearbeitung', cls: 'ord-badge-processing'},
+    shipped:    { lbl: 'Versendet',   cls: 'ord-badge-shipped'  },
+    delivered:  { lbl: 'Geliefert',   cls: 'ord-badge-delivered'},
+    cancelled:  { lbl: 'Storniert',   cls: 'ord-badge-cancelled'},
+  };
+  const fmt = n => parseFloat(n || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+
+  list.innerHTML = filtered.map(o => {
+    const sc  = statusCfg[o.status] || { lbl: o.status || '—', cls: '' };
+    const dt  = o.createdAt ? new Date(o.createdAt).toLocaleDateString('de-DE',
+      { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+    const pay = { paypal:'PayPal', manual:'Manuell', card:'Karte' }[o.paymentMethod] || o.paymentMethod || '—';
+    const cnt = (o.items || []).reduce((s, i) => s + (i.qty || 1), 0);
+    return `
+      <div class="ord-card" onclick="openOrderDetail('${esc(o.id)}')">
+        <div class="ord-card-top">
+          <div class="ord-card-id">${esc(o.id)}</div>
+          <span class="ord-badge ${sc.cls}">${sc.lbl}</span>
+        </div>
+        <div class="ord-card-body">
+          <div class="ord-card-customer">
+            <strong>${esc(o.name || '—')}</strong>
+            <span>${esc(o.email || '')}</span>
+          </div>
+          <div class="ord-card-meta">
+            <span>${cnt} Artikel · ${pay}</span>
+            <span class="ord-card-date">${dt}</span>
+          </div>
+        </div>
+        <div class="ord-card-total">${fmt(o.total)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openOrderDetail(orderId) {
+  const o   = allOrders.find(x => x.id === orderId);
+  if (!o) return;
+  const overlay = document.getElementById('orderDetailOverlay');
+  const fmt  = n => parseFloat(n || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+  const dt   = o.createdAt ? new Date(o.createdAt).toLocaleString('de-DE') : '—';
+  const pay  = { paypal:'PayPal', manual:'Manuell', card:'Karte' }[o.paymentMethod] || o.paymentMethod || '—';
+
+  const itemsHTML = (o.items || []).map(i =>
+    `<div class="ord-detail-item">
+      ${i.image ? `<img src="${i.image}" class="ord-detail-img" alt="">` : `<div class="ord-detail-img" style="background:rgba(255,255,255,.06)"></div>`}
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:14px">${esc(i.name || '')}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4)">× ${i.qty || 1}</div>
+      </div>
+      <div style="font-weight:700">${fmt((i.price || 0) * (i.qty || 1))}</div>
+    </div>`
+  ).join('');
+
+  document.getElementById('ordDetailContent').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:4px">Bestellnummer</div>
+        <div style="font-family:'Bangers',cursive;font-size:1.4rem;letter-spacing:1px">${esc(o.id)}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:4px">${dt}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:22px;font-weight:800;color:var(--admin-accent)">${fmt(o.total)}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px">${pay}</div>
+      </div>
+    </div>
+
+    <div class="ord-detail-section">Kunde</div>
+    <div class="ord-detail-grid">
+      <div><span>Name</span><strong>${esc(o.name || '—')}</strong></div>
+      <div><span>E-Mail</span><strong>${esc(o.email || '—')}</strong></div>
+      ${o.phone ? `<div><span>Telefon</span><strong>${esc(o.phone)}</strong></div>` : ''}
+    </div>
+
+    <div class="ord-detail-section">Lieferadresse</div>
+    <div class="ord-detail-addr">
+      ${esc(o.street || '')}${o.street ? '<br>' : ''}
+      ${esc(o.zip || '')} ${esc(o.city || '')}${o.city ? '<br>' : ''}
+      ${esc(o.country || '')}
+    </div>
+    ${o.note ? `<div style="margin-top:8px;padding:10px;background:rgba(255,255,255,.04);border-radius:8px;font-size:13px;color:rgba(255,255,255,.5)">${esc(o.note)}</div>` : ''}
+
+    <div class="ord-detail-section">Artikel</div>
+    <div class="ord-detail-items">${itemsHTML || '<p style="color:rgba(255,255,255,.3);font-size:13px">Keine Artikel</p>'}</div>
+
+    <div class="ord-detail-section" style="margin-top:20px">Status ändern</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select class="input-field" id="ordStatusSelect" style="flex:1;min-width:160px">
+        ${['pending','processing','shipped','delivered','cancelled'].map(s =>
+          `<option value="${s}" ${o.status === s ? 'selected' : ''}>${
+            {pending:'Ausstehend',processing:'Bearbeitung',shipped:'Versendet',delivered:'Geliefert',cancelled:'Storniert'}[s]
+          }</option>`
+        ).join('')}
+      </select>
+      <button class="btn-primary" style="white-space:nowrap"
+        onclick="updateOrderStatus('${esc(o.id)}')">Status speichern</button>
+      <button class="btn-danger" onclick="deleteOrder('${esc(o.id)}')">Löschen</button>
+    </div>
+  `;
+  overlay.style.display = 'flex';
+}
+
+function closeOrderDetail() {
+  document.getElementById('orderDetailOverlay').style.display = 'none';
+}
+
+async function updateOrderStatus(orderId) {
+  const status = document.getElementById('ordStatusSelect').value;
+  const res    = await fetch('/admin/order/' + orderId, {
+    method:  'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ status }),
+  });
+  if (res.ok) {
+    const idx = allOrders.findIndex(o => o.id === orderId);
+    if (idx !== -1) allOrders[idx].status = status;
+    toast('Status aktualisiert ✓', 'success');
+    closeOrderDetail();
+    updateOrderStats();
+    renderOrderList();
+  } else {
+    toast('Fehler beim Speichern', 'error');
+  }
+}
+
+async function deleteOrder(orderId) {
+  if (!confirm('Bestellung wirklich löschen?')) return;
+  const res = await fetch('/admin/order/' + orderId, { method: 'DELETE' });
+  if (res.ok) {
+    allOrders = allOrders.filter(o => o.id !== orderId);
+    toast('Bestellung gelöscht', 'success');
+    closeOrderDetail();
+    updateOrderStats();
+    renderOrderList();
+  } else {
+    toast('Fehler beim Löschen', 'error');
+  }
+}
+
+function exportOrdersCSV() {
+  if (allOrders.length === 0) { toast('Keine Bestellungen vorhanden', 'error'); return; }
+  const rows = [
+    ['ID','Datum','Name','E-Mail','Telefon','Straße','PLZ','Stadt','Land','Artikel','Gesamt','Zahlung','Status'],
+    ...allOrders.map(o => [
+      o.id,
+      o.createdAt ? new Date(o.createdAt).toLocaleDateString('de-DE') : '',
+      o.name || '', o.email || '', o.phone || '',
+      o.street || '', o.zip || '', o.city || '', o.country || '',
+      (o.items || []).map(i => `${i.name} ×${i.qty}`).join(' | '),
+      o.total || 0,
+      o.paymentMethod || '',
+      o.status || '',
+    ])
+  ];
+  const csv  = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'bestellungen.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Filter tab clicks
+document.getElementById('ordTabs').addEventListener('click', e => {
+  const tab = e.target.closest('.ord-tab');
+  if (!tab) return;
+  document.querySelectorAll('.ord-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  ordActiveStatus = tab.dataset.status;
+  renderOrderList();
+});
+
+// ── Payment Settings ──────────────────────────────────────────
+async function loadPaymentSettings() {
+  const s = await fetch('/settings').then(r => r.json()).catch(() => ({}));
+  const p = s.payment || {};
+  document.getElementById('pay_clientId').value          = p.paypalClientId     || '';
+  document.getElementById('pay_clientSecret').value      = '';  // never pre-fill secret
+  document.getElementById('pay_mode').value              = p.paypalMode         || 'sandbox';
+  document.getElementById('pay_currency').value          = p.currency           || 'EUR';
+  document.getElementById('pay_paypalEnabled').checked   = !!p.paypalEnabled;
+  document.getElementById('pay_manualEnabled').checked   = p.manualEnabled !== false;
+  document.getElementById('pay_manualInstructions').value= p.manualInstructions || '';
+  document.getElementById('pay_shippingFree').checked    = p.shippingFree !== false;
+  document.getElementById('pay_shippingCost').value      = p.shippingCost       || 4.99;
+  document.getElementById('payShippingCostRow').style.display =
+    p.shippingFree !== false ? 'none' : '';
+
+  // Email settings
+  const e = s.email || {};
+  document.getElementById('em_enabled').checked      = !!e.enabled;
+  document.getElementById('em_smtpHost').value       = e.smtpHost    || '';
+  document.getElementById('em_smtpPort').value       = e.smtpPort    || 587;
+  document.getElementById('em_smtpSecure').checked   = !!e.smtpSecure;
+  document.getElementById('em_smtpUser').value       = e.smtpUser    || '';
+  document.getElementById('em_smtpPass').value       = '';  // never pre-fill password
+  document.getElementById('em_senderName').value     = e.senderName  || '';
+  document.getElementById('em_senderEmail').value    = e.senderEmail || '';
+  document.getElementById('em_subject').value        = e.subject     || '';
+  document.getElementById('em_body').value           = e.body        || '';
+}
+
+async function savePaymentSettings() {
+  const payment = {
+    paypalClientId:     document.getElementById('pay_clientId').value.trim(),
+    paypalClientSecret: document.getElementById('pay_clientSecret').value.trim(),
+    paypalMode:         document.getElementById('pay_mode').value,
+    paypalEnabled:      document.getElementById('pay_paypalEnabled').checked,
+    manualEnabled:      document.getElementById('pay_manualEnabled').checked,
+    manualInstructions: document.getElementById('pay_manualInstructions').value.trim(),
+    currency:           document.getElementById('pay_currency').value,
+    shippingFree:       document.getElementById('pay_shippingFree').checked,
+    shippingCost:       parseFloat(document.getElementById('pay_shippingCost').value) || 4.99,
+  };
+  const email = {
+    enabled:      document.getElementById('em_enabled').checked,
+    smtpHost:     document.getElementById('em_smtpHost').value.trim(),
+    smtpPort:     parseInt(document.getElementById('em_smtpPort').value) || 587,
+    smtpSecure:   document.getElementById('em_smtpSecure').checked,
+    smtpUser:     document.getElementById('em_smtpUser').value.trim(),
+    smtpPass:     document.getElementById('em_smtpPass').value,  // empty = keep existing on server
+    senderName:   document.getElementById('em_senderName').value.trim(),
+    senderEmail:  document.getElementById('em_senderEmail').value.trim(),
+    subject:      document.getElementById('em_subject').value,
+    body:         document.getElementById('em_body').value,
+  };
+  const fd = new FormData();
+  fd.append('payment', JSON.stringify(payment));
+  fd.append('email', JSON.stringify(email));
+  await postSettings(fd);
+  toast('Einstellungen gespeichert ✓', 'success');
+}
+
+async function sendTestEmail() {
+  const to  = document.getElementById('em_testAddress').value.trim();
+  if (!to) { toast('Bitte eine Test-E-Mail-Adresse eingeben', 'error'); return; }
+  // Save first so the latest config is on the server
+  await savePaymentSettings();
+  const res = await fetch('/admin/test-email', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ to }),
+  }).catch(() => null);
+  if (!res) { toast('Fehler: Server nicht erreichbar', 'error'); return; }
+  const data = await res.json();
+  if (data.success) toast(`Test-E-Mail an ${to} gesendet ✓`, 'success');
+  else toast('Fehler: ' + (data.error || 'Unbekannt'), 'error');
+}
+
+// ── Boot ──────────────────────────────────────────────────────
+loadDashboard();
+</script>
+</body>
+</html>
