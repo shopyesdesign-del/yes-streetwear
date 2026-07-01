@@ -28,11 +28,26 @@ const UPLOADS_DIR = (() => {
 // All uploads go through memory first, then either Cloudinary or local disk
 const upload = multer({ storage: multer.memoryStorage() });
 
+// Resolve Cloudinary config from env var or admin settings
+function getCloudinaryConfig() {
+  // Support standard CLOUDINARY_URL env var: cloudinary://api_key:api_secret@cloud_name
+  if (process.env.CLOUDINARY_URL) {
+    try {
+      const url = new URL(process.env.CLOUDINARY_URL);
+      return { cloud_name: url.hostname, api_key: url.username, api_secret: url.password };
+    } catch (_) {}
+  }
+  const cfg = (loadSettings().cloudinary) || {};
+  if (cfg.cloudName && cfg.apiKey && cfg.apiSecret)
+    return { cloud_name: cfg.cloudName, api_key: cfg.apiKey, api_secret: cfg.apiSecret };
+  return null;
+}
+
 // Upload a file: Cloudinary if configured, otherwise local fallback
 async function uploadFile(file) {
-  const cfg = (loadSettings().cloudinary) || {};
-  if (cfg.cloudName && cfg.apiKey && cfg.apiSecret) {
-    cloudinary.config({ cloud_name: cfg.cloudName, api_key: cfg.apiKey, api_secret: cfg.apiSecret });
+  const cfg = getCloudinaryConfig();
+  if (cfg) {
+    cloudinary.config(cfg);
     return new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         { resource_type: "auto", folder: "dripvault" },
