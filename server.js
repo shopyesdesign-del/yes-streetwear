@@ -672,14 +672,20 @@ function renderEmailTemplate(tmpl, vars) {
 function getEmailConfig() {
   const s   = loadSettings();
   const cfg = s.email || {};
-  // Env vars override saved settings (needed on Vercel where filesystem is read-only)
+  const host = process.env.SMTP_HOST || cfg.smtpHost || "";
+  const port = parseInt(process.env.SMTP_PORT || cfg.smtpPort || 587);
+  // Env vars take strict priority; auto-detect secure from port if not set
+  const secureEnv = process.env.SMTP_SECURE;
+  const secure = secureEnv !== undefined
+    ? secureEnv === "true"
+    : (cfg.smtpSecure !== undefined ? !!cfg.smtpSecure : port === 465);
   return {
-    enabled:     process.env.SMTP_ENABLED === "true" || cfg.enabled,
-    smtpHost:    process.env.SMTP_HOST    || cfg.smtpHost    || "",
-    smtpPort:    process.env.SMTP_PORT    || cfg.smtpPort    || 587,
-    smtpSecure:  process.env.SMTP_SECURE === "true" || cfg.smtpSecure,
-    smtpUser:    process.env.SMTP_USER    || cfg.smtpUser    || "",
-    smtpPass:    process.env.SMTP_PASS    || cfg.smtpPass    || "",
+    enabled:     process.env.SMTP_ENABLED === "true" || !!cfg.enabled,
+    smtpHost:    host,
+    smtpPort:    port,
+    smtpSecure:  secure,
+    smtpUser:    process.env.SMTP_USER || cfg.smtpUser || "",
+    smtpPass:    process.env.SMTP_PASS || cfg.smtpPass || "",
     senderName:  process.env.SMTP_SENDER_NAME  || cfg.senderName  || "DRIP VAULT",
     senderEmail: process.env.SMTP_SENDER_EMAIL || cfg.senderEmail || "",
     subject:     cfg.subject || "Deine Bestellung {{orderId}}",
@@ -716,11 +722,12 @@ async function sendOrderEmail(order) {
   const text    = renderEmailTemplate(cfg.body    || "Hallo {{name}}, danke für deine Bestellung!", vars);
 
   const transporter = nodemailer.createTransport({
-    host:   cfg.smtpHost,
-    port:   parseInt(cfg.smtpPort) || 587,
-    secure: !!cfg.smtpSecure,
-    auth:   { user: cfg.smtpUser, pass: cfg.smtpPass },
-    tls:    { rejectUnauthorized: false },
+    host:       cfg.smtpHost,
+    port:       cfg.smtpPort,
+    secure:     cfg.smtpSecure,
+    requireTLS: cfg.smtpPort === 587,
+    auth:       { user: cfg.smtpUser, pass: cfg.smtpPass },
+    tls:        { rejectUnauthorized: false },
   });
 
   await transporter.sendMail({
