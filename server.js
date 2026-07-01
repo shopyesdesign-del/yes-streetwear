@@ -669,9 +669,27 @@ function renderEmailTemplate(tmpl, vars) {
   return tmpl.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] !== undefined ? vars[k] : "{{" + k + "}}");
 }
 
-async function sendOrderEmail(order) {
+function getEmailConfig() {
   const s   = loadSettings();
   const cfg = s.email || {};
+  // Env vars override saved settings (needed on Vercel where filesystem is read-only)
+  return {
+    enabled:     process.env.SMTP_ENABLED === "true" || cfg.enabled,
+    smtpHost:    process.env.SMTP_HOST    || cfg.smtpHost    || "",
+    smtpPort:    process.env.SMTP_PORT    || cfg.smtpPort    || 587,
+    smtpSecure:  process.env.SMTP_SECURE === "true" || cfg.smtpSecure,
+    smtpUser:    process.env.SMTP_USER    || cfg.smtpUser    || "",
+    smtpPass:    process.env.SMTP_PASS    || cfg.smtpPass    || "",
+    senderName:  process.env.SMTP_SENDER_NAME  || cfg.senderName  || "DRIP VAULT",
+    senderEmail: process.env.SMTP_SENDER_EMAIL || cfg.senderEmail || "",
+    subject:     cfg.subject || "Deine Bestellung {{orderId}}",
+    body:        cfg.body    || "Hallo {{name}}, danke für deine Bestellung!",
+  };
+}
+
+async function sendOrderEmail(order) {
+  const s   = loadSettings();
+  const cfg = getEmailConfig();
   if (!cfg.enabled || !cfg.smtpHost || !cfg.smtpUser || !cfg.smtpPass || !order.email) return;
 
   const fmt = n => parseFloat(n || 0).toLocaleString("de-DE", { style: "currency", currency: s.payment?.currency || "EUR" });
@@ -699,9 +717,10 @@ async function sendOrderEmail(order) {
 
   const transporter = nodemailer.createTransport({
     host:   cfg.smtpHost,
-    port:   parseInt(cfg.smtpPort)  || 587,
+    port:   parseInt(cfg.smtpPort) || 587,
     secure: !!cfg.smtpSecure,
     auth:   { user: cfg.smtpUser, pass: cfg.smtpPass },
+    tls:    { rejectUnauthorized: false },
   });
 
   await transporter.sendMail({
@@ -715,8 +734,7 @@ async function sendOrderEmail(order) {
 
 // Test-email endpoint — sends a preview to the configured address
 app.post("/admin/test-email", async (req, res) => {
-  const s   = loadSettings();
-  const cfg = s.email || {};
+  const cfg = getEmailConfig();
   if (!cfg.smtpHost || !cfg.smtpUser || !cfg.smtpPass) {
     return res.status(400).json({ error: "SMTP nicht konfiguriert." });
   }
