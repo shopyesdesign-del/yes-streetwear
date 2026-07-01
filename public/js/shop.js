@@ -227,6 +227,10 @@ async function loadAndRender() {
       <div class="product-info">
         <h3 class="product-name">${esc(p.name)}</h3>
         ${p.description ? `<p class="product-desc">${esc(p.description)}</p>` : ''}
+        ${p.sizes && p.sizes.length ? `
+          <div class="card-sizes">
+            ${p.sizes.map(s => `<button class="card-size-btn" data-size="${esc(s)}">${esc(s)}</button>`).join('')}
+          </div>` : ''}
         <div class="product-footer">
           <div>${priceHTML}</div>
           <button class="btn-add-cart" data-id="${p.id}" data-name="${esc(p.name)}" data-price="${p.discountPrice || p.price}">
@@ -243,9 +247,29 @@ async function loadAndRender() {
       }
     });
 
+    // Size button toggle
+    card.querySelectorAll('.card-size-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        card.querySelectorAll('.card-size-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    });
+
     card.querySelector('.btn-add-cart').addEventListener('click', (e) => {
       e.stopPropagation();
-      addToCart(String(p.id), p.name, p.discountPrice || p.price, getImages(p)[0] || '');
+      const hasSizes = p.sizes && p.sizes.length > 0;
+      const selectedBtn = card.querySelector('.card-size-btn.selected');
+      if (hasSizes && !selectedBtn) {
+        // Highlight size section to prompt selection
+        const sizesEl = card.querySelector('.card-sizes');
+        sizesEl.classList.add('shake');
+        setTimeout(() => sizesEl.classList.remove('shake'), 600);
+        return;
+      }
+      const selectedSize = selectedBtn ? selectedBtn.dataset.size : null;
+      const label = selectedSize ? `${p.name} · ${selectedSize}` : p.name;
+      addToCart(String(p.id) + (selectedSize || ''), label, p.discountPrice || p.price, getImages(p)[0] || '');
     });
 
     grid.appendChild(card);
@@ -497,6 +521,7 @@ function renderCartItems() {
 
   container.innerHTML = cart.map(item => `
     <div class="cart-item">
+      ${item.image ? `<img class="cart-item-img" src="${esc(item.image)}" alt="">` : '<div class="cart-item-img cart-item-img--empty"></div>'}
       <div class="cart-item-info">
         <span class="cart-item-name">${esc(item.name)}</span>
         <span class="cart-item-price">${formatPrice(item.price)}</span>
