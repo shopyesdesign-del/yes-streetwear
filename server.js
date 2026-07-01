@@ -14,7 +14,11 @@ async function getDb() {
   if (_db) return _db;
   const uri = process.env.MONGODB_URI;
   if (!uri) return null;
-  const client = new MongoClient(uri);
+  const client = new MongoClient(uri, {
+    maxPoolSize: 1,
+    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 5000,
+  });
   await client.connect();
   _db = client.db("yesdesign");
   return _db;
@@ -333,14 +337,13 @@ function mergeSettings(saved) {
 const _ready = initStore().catch(err => console.error("[store] init failed:", err.message));
 
 // Synchronous load from in-memory cache
-function loadProducts()    { return _store.products    || []; }
-function loadSettings() {
-  if (_store.settings !== null) return mergeSettings(_store.settings);
-  try { return mergeSettings(JSON.parse(fs.readFileSync(SETTINGS_FILE))); } catch (_) {}
-  return mergeSettings({});
+function readFile(file, fallback) {
+  try { return JSON.parse(fs.readFileSync(file)); } catch (_) { return fallback; }
 }
-function loadOrders()      { return _store.orders      || []; }
-function loadCollections() { return _store.collections || []; }
+function loadProducts()    { return _store.products    ?? readFile(PRODUCTS_FILE,    []); }
+function loadSettings()    { return mergeSettings(_store.settings ?? readFile(SETTINGS_FILE, {})); }
+function loadOrders()      { return _store.orders      ?? readFile(ORDERS_FILE,      []); }
+function loadCollections() { return _store.collections ?? readFile(COLLECTIONS_FILE, []); }
 
 // Save: update cache + persist to MongoDB + file fallback
 function saveProducts(data)    { _store.products    = data; dbSet("products",    data); safeWrite(PRODUCTS_FILE,    data); }
