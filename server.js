@@ -2,6 +2,8 @@ const express    = require("express");
 const fs         = require("fs");
 const multer     = require("multer");
 const path       = require("path");
+const os         = require("os");
+const crypto     = require("crypto");
 const nodemailer = require("nodemailer");
 // On Vercel the filesystem is read-only — writes are silently skipped
 function safeWrite(file, data) {
@@ -13,9 +15,21 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-const UPLOADS_DIR = path.join(__dirname, "public/uploads");
-if (!fs.existsSync(UPLOADS_DIR)) { try { fs.mkdirSync(UPLOADS_DIR, { recursive: true }); } catch (_) {} }
-const upload = multer({ dest: UPLOADS_DIR });
+// Determine writable uploads dir — public/uploads locally, os.tmpdir() on Vercel (read-only fs)
+const UPLOADS_DIR = (() => {
+  const local = path.join(__dirname, "public/uploads");
+  try { fs.mkdirSync(local, { recursive: true }); return local; } catch (_) {}
+  const tmp = path.join(os.tmpdir(), "dripvault-uploads");
+  try { fs.mkdirSync(tmp, { recursive: true }); } catch (_) {}
+  return tmp;
+})();
+// Use diskStorage with function-based destination to avoid mkdirSync at init time (multer 2 bug on Vercel)
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, UPLOADS_DIR),
+    filename:    (req, file, cb) => crypto.randomBytes(16, (err, raw) => cb(err, raw ? raw.toString("hex") : Date.now().toString())),
+  }),
+});
 
 const CUSTOMER_PASS = "yes";
 const ADMIN_PASS = "yes0511";
@@ -366,12 +380,11 @@ app.get("/admin/orders", (req, res) => {
 
 // MEDIA LIBRARY
 app.get("/admin/media", (req, res) => {
-  const uploadsDir = path.join(__dirname, "public/uploads");
-  if (!fs.existsSync(uploadsDir)) return res.json([]);
-  const files = fs.readdirSync(uploadsDir)
+  if (!fs.existsSync(UPLOADS_DIR)) return res.json([]);
+  const files = fs.readdirSync(UPLOADS_DIR)
     .filter(f => !f.startsWith("."))
     .map(f => {
-      const stat = fs.statSync(path.join(uploadsDir, f));
+      const stat = fs.statSync(path.join(UPLOADS_DIR, f));
       return { name: f, url: "/uploads/" + f, size: stat.size, mtime: stat.mtime };
     })
     .sort((a, b) => new Date(b.mtime) - new Date(a.mtime));
@@ -380,10 +393,17 @@ app.get("/admin/media", (req, res) => {
 
 app.delete("/admin/media/:filename", (req, res) => {
   const filename = path.basename(req.params.filename);
-  const filepath = path.join(__dirname, "public/uploads", filename);
+  const filepath = path.join(UPLOADS_DIR, filename);
   if (!fs.existsSync(filepath)) return res.status(404).json({ error: "Not found" });
   fs.unlinkSync(filepath);
   res.json({ success: true });
+});
+
+// Serve uploaded files from UPLOADS_DIR (fallback when express.static can't find them)
+app.get("/uploads/:filename", (req, res) => {
+  const filepath = path.join(UPLOADS_DIR, path.basename(req.params.filename));
+  if (!fs.existsSync(filepath)) return res.status(404).send("Not found");
+  res.sendFile(filepath);
 });
 
 // SETTINGS GET
