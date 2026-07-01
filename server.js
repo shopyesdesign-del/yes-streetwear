@@ -3,6 +3,11 @@ const fs         = require("fs");
 const multer     = require("multer");
 const path       = require("path");
 const nodemailer = require("nodemailer");
+// On Vercel the filesystem is read-only — writes are silently skipped
+function safeWrite(file, data) {
+  try { fs.writeFileSync(file, JSON.stringify(data, null, 2)); } catch (_) {}
+}
+
 
 const app = express();
 app.use(express.json());
@@ -174,9 +179,7 @@ function loadProducts() {
   return JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
 }
 
-function saveProducts(data) {
-  fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(data, null, 2));
-}
+function saveProducts(data) { safeWrite(PRODUCTS_FILE, data); }
 
 function loadSettings() {
   const saved = fs.existsSync(SETTINGS_FILE)
@@ -216,9 +219,7 @@ function loadSettings() {
   };
 }
 
-function saveSettings(data) {
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2));
-}
+function saveSettings(data) { safeWrite(SETTINGS_FILE, data); }
 
 // LOGIN — passwords now configurable via admin
 app.post("/login", (req, res) => {
@@ -351,7 +352,7 @@ app.post("/orders", async (req, res) => {
   const orders = loadOrders();
   const order  = { id: "ORD-" + Date.now(), ...req.body, createdAt: new Date().toISOString() };
   orders.unshift(order);
-  fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
+  safeWrite(ORDERS_FILE, orders);
   sendOrderEmail(order).catch(err => console.error("[email] send failed:", err.message));
   res.json({ success: true, orderId: order.id });
 });
@@ -498,9 +499,7 @@ function loadCollections() {
   if (!fs.existsSync(COLLECTIONS_FILE)) return [];
   return JSON.parse(fs.readFileSync(COLLECTIONS_FILE, "utf-8"));
 }
-function saveCollections(data) {
-  fs.writeFileSync(COLLECTIONS_FILE, JSON.stringify(data, null, 2));
-}
+function saveCollections(data) { safeWrite(COLLECTIONS_FILE, data); }
 function slugify(name) {
   return (name || "").toLowerCase()
     .replace(/[äöü]/g, c => ({ ä:"ae", ö:"oe", ü:"ue" })[c] || c)
@@ -780,7 +779,7 @@ app.post("/checkout/capture-paypal-order", async (req, res) => {
       createdAt:       new Date().toISOString(),
     };
     orders.unshift(order);
-    fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
+    safeWrite(ORDERS_FILE, orders);
     sendOrderEmail(order).catch(err => console.error("[email] send failed:", err.message));
     res.json({ success: true, orderId: order.id });
   } catch (err) {
@@ -800,7 +799,7 @@ app.put("/admin/order/:id", (req, res) => {
     createdAt: orders[idx].createdAt,
     updatedAt: new Date().toISOString(),
   };
-  fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
+  safeWrite(ORDERS_FILE, orders);
   res.json({ success: true, order: orders[idx] });
 });
 
@@ -809,10 +808,11 @@ app.delete("/admin/order/:id", (req, res) => {
   const orders   = loadOrders();
   const filtered = orders.filter(o => o.id !== req.params.id);
   if (filtered.length === orders.length) return res.status(404).json({ error: "Not found" });
-  fs.writeFileSync(ORDERS_FILE, JSON.stringify(filtered, null, 2));
+  safeWrite(ORDERS_FILE, filtered);
   res.json({ success: true });
 });
 
-app.listen(3000, () => {
-  console.log("Shop läuft auf http://localhost:3000");
-});
+if (require.main === module) {
+  app.listen(3000, () => console.log("Shop läuft auf http://localhost:3000"));
+}
+module.exports = app;

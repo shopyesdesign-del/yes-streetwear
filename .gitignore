@@ -1,7 +1,6 @@
 node_modules/
 *.json.bak
-uploads/
-settings.json
+public/uploads/
 orders.json
 .DS_Store
 *.log
