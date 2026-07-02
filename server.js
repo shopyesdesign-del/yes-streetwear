@@ -139,13 +139,15 @@ async function uploadFile(file) {
     const db = await getDb();
     if (db) {
       const id = crypto.randomBytes(16).toString("hex");
-      await db.collection("images").insertOne({
+      const doc = {
         _id: id,
         data: file.buffer.toString("base64"),
         mime: file.mimetype || "image/jpeg",
         size: file.buffer.length,
         at: new Date().toISOString(),
-      });
+      };
+      // Use updateOne+upsert (same as dbSet) — insertOne fails on some Atlas M0 configs
+      await db.collection("images").updateOne({ _id: id }, { $set: doc }, { upsert: true });
       return "/img/" + id;
     }
   } catch (e) {
