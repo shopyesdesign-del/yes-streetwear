@@ -213,14 +213,15 @@ async function loadAndRender() {
       ? `<img src="${imgs[0]}" alt="${esc(p.name)}" class="product-img" loading="lazy">`
       : `<div class="product-img-placeholder"><span>NO IMAGE</span></div>`;
 
+    const isSoldOut = p.soldOut === true || p.stock === 0;
     const badgeClass = {
       'NEW': 'product-badge-new',
       'LIMITED': 'product-badge-limited',
       'DROP': 'product-badge-drop',
       'SOLD OUT': 'product-badge-soldout',
-    }[p.badge] || '';
-    const badgeHTML = p.badge
-      ? `<span class="product-badge ${badgeClass}">${esc(p.badge)}</span>` : '';
+    }[isSoldOut ? 'SOLD OUT' : p.badge] || '';
+    const badgeHTML = (isSoldOut || p.badge)
+      ? `<span class="product-badge ${badgeClass}">${esc(isSoldOut ? 'SOLD OUT' : p.badge)}</span>` : '';
 
     const discount = p.discountPrice && p.discountPrice < p.price;
     const priceHTML = discount
@@ -246,8 +247,8 @@ async function loadAndRender() {
           </div>` : ''}
         <div class="product-footer">
           <div>${priceHTML}</div>
-          <button class="btn-add-cart" data-id="${p.id}" data-name="${esc(p.name)}" data-price="${p.discountPrice || p.price}">
-            ${esc(btnText)}
+          <button class="btn-add-cart" data-id="${p.id}" data-name="${esc(p.name)}" data-price="${p.discountPrice || p.price}" ${isSoldOut ? 'disabled style="opacity:.45;cursor:not-allowed;"' : ''}>
+            ${isSoldOut ? 'Ausverkauft' : esc(btnText)}
           </button>
         </div>
       </div>
@@ -338,11 +339,13 @@ function openProductDetail(p) {
   }
 
   // Badge
+  const pdSoldOut = p.soldOut === true || p.stock === 0;
   const badgeWrap = document.getElementById('pdBadgeWrap');
   badgeWrap.innerHTML = '';
-  if (p.badge) {
-    const cls = { NEW:'pd-badge-new',LIMITED:'pd-badge-limited',DROP:'pd-badge-drop','SOLD OUT':'pd-badge-soldout' }[p.badge] || '';
-    badgeWrap.innerHTML = `<span class="pd-badge ${cls}">${esc(p.badge)}</span>`;
+  const pdBadgeVal = pdSoldOut ? 'SOLD OUT' : p.badge;
+  if (pdBadgeVal) {
+    const cls = { NEW:'pd-badge-new',LIMITED:'pd-badge-limited',DROP:'pd-badge-drop','SOLD OUT':'pd-badge-soldout' }[pdBadgeVal] || '';
+    badgeWrap.innerHTML = `<span class="pd-badge ${cls}">${esc(pdBadgeVal)}</span>`;
   }
   if (p.category) {
     badgeWrap.innerHTML += `<span class="pd-badge" style="background:rgba(255,255,255,.06);color:rgba(255,255,255,.4);border-color:rgba(255,255,255,.08)">${esc(p.category)}</span>`;
@@ -417,9 +420,20 @@ function openProductDetail(p) {
   // Qty
   document.getElementById('pdQtyNum').textContent = '1';
 
-  // Cart button text
+  // Cart button text / sold-out state
   const s = JSON.parse(localStorage.getItem('themeSettings') || '{}');
-  document.getElementById('pdAddCart').textContent = s.buttonStyle?.text || 'In den Warenkorb';
+  const pdCartBtn = document.getElementById('pdAddCart');
+  if (pdSoldOut) {
+    pdCartBtn.textContent = 'Ausverkauft';
+    pdCartBtn.disabled = true;
+    pdCartBtn.style.opacity = '0.45';
+    pdCartBtn.style.cursor = 'not-allowed';
+  } else {
+    pdCartBtn.textContent = s.buttonStyle?.text || 'In den Warenkorb';
+    pdCartBtn.disabled = false;
+    pdCartBtn.style.opacity = '';
+    pdCartBtn.style.cursor = '';
+  }
 
   // Open
   modal.classList.add('open');

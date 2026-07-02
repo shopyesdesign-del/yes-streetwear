@@ -2017,6 +2017,11 @@
       </div>
 
       <div class="form-group">
+        <label>Lagerbestand <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:400">(leer = unbegrenzt)</span></label>
+        <input type="number" id="p_stock" class="input-field" placeholder="z.B. 10" min="0" step="1">
+      </div>
+
+      <div class="form-group">
         <label>Beschreibung</label>
         <textarea id="p_description" class="input-field textarea" placeholder="Produktbeschreibung..." rows="3"></textarea>
       </div>
@@ -2239,6 +2244,10 @@ function renderProducts(list) {
         <div class="pac-meta">
           <span class="badge-vis ${p.visible ? 'on' : 'off'}">${p.visible ? 'Sichtbar' : 'Versteckt'}</span>
           ${p.category ? `<span class="badge-cat">${esc(p.category)}</span>` : ''}
+          ${p.stock !== null && p.stock !== undefined
+            ? `<span class="badge-cat" style="background:${p.soldOut ? 'rgba(255,60,60,.18)' : 'rgba(60,200,100,.15)'};color:${p.soldOut ? '#ff4444' : '#4cba6a'};border-color:${p.soldOut ? 'rgba(255,60,60,.3)' : 'rgba(60,200,100,.3)'};">${p.soldOut ? 'Ausverkauft' : p.stock + ' im Lager'}</span>`
+            : ''
+          }
         </div>
         <div class="pac-actions">
           <button class="pac-btn btn-edit" onclick="openEditModal(${p.id})">Bearbeiten</button>
@@ -2286,6 +2295,7 @@ function openEditModal(id) {
   document.getElementById('p_category').value       = p.category      || '';
   document.getElementById('p_badge').value          = p.badge         || '';
   document.getElementById('p_visible').value        = p.visible ? 'true' : 'false';
+  document.getElementById('p_stock').value          = p.stock !== null && p.stock !== undefined ? p.stock : '';
 
   // Load sizes
   _pSizes = Array.isArray(p.sizes) ? [...p.sizes] : [];
@@ -2412,6 +2422,7 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
   fd.append('category',      document.getElementById('p_category').value);
   fd.append('badge',         document.getElementById('p_badge').value);
   fd.append('visible',       document.getElementById('p_visible').value);
+  fd.append('stock',         document.getElementById('p_stock').value);
   fd.append('sizes',         JSON.stringify(_pSizes));
   fd.append('colors',        JSON.stringify(_pColors));
   fd.append('keepImages',    JSON.stringify(_pKeepImages));

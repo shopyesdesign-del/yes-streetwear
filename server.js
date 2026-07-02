@@ -498,6 +498,7 @@ app.post("/admin/add-product", (req, res, next) => {
     if (!v) return [];
     return typeof v === "string" ? JSON.parse(v) : v;
   };
+  const stockRaw = req.body.stock !== undefined && req.body.stock !== "" ? parseInt(req.body.stock) : null;
   const newProduct = {
     id:            Date.now(),
     name:          req.body.name,
@@ -509,6 +510,8 @@ app.post("/admin/add-product", (req, res, next) => {
     colors:        parseArr(req.body.colors),
     badge:         req.body.badge || "",
     visible:       req.body.visible !== "false",
+    stock:         isNaN(stockRaw) ? null : stockRaw,
+    soldOut:       false,
     images,
     image:         images[0] || null,
   };
@@ -536,6 +539,8 @@ app.put("/admin/product/:id", (req, res, next) => {
   const newImages  = req.files && req.files.length ? await Promise.all(req.files.map(f => uploadFile(f))) : [];
   const allImages  = [...keepImages, ...newImages];
   const parseArr   = (v) => { if (!v) return undefined; return typeof v === "string" ? JSON.parse(v) : v; };
+  const editStockRaw = req.body.stock !== undefined && req.body.stock !== "" ? parseInt(req.body.stock) : null;
+  const editStock    = req.body.stock !== undefined ? (isNaN(editStockRaw) ? null : editStockRaw) : (existing.stock ?? null);
   products[idx] = {
     ...existing,
     name:          req.body.name          !== undefined ? req.body.name          : existing.name,
@@ -547,6 +552,8 @@ app.put("/admin/product/:id", (req, res, next) => {
     colors:        parseArr(req.body.colors)  ?? existing.colors ?? [],
     badge:         req.body.badge         !== undefined ? req.body.badge          : existing.badge,
     visible:       req.body.visible       !== undefined ? req.body.visible !== "false" : existing.visible,
+    stock:         editStock,
+    soldOut:       editStock !== null && editStock <= 0,
     images:        allImages,
     image:         allImages[0] || existing.image,
   };
@@ -585,12 +592,28 @@ app.patch("/admin/toggle/:id", async (req, res) => {
 
 // ORDERS
 app.post("/orders", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]); } catch (_) {}
   const orders = loadOrders();
   const order  = { id: "ORD-" + Date.now(), ...req.body, createdAt: new Date().toISOString() };
   orders.unshift(order);
   _store.orders = orders;
   safeWrite(ORDERS_FILE, orders);
-  await dbSet("orders", orders); // await so order is in DB before response
+  await dbSet("orders", orders);
+
+  // Decrement stock for each ordered item
+  const products = loadProducts();
+  let stockChanged = false;
+  for (const item of (order.items || [])) {
+    const prodId = parseInt(item.id); // strip size suffix (e.g. "1234567S" → 1234567)
+    const prod   = products.find(p => p.id === prodId);
+    if (prod && prod.stock !== null && prod.stock !== undefined) {
+      prod.stock = Math.max(0, prod.stock - (item.qty || 1));
+      if (prod.stock === 0) prod.soldOut = true;
+      stockChanged = true;
+    }
+  }
+  if (stockChanged) await saveProducts(products);
+
   sendOrderEmail(order).catch(err => console.error("[email] send failed:", err.message));
   res.json({ success: true, orderId: order.id });
 });
