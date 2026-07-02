@@ -475,12 +475,19 @@ app.post("/orders", async (req, res) => {
   const orders = loadOrders();
   const order  = { id: "ORD-" + Date.now(), ...req.body, createdAt: new Date().toISOString() };
   orders.unshift(order);
-  saveOrders(orders);
+  _store.orders = orders;
+  safeWrite(ORDERS_FILE, orders);
+  await dbSet("orders", orders); // await so order is in DB before response
   sendOrderEmail(order).catch(err => console.error("[email] send failed:", err.message));
   res.json({ success: true, orderId: order.id });
 });
 
 app.get("/admin/orders", async (req, res) => {
+  // Always read fresh from MongoDB so orders from any Vercel instance are visible
+  try {
+    const fresh = await dbGet("orders", null);
+    if (fresh) { _store.orders = fresh; return res.json(fresh); }
+  } catch (_) {}
   res.json(loadOrders());
 });
 
@@ -530,7 +537,7 @@ body {
   background-position: ${t.bgPosition || 'center'};
 }
 @media (max-width: 768px) {
-  body { background-image: ${mobileBg}; }
+  body { background-image: ${mobileBg}; background-attachment: scroll; }
 }`;
   res.setHeader('Content-Type', 'text/css');
   res.setHeader('Cache-Control', 'no-cache, no-store');

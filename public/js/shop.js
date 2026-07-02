@@ -57,7 +57,7 @@ function updateTheme(s) {
     ? `url(${s.mobileBackground})` : desktopBg;
   dynBg.textContent = `
     body { background-image: ${desktopBg}; background-size: ${t.bgSize || 'cover'}; background-position: ${t.bgPosition || 'center'}; }
-    @media (max-width: 768px) { body { background-image: ${mobileBg}; } }
+    @media (max-width: 768px) { body { background-image: ${mobileBg}; background-attachment: scroll; background-size: cover; background-position: center top; } }
   `;
 }
 

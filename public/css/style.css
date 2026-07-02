@@ -41,6 +41,7 @@ body {
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
+  /* iOS Safari ignores fixed — override per @media below */
   color: var(--color-text);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -795,6 +796,14 @@ input, textarea, select { font-family: inherit; }
 .admin-main button:hover { opacity: .85; }
 
 /* ─── RESPONSIVE ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    background-attachment: scroll;
+    background-size: cover;
+    background-position: center top;
+  }
+}
+
 @media (max-width: 640px) {
   .header-inner { padding: 14px 16px; }
   .site-title { font-size: 1.1rem; }
