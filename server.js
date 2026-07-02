@@ -407,11 +407,18 @@ async function saveCollections(data) { _store.collections = data; await dbSet("c
 // DB STATUS — quick diagnostic endpoint
 app.get("/admin/db-status", async (req, res) => {
   const db = await getDb();
-  if (!db) return res.json({ connected: false, products: null });
+  if (!db) return res.json({ connected: false });
   try {
     const doc = await db.collection("store").findOne({ _id: "products" });
-    const count = doc && Array.isArray(doc.data) ? doc.data.length : null;
-    res.json({ connected: true, productsInDb: count, storeProducts: _store.products ? _store.products.length : null });
+    const dbProds = doc && Array.isArray(doc.data) ? doc.data : null;
+    const saveTest = await dbSet("__savetest__", { ok: true });
+    res.json({
+      connected: true,
+      saveWorks: saveTest,
+      productsInDb: dbProds ? dbProds.length : null,
+      productNamesInDb: dbProds ? dbProds.map(p => p.name) : null,
+      storeProducts: _store.products ? _store.products.length : null,
+    });
   } catch (e) {
     res.json({ connected: true, error: e.message });
   }
