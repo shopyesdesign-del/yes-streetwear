@@ -519,24 +519,60 @@ app.get("/admin/orders", async (req, res) => {
 });
 
 // MEDIA LIBRARY
-app.get("/admin/media", (req, res) => {
-  if (!fs.existsSync(UPLOADS_DIR)) return res.json([]);
-  const files = fs.readdirSync(UPLOADS_DIR)
-    .filter(f => !f.startsWith("."))
-    .map(f => {
-      const stat = fs.statSync(path.join(UPLOADS_DIR, f));
-      return { name: f, url: "/uploads/" + f, size: stat.size, mtime: stat.mtime };
-    })
-    .sort((a, b) => new Date(b.mtime) - new Date(a.mtime));
-  res.json(files);
+// Dedicated media upload endpoint (used by admin media library)
+app.post("/admin/media/upload", upload.array("files", 20), async (req, res) => {
+  if (!req.files || !req.files.length) return res.status(400).json({ error: "No files" });
+  try {
+    const urls = await Promise.all(req.files.map(f => uploadFile(f)));
+    res.json({ success: true, urls });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.delete("/admin/media/:filename", (req, res) => {
-  const filename = path.basename(req.params.filename);
-  const filepath = path.join(UPLOADS_DIR, filename);
-  if (!fs.existsSync(filepath)) return res.status(404).json({ error: "Not found" });
-  fs.unlinkSync(filepath);
-  res.json({ success: true });
+// Media library — returns both local files and MongoDB-stored images
+app.get("/admin/media", async (req, res) => {
+  const items = [];
+  // Local files (dev environment)
+  if (fs.existsSync(UPLOADS_DIR)) {
+    fs.readdirSync(UPLOADS_DIR).filter(f => !f.startsWith(".")).forEach(f => {
+      try {
+        const stat = fs.statSync(path.join(UPLOADS_DIR, f));
+        items.push({ id: f, name: f, url: "/uploads/" + f, size: stat.size, mtime: stat.mtime });
+      } catch (_) {}
+    });
+  }
+  // MongoDB images (Vercel / production)
+  try {
+    const db = await getDb();
+    if (db) {
+      const imgs = await db.collection("images")
+        .find({}, { projection: { data: 0 } })
+        .sort({ at: -1 }).toArray();
+      imgs.forEach(img => {
+        items.push({ id: img._id, name: img._id, url: "/img/" + img._id, size: img.size || 0, mtime: img.at });
+      });
+    }
+  } catch (e) { console.error("[media] list failed:", e.message); }
+  items.sort((a, b) => new Date(b.mtime) - new Date(a.mtime));
+  res.json(items);
+});
+
+// Delete media — handles both local files and MongoDB images
+app.delete("/admin/media/:id", async (req, res) => {
+  const id = req.params.id;
+  // Try local file first
+  const filepath = path.join(UPLOADS_DIR, path.basename(id));
+  if (fs.existsSync(filepath)) { fs.unlinkSync(filepath); return res.json({ success: true }); }
+  // Try MongoDB image
+  try {
+    const db = await getDb();
+    if (db) {
+      const r = await db.collection("images").deleteOne({ _id: id });
+      if (r.deletedCount > 0) return res.json({ success: true });
+    }
+  } catch (e) { console.error("[media] delete failed:", e.message); }
+  res.status(404).json({ error: "Not found" });
 });
 
 // Theme CSS — served before JS loads to prevent flash of default design

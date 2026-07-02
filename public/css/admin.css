@@ -899,8 +899,15 @@ input[type="color"] {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   opacity: 0;
   transition: opacity .2s;
+  flex-wrap: wrap;
+  padding: 8px;
+}
+@media (max-width: 768px) {
+  .media-card:hover .media-overlay,
+  .media-card .media-overlay { opacity: 1; }
 }
 
 .media-del-btn {
@@ -916,6 +923,19 @@ input[type="color"] {
 }
 
 .media-del-btn:hover { background: #b91c1c; }
+
+.media-copy-btn {
+  padding: 7px 14px;
+  background: rgba(255,255,255,.15);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 11.5px;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  transition: background .15s;
+}
+.media-copy-btn:hover { background: rgba(255,255,255,.25); }
 
 /* ── Modals ─────────────────────────────────────────────────── */
 /*

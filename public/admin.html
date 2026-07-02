@@ -2802,13 +2802,14 @@ async function loadMedia() {
 
   grid.innerHTML = files.map(f => `
     <div class="media-card">
-      <img class="media-thumb" src="${f.url}" alt="${f.name}" loading="lazy"
-        onerror="this.style.background='#222';this.style.height='120px'">
+      <img class="media-thumb" src="${f.url}" alt="${f.id}" loading="lazy"
+        onerror="this.style.background='#333';this.style.height='120px'">
       <div class="media-overlay">
-        <button class="media-del-btn" onclick="deleteMedia('${f.name}',this)">Löschen</button>
+        <button class="media-copy-btn" onclick="navigator.clipboard?.writeText('${f.url}');toast('URL kopiert ✓','success')">Kopieren</button>
+        <button class="media-del-btn" onclick="deleteMedia('${f.id}',this)">Löschen</button>
       </div>
       <div class="media-info">
-        <div class="media-name">${f.name.substring(0,20)}</div>
+        <div class="media-name">${f.id.substring(0,16)}…</div>
         <div class="media-size">${fmtSize(f.size)}</div>
       </div>
     </div>
@@ -2836,12 +2837,19 @@ async function deleteMedia(name, btn) {
 async function uploadMediaFiles(files) {
   if (!files.length) return;
   toast('Lädt hoch...', '');
-  for (const file of Array.from(files)) {
-    const fd = new FormData();
-    fd.append('background', file);
-    await fetch('/admin/settings', { method: 'POST', body: fd });
+  const fd = new FormData();
+  Array.from(files).forEach(f => fd.append('files', f));
+  try {
+    const res = await fetch('/admin/media/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) {
+      toast(files.length + ' Datei(en) hochgeladen ✓', 'success');
+    } else {
+      toast('Upload fehlgeschlagen: ' + (data.error || ''), 'error');
+    }
+  } catch (e) {
+    toast('Upload fehlgeschlagen', 'error');
   }
-  toast(files.length + ' Datei(en) hochgeladen ✓', 'success');
   loadMedia();
   document.getElementById('mediaUploadInput').value = '';
 }
