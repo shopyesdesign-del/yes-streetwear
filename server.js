@@ -10,7 +10,13 @@ const { MongoClient } = require("mongodb");
 
 // ── MongoDB ────────────────────────────────────────────────────
 let _db = null;
-let _dbConnecting = null; // singleton promise — prevents parallel connect races
+let _dbConnecting = null;
+
+async function tryConnect(uri, opts) {
+  const client = new MongoClient(uri, opts);
+  await client.connect();
+  return client.db("yesdesign");
+}
 
 async function getDb() {
   if (_db) return _db;
@@ -18,24 +24,27 @@ async function getDb() {
   const uri = process.env.MONGODB_URI;
   if (!uri) return null;
 
+  const BASE = { maxPoolSize: 1, serverSelectionTimeoutMS: 6000, connectTimeoutMS: 6000 };
+  // Try four escalating options to beat SSL/TLS issues on Vercel
+  const variants = [
+    { ...BASE, family: 4 },                                          // 1. IPv4
+    { ...BASE },                                                      // 2. default (IPv6 allowed)
+    { ...BASE, family: 4, tlsAllowInvalidCertificates: true },       // 3. skip cert check, IPv4
+    { ...BASE, tlsAllowInvalidCertificates: true },                  // 4. skip cert check
+  ];
+
   _dbConnecting = (async () => {
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let i = 0; i < variants.length; i++) {
       try {
-        const client = new MongoClient(uri, {
-          maxPoolSize: 1,
-          serverSelectionTimeoutMS: 5000,
-          connectTimeoutMS: 5000,
-          family: 4, // Force IPv4 — avoids TLS alert 80 on some Vercel instances
-        });
-        await client.connect();
-        _db = client.db("yesdesign");
+        _db = await tryConnect(uri, variants[i]);
+        console.log(`[db] connected (variant ${i + 1})`);
         return _db;
       } catch (e) {
-        console.error(`[db] connect attempt ${attempt} failed:`, e.message);
-        if (attempt === 3) return null;
-        await new Promise(r => setTimeout(r, 500 * attempt));
+        console.error(`[db] variant ${i + 1} failed:`, e.message.slice(0, 120));
+        if (i < variants.length - 1) await new Promise(r => setTimeout(r, 300));
       }
     }
+    console.error("[db] all connection variants failed");
     return null;
   })();
 
@@ -397,14 +406,14 @@ function loadSettings()    { return mergeSettings(_store.settings ?? readFile(SE
 function loadOrders()      { return _store.orders      ?? readFile(ORDERS_FILE,      []); }
 function loadCollections() { return _store.collections ?? readFile(COLLECTIONS_FILE, []); }
 
-// Save: update cache + persist to MongoDB + file fallback
-function saveProducts(data)    { _store.products    = data; dbSet("products",    data); safeWrite(PRODUCTS_FILE,    data); }
-function saveSettings(data)    { _store.settings    = data; dbSet("settings",    data); safeWrite(SETTINGS_FILE,    data); }
-function saveOrders(data)      { _store.orders      = data; dbSet("orders",      data); safeWrite(ORDERS_FILE,      data); }
-function saveCollections(data) { _store.collections = data; dbSet("collections", data); safeWrite(COLLECTIONS_FILE, data); }
+// Save: update cache immediately, then await MongoDB persist
+async function saveProducts(data)    { _store.products    = data; await dbSet("products",    data); safeWrite(PRODUCTS_FILE,    data); }
+async function saveSettings(data)    { _store.settings    = data; await dbSet("settings",    data); safeWrite(SETTINGS_FILE,    data); }
+async function saveOrders(data)      { _store.orders      = data; await dbSet("orders",      data); safeWrite(ORDERS_FILE,      data); }
+async function saveCollections(data) { _store.collections = data; await dbSet("collections", data); safeWrite(COLLECTIONS_FILE, data); }
 
 // LOGIN — passwords now configurable via admin
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
   const { password } = req.body;
   const settings     = loadSettings();
   const pw           = settings.passwords || {};
@@ -418,7 +427,7 @@ app.post("/login", (req, res) => {
 });
 
 // PASSWORDS
-app.post("/admin/passwords", (req, res) => {
+app.post("/admin/passwords", async (req, res) => {
   const settings = loadSettings();
   settings.passwords = settings.passwords || {};
   if (req.body.customer !== undefined && req.body.customer !== "")
@@ -427,7 +436,7 @@ app.post("/admin/passwords", (req, res) => {
     settings.passwords.admin = req.body.admin;
   if (req.body.customerEnabled !== undefined)
     settings.passwords.customerEnabled = Boolean(req.body.customerEnabled);
-  saveSettings(settings);
+  await saveSettings(settings);
   res.json({ success: true });
 });
 
@@ -470,7 +479,7 @@ app.post("/admin/add-product", (req, res, next) => {
     image:         images[0] || null,
   };
   products.push(newProduct);
-  saveProducts(products);
+  await saveProducts(products);
   res.json({ success: true, product: newProduct });
 });
 
@@ -506,12 +515,12 @@ app.put("/admin/product/:id", (req, res, next) => {
     images:        allImages,
     image:         allImages[0] || existing.image,
   };
-  saveProducts(products);
+  await saveProducts(products);
   res.json({ success: true, product: products[idx] });
 });
 
 // DELETE PRODUCT
-app.delete("/admin/product/:id", (req, res) => {
+app.delete("/admin/product/:id", async (req, res) => {
   const products = loadProducts();
   const id = parseInt(req.params.id);
   const filtered = products.filter((p) => p.id !== id);
@@ -520,12 +529,12 @@ app.delete("/admin/product/:id", (req, res) => {
     return res.status(404).json({ error: "Produkt nicht gefunden." });
   }
 
-  saveProducts(filtered);
+  await saveProducts(filtered);
   res.json({ success: true });
 });
 
 // TOGGLE VISIBILITY
-app.patch("/admin/toggle/:id", (req, res) => {
+app.patch("/admin/toggle/:id", async (req, res) => {
   const products = loadProducts();
   const id = parseInt(req.params.id);
   const product = products.find((p) => p.id === id);
@@ -533,7 +542,7 @@ app.patch("/admin/toggle/:id", (req, res) => {
   if (!product) return res.status(404).json({ error: "Produkt nicht gefunden." });
 
   product.visible = !product.visible;
-  saveProducts(products);
+  await saveProducts(products);
   res.json({ success: true, visible: product.visible });
 });
 
@@ -656,38 +665,12 @@ body {
 });
 
 // Serve uploaded files from UPLOADS_DIR (fallback when express.static can't find them)
-app.get("/uploads/:filename", (req, res) => {
+app.get("/uploads/:filename", async (req, res) => {
   const filepath = path.join(UPLOADS_DIR, path.basename(req.params.filename));
   if (!fs.existsSync(filepath)) return res.status(404).send("Not found");
   res.sendFile(filepath);
 });
 
-// Temporary debug endpoint — reveals why MongoDB image insert fails
-app.get("/admin/debug-upload", async (req, res) => {
-  const result = { node: process.version, cloudinary: null, mongo: null, disk: null, UPLOADS_DIR };
-  result.cloudinary = getCloudinaryConfig() ? "configured" : "not configured";
-  const uri = process.env.MONGODB_URI;
-  result.mongoUri = uri ? uri.replace(/:\/\/[^@]+@/, "://*:*@") : "NOT SET";
-  try {
-    await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]);
-    const db = await getDb();
-    if (!db) { result.mongo = "getDb() returned null — MONGODB_URI missing?"; }
-    else {
-      const id = "debug-" + Date.now();
-      await db.collection("images").insertOne({
-        _id: id, data: "dGVzdA==", mime: "image/jpeg", size: 4, at: new Date().toISOString()
-      });
-      await db.collection("images").deleteOne({ _id: id });
-      result.mongo = "OK — insert+delete succeeded";
-    }
-  } catch (e) { result.mongo = "ERROR: " + e.message; }
-  try {
-    const tp = path.join(UPLOADS_DIR, "debug-test.txt");
-    fs.writeFileSync(tp, "test"); fs.unlinkSync(tp);
-    result.disk = "writable";
-  } catch (e) { result.disk = "ERROR: " + e.message; }
-  res.json(result);
-});
 
 // Serve images stored in MongoDB (Vercel-safe persistent image storage)
 app.get("/img/:id", async (req, res) => {
@@ -827,7 +810,7 @@ app.post("/admin/settings", (req, res, next) => {
     settings.cloudinary = merged;
   }
 
-  saveSettings(settings);
+  await saveSettings(settings);
   res.json({ success: true, settings });
 });
 
@@ -890,7 +873,7 @@ app.post("/admin/collections", (req, res, next) => {
     createdAt:   new Date().toISOString(),
   };
   cols.unshift(col);
-  saveCollections(cols);
+  await saveCollections(cols);
   res.json({ success: true, collection: col });
 });
 
@@ -925,17 +908,17 @@ app.put("/admin/collection/:id", (req, res, next) => {
     banner:      req.files?.bannerImage ? await uploadFile(req.files.bannerImage[0]) : ex.banner,
   };
   if (req.body.name) cols[idx].slug = slugify(req.body.name);
-  saveCollections(cols);
+  await saveCollections(cols);
   res.json({ success: true, collection: cols[idx] });
 });
 
 // Admin: delete collection
-app.delete("/admin/collection/:id", (req, res) => {
+app.delete("/admin/collection/:id", async (req, res) => {
   const cols     = loadCollections();
   const id       = parseInt(req.params.id);
   const filtered = cols.filter(c => c.id !== id);
   if (filtered.length === cols.length) return res.status(404).json({ error: "Not found" });
-  saveCollections(filtered);
+  await saveCollections(filtered);
   res.json({ success: true });
 });
 
@@ -1045,7 +1028,7 @@ app.post("/admin/test-email", async (req, res) => {
 /* ═══════════════ PAYMENT ═══════════════════════════════════ */
 
 // Public payment config — no secrets exposed
-app.get("/payment-config", (req, res) => {
+app.get("/payment-config", async (req, res) => {
   const s = loadSettings();
   const p = s.payment || {};
   res.json({
@@ -1156,7 +1139,7 @@ app.post("/checkout/capture-paypal-order", async (req, res) => {
 });
 
 // Update order (status, shipping info, notes)
-app.put("/admin/order/:id", (req, res) => {
+app.put("/admin/order/:id", async (req, res) => {
   const orders = loadOrders();
   const idx    = orders.findIndex(o => o.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Not found" });
@@ -1172,11 +1155,11 @@ app.put("/admin/order/:id", (req, res) => {
 });
 
 // Delete order
-app.delete("/admin/order/:id", (req, res) => {
+app.delete("/admin/order/:id", async (req, res) => {
   const orders   = loadOrders();
   const filtered = orders.filter(o => o.id !== req.params.id);
   if (filtered.length === orders.length) return res.status(404).json({ error: "Not found" });
-  saveOrders(filtered);
+  await saveOrders(filtered);
   res.json({ success: true });
 });
 
