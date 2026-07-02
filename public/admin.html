@@ -280,16 +280,16 @@
           <form id="bgForm">
             <div class="form-group">
               <label>Hintergrundbild hochladen</label>
-              <div class="upload-zone" id="bgDropZone">
+              <label class="upload-zone" id="bgDropZone" for="bgFile">
                 <input type="file" name="background" id="bgFile" accept="image/*" class="file-input"
                   onchange="previewFile(this,'bgPreview','bgDropZone')">
                 <div class="upload-label">
                   <span class="upload-icon">⬆</span>
-                  <span>Bild hochladen oder hierhin ziehen</span>
+                  <span>Bild auswählen / hochladen</span>
                   <span class="upload-hint">JPG, PNG, WebP — max 10 MB</span>
                 </div>
                 <div id="bgPreview" class="upload-preview"></div>
-              </div>
+              </label>
             </div>
 
             <div class="toggle-row">
@@ -343,16 +343,16 @@
           <form id="mobileBgForm">
             <div class="form-group">
               <label>Mobiles Hintergrundbild</label>
-              <div class="upload-zone" id="mobileBgDropZone">
+              <label class="upload-zone" id="mobileBgDropZone" for="mobileBgFile">
                 <input type="file" name="mobileBackground" id="mobileBgFile" accept="image/*" class="file-input"
                   onchange="previewFile(this,'mobileBgPreview','mobileBgDropZone')">
                 <div class="upload-label">
                   <span class="upload-icon">📱</span>
-                  <span>Bild für Handy hochladen</span>
+                  <span>Bild für Handy auswählen</span>
                   <span class="upload-hint">Empfehlung: Hochformat (z.B. 1080×1920)</span>
                 </div>
                 <div id="mobileBgPreview" class="upload-preview"></div>
-              </div>
+              </label>
             </div>
             <div id="mobileBgCurrentWrap" style="display:none;margin-bottom:12px;">
               <p style="font-size:.8rem;color:rgba(255,255,255,.4);margin-bottom:6px;">Aktuelles Bild:</p>
@@ -551,7 +551,7 @@
 
           <div class="form-group">
             <label>Hintergrundbild</label>
-            <div class="upload-zone">
+            <label class="upload-zone" for="bannerImageFile">
               <input type="file" name="bannerImage" id="bannerImageFile" accept="image/*" class="file-input"
                 onchange="previewFile(this,'bannerPreview',null)">
               <div class="upload-label">
@@ -559,7 +559,7 @@
                 <span>Banner-Bild hochladen</span>
               </div>
               <div id="bannerPreview" class="upload-preview"></div>
-            </div>
+            </label>
           </div>
 
           <div class="form-grid">
@@ -655,7 +655,7 @@
           <div class="form-grid">
             <div class="form-group">
               <label>Login-Hintergrundbild</label>
-              <div class="upload-zone">
+              <label class="upload-zone" for="loginBgFile">
                 <input type="file" name="loginBackground" id="loginBgFile" accept="image/*" class="file-input"
                   onchange="previewFile(this,'loginBgPreview',null)">
                 <div class="upload-label">
@@ -663,11 +663,11 @@
                   <span>Login-Hintergrund hochladen</span>
                 </div>
                 <div id="loginBgPreview" class="upload-preview"></div>
-              </div>
+              </label>
             </div>
             <div class="form-group">
               <label>Logo</label>
-              <div class="upload-zone">
+              <label class="upload-zone" for="logoFile">
                 <input type="file" name="logo" id="logoFile" accept="image/*" class="file-input"
                   onchange="previewFile(this,'logoPreview',null)">
                 <div class="upload-label">
@@ -675,7 +675,7 @@
                   <span>Logo hochladen</span>
                 </div>
                 <div id="logoPreview" class="upload-preview"></div>
-              </div>
+              </label>
             </div>
           </div>
           <div class="form-actions">
@@ -735,7 +735,7 @@
             </div>
             <div class="form-group">
               <label>Eigenes Cursor-Bild (PNG mit Transparenz ideal)</label>
-              <div class="upload-zone">
+              <label class="upload-zone" for="cur_imageFile">
                 <input type="file" id="cur_imageFile" accept="image/*" class="file-input"
                   onchange="previewCursorImage(this)">
                 <div class="upload-label">
@@ -744,7 +744,7 @@
                   <span class="upload-hint">PNG mit Transparenz empfohlen</span>
                 </div>
                 <div id="cur_imagePreview" class="upload-preview"></div>
-              </div>
+              </label>
             </div>
           </div>
 
@@ -1148,26 +1148,26 @@
 
             <div class="form-group">
               <label>Hintergrundbild</label>
-              <div class="upload-zone">
+              <label class="upload-zone" for="lp_bgImageFile">
                 <input type="file" id="lp_bgImageFile" accept="image/*" class="file-input"
                   onchange="previewFile(this,'lp_bgPreview')">
                 <div class="upload-label">
                   <span class="upload-icon">⬆</span><span>Bild hochladen</span>
                 </div>
                 <div id="lp_bgPreview" class="upload-preview"></div>
-              </div>
+              </label>
             </div>
 
             <div class="form-group">
               <label>Hintergrundvideo (MP4)</label>
-              <div class="upload-zone">
+              <label class="upload-zone" for="lp_videoFile">
                 <input type="file" id="lp_videoFile" accept="video/*" class="file-input"
                   onchange="document.getElementById('lp_videoName').textContent=this.files[0]?.name||''">
                 <div class="upload-label">
                   <span class="upload-icon">▶</span><span>Video hochladen (MP4)</span>
                   <span id="lp_videoName" style="font-size:11px;color:rgba(255,255,255,.4);"></span>
                 </div>
-              </div>
+              </label>
             </div>
 
             <div class="form-group">
@@ -1264,14 +1264,14 @@
             <div class="card-title">🏷️ Logo</div>
             <div class="form-group">
               <label>Logo-Bild</label>
-              <div class="upload-zone">
+              <label class="upload-zone" for="lp_logoFile">
                 <input type="file" id="lp_logoFile" accept="image/*" class="file-input"
                   onchange="previewFile(this,'lp_logoPreview')">
                 <div class="upload-label">
                   <span class="upload-icon">⬆</span><span>Logo hochladen</span>
                 </div>
                 <div id="lp_logoPreview" class="upload-preview"></div>
-              </div>
+              </label>
             </div>
             <div class="form-grid">
               <div class="form-group">
@@ -1860,25 +1860,25 @@
       <div class="form-grid">
         <div class="form-group">
           <label>Titelbild</label>
-          <div class="upload-zone">
+          <label class="upload-zone" for="col_titleImg">
             <input type="file" id="col_titleImg" accept="image/*" class="file-input"
               onchange="previewFile(this,'col_titlePreview')">
             <div class="upload-label">
               <span class="upload-icon">⬆</span><span>Titelbild</span>
             </div>
             <div id="col_titlePreview" class="upload-preview"></div>
-          </div>
+          </label>
         </div>
         <div class="form-group">
           <label>Banner</label>
-          <div class="upload-zone">
+          <label class="upload-zone" for="col_bannerImg">
             <input type="file" id="col_bannerImg" accept="image/*" class="file-input"
               onchange="previewFile(this,'col_bannerPreview')">
             <div class="upload-label">
               <span class="upload-icon">⬆</span><span>Banner-Bild</span>
             </div>
             <div id="col_bannerPreview" class="upload-preview"></div>
-          </div>
+          </label>
         </div>
       </div>
 
@@ -2062,7 +2062,7 @@
       <!-- Images -->
       <div class="form-group">
         <label>Produktbilder (mehrere möglich)</label>
-        <div class="upload-zone">
+        <label class="upload-zone" for="p_images">
           <input type="file" name="images" id="p_images" accept="image/*" multiple class="file-input"
             onchange="previewMultipleFiles(this)">
           <div class="upload-label">
@@ -2070,7 +2070,7 @@
             <span>Bilder hochladen (mehrere wählbar)</span>
             <span class="upload-hint">JPG, PNG, WebP</span>
           </div>
-        </div>
+        </label>
         <!-- Existing images -->
         <div class="existing-images" id="p_existingImages" style="margin-top:10px;"></div>
         <!-- New image previews -->
