@@ -404,6 +404,19 @@ async function saveSettings(data)    { _store.settings    = data; await dbSet("s
 async function saveOrders(data)      { _store.orders      = data; await dbSet("orders",      data); safeWrite(ORDERS_FILE,      data); }
 async function saveCollections(data) { _store.collections = data; await dbSet("collections", data); safeWrite(COLLECTIONS_FILE, data); }
 
+// DB STATUS — quick diagnostic endpoint
+app.get("/admin/db-status", async (req, res) => {
+  const db = await getDb();
+  if (!db) return res.json({ connected: false, products: null });
+  try {
+    const doc = await db.collection("store").findOne({ _id: "products" });
+    const count = doc && Array.isArray(doc.data) ? doc.data.length : null;
+    res.json({ connected: true, productsInDb: count, storeProducts: _store.products ? _store.products.length : null });
+  } catch (e) {
+    res.json({ connected: true, error: e.message });
+  }
+});
+
 // LOGIN — passwords now configurable via admin
 app.post("/login", async (req, res) => {
   const { password } = req.body;
@@ -450,6 +463,7 @@ app.post("/admin/add-product", (req, res, next) => {
   if (!req.body.name || !req.body.price) {
     return res.status(400).json({ error: "Name und Preis sind pflicht." });
   }
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]); } catch (_) {}
   const products = loadProducts();
   const images = req.files && req.files.length ? await Promise.all(req.files.map(f => uploadFile(f))) : [];
   const parseArr = (v) => {
@@ -484,6 +498,7 @@ app.put("/admin/product/:id", (req, res, next) => {
     next();
   });
 }, async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]); } catch (_) {}
   const products = loadProducts();
   const id = parseInt(req.params.id);
   const idx = products.findIndex((p) => p.id === id);
@@ -513,6 +528,7 @@ app.put("/admin/product/:id", (req, res, next) => {
 
 // DELETE PRODUCT
 app.delete("/admin/product/:id", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]); } catch (_) {}
   const products = loadProducts();
   const id = parseInt(req.params.id);
   const filtered = products.filter((p) => p.id !== id);
@@ -527,6 +543,7 @@ app.delete("/admin/product/:id", async (req, res) => {
 
 // TOGGLE VISIBILITY
 app.patch("/admin/toggle/:id", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]); } catch (_) {}
   const products = loadProducts();
   const id = parseInt(req.params.id);
   const product = products.find((p) => p.id === id);
