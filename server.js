@@ -68,11 +68,14 @@ async function dbSet(key, data) {
     if (!db) return false;
     await db.collection("store").updateOne(
       { _id: key },
-      { $set: { _id: key, data } },
+      { $set: { data } },
       { upsert: true }
     );
     return true;
-  } catch (_) { return false; }
+  } catch (e) {
+    console.error("[dbSet] failed for key", key, ":", e.message);
+    return false;
+  }
 }
 
 // On Vercel the filesystem is read-only — writes are silently skipped
