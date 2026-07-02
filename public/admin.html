@@ -599,10 +599,10 @@
           <h1 class="page-title">Medien</h1>
           <p class="page-sub" id="mediaCountLabel">Lädt...</p>
         </div>
-        <label class="btn-primary" style="cursor:pointer;">
-          + Hochladen
-          <input type="file" id="mediaUploadInput" accept="image/*" multiple style="display:none"
-            onchange="uploadMediaFiles(this.files)">
+        <input type="file" id="mediaUploadInput" accept="image/*" multiple style="display:none"
+          onchange="uploadMediaFiles(this.files)">
+        <label for="mediaUploadInput" class="btn-primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+          ⬆ Hochladen
         </label>
       </div>
 

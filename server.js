@@ -85,10 +85,8 @@ function getCloudinaryConfig() {
 
 // Upload a file: 1) Cloudinary  2) MongoDB  3) local disk
 async function uploadFile(file) {
-  // Wait for settings/credentials to load from MongoDB
-  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 6000))]); } catch (_) {}
-
   // 1. Cloudinary (external CDN, best option)
+  // Try immediately — env var works without waiting, settings-based works on warm instances
   const cfg = getCloudinaryConfig();
   if (cfg) {
     try {
