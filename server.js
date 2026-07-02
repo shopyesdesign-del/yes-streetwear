@@ -83,22 +83,47 @@ function getCloudinaryConfig() {
   return null;
 }
 
-// Upload a file: Cloudinary if configured, otherwise local fallback
+// Upload a file: 1) Cloudinary  2) MongoDB  3) local disk
 async function uploadFile(file) {
-  // Wait for settings to load from MongoDB so Cloudinary credentials are available
+  // Wait for settings/credentials to load from MongoDB
   try { await Promise.race([_ready, new Promise(r => setTimeout(r, 6000))]); } catch (_) {}
+
+  // 1. Cloudinary (external CDN, best option)
   const cfg = getCloudinaryConfig();
   if (cfg) {
-    cloudinary.config(cfg);
-    return new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { resource_type: "auto", folder: "dripvault" },
-        (err, result) => err ? reject(err) : resolve(result.secure_url)
-      );
-      stream.end(file.buffer);
-    });
+    try {
+      cloudinary.config(cfg);
+      return await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { resource_type: "auto", folder: "dripvault" },
+          (err, result) => err ? reject(err) : resolve(result.secure_url)
+        );
+        stream.end(file.buffer);
+      });
+    } catch (e) {
+      console.error("[upload] Cloudinary failed:", e.message);
+    }
   }
-  // Local fallback
+
+  // 2. MongoDB (works on Vercel — no local filesystem needed)
+  try {
+    const db = await getDb();
+    if (db) {
+      const id = crypto.randomBytes(16).toString("hex");
+      await db.collection("images").insertOne({
+        _id: id,
+        data: file.buffer.toString("base64"),
+        mime: file.mimetype || "image/jpeg",
+        size: file.buffer.length,
+        at: new Date().toISOString(),
+      });
+      return "/img/" + id;
+    }
+  } catch (e) {
+    console.error("[upload] MongoDB storage failed:", e.message);
+  }
+
+  // 3. Local disk (only works in local dev)
   const filename = crypto.randomBytes(16).toString("hex");
   fs.writeFileSync(path.join(UPLOADS_DIR, filename), file.buffer);
   return "/uploads/" + filename;
@@ -552,6 +577,21 @@ app.get("/uploads/:filename", (req, res) => {
   const filepath = path.join(UPLOADS_DIR, path.basename(req.params.filename));
   if (!fs.existsSync(filepath)) return res.status(404).send("Not found");
   res.sendFile(filepath);
+});
+
+// Serve images stored in MongoDB (Vercel-safe persistent image storage)
+app.get("/img/:id", async (req, res) => {
+  try {
+    const db = await getDb();
+    if (!db) return res.status(404).send("Not found");
+    const doc = await db.collection("images").findOne({ _id: req.params.id });
+    if (!doc) return res.status(404).send("Not found");
+    res.setHeader("Content-Type", doc.mime || "image/jpeg");
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.send(Buffer.from(doc.data, "base64"));
+  } catch (e) {
+    res.status(500).send("Error");
+  }
 });
 
 // SETTINGS GET
