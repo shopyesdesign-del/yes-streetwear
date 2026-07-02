@@ -10,19 +10,38 @@ const { MongoClient } = require("mongodb");
 
 // ── MongoDB ────────────────────────────────────────────────────
 let _db = null;
+let _dbConnecting = null; // singleton promise — prevents parallel connect races
+
 async function getDb() {
   if (_db) return _db;
+  if (_dbConnecting) return _dbConnecting;
   const uri = process.env.MONGODB_URI;
   if (!uri) return null;
-  const client = new MongoClient(uri, {
-    maxPoolSize: 1,
-    serverSelectionTimeoutMS: 5000,
-    connectTimeoutMS: 5000,
-    family: 4, // Force IPv4 — avoids TLS alert 80 on some Vercel instances
-  });
-  await client.connect();
-  _db = client.db("yesdesign");
-  return _db;
+
+  _dbConnecting = (async () => {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const client = new MongoClient(uri, {
+          maxPoolSize: 1,
+          serverSelectionTimeoutMS: 5000,
+          connectTimeoutMS: 5000,
+          family: 4, // Force IPv4 — avoids TLS alert 80 on some Vercel instances
+        });
+        await client.connect();
+        _db = client.db("yesdesign");
+        return _db;
+      } catch (e) {
+        console.error(`[db] connect attempt ${attempt} failed:`, e.message);
+        if (attempt === 3) return null;
+        await new Promise(r => setTimeout(r, 500 * attempt));
+      }
+    }
+    return null;
+  })();
+
+  const result = await _dbConnecting;
+  _dbConnecting = null;
+  return result;
 }
 
 async function dbGet(key, fallback) {
