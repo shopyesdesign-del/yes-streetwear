@@ -56,10 +56,12 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Fallback upload dir (local dev only — Vercel uses Cloudinary)
+// Fallback upload dir — on Vercel /var/task is read-only, always use /tmp there
 const UPLOADS_DIR = (() => {
-  const local = path.join(__dirname, "public/uploads");
-  try { fs.mkdirSync(local, { recursive: true }); return local; } catch (_) {}
+  if (!process.env.VERCEL) {
+    const local = path.join(__dirname, "public/uploads");
+    try { fs.mkdirSync(local, { recursive: true }); return local; } catch (_) {}
+  }
   const tmp = path.join(os.tmpdir(), "dripvault-uploads");
   try { fs.mkdirSync(tmp, { recursive: true }); } catch (_) {}
   return tmp;
@@ -83,10 +85,9 @@ function getCloudinaryConfig() {
   return null;
 }
 
-// Upload a file: 1) Cloudinary  2) MongoDB  3) local disk
+// Upload a file: 1) Cloudinary  2) MongoDB  3) local disk (dev only)
 async function uploadFile(file) {
-  // 1. Cloudinary (external CDN, best option)
-  // Try immediately — env var works without waiting, settings-based works on warm instances
+  // 1. Cloudinary
   const cfg = getCloudinaryConfig();
   if (cfg) {
     try {
@@ -103,8 +104,9 @@ async function uploadFile(file) {
     }
   }
 
-  // 2. MongoDB (works on Vercel — no local filesystem needed)
+  // 2. MongoDB — await _ready so the connection is established on cold starts
   try {
+    await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]);
     const db = await getDb();
     if (db) {
       const id = crypto.randomBytes(16).toString("hex");
@@ -121,10 +123,15 @@ async function uploadFile(file) {
     console.error("[upload] MongoDB storage failed:", e.message);
   }
 
-  // 3. Local disk (only works in local dev)
-  const filename = crypto.randomBytes(16).toString("hex");
-  fs.writeFileSync(path.join(UPLOADS_DIR, filename), file.buffer);
-  return "/uploads/" + filename;
+  // 3. Local disk (dev only — /tmp on Vercel is ephemeral but writable)
+  try {
+    const filename = crypto.randomBytes(16).toString("hex");
+    fs.writeFileSync(path.join(UPLOADS_DIR, filename), file.buffer);
+    return "/uploads/" + filename;
+  } catch (e) {
+    console.error("[upload] Disk write failed:", e.message);
+    throw new Error("Upload fehlgeschlagen: Kein Speicher verfügbar. Bitte Cloudinary oder MongoDB konfigurieren.");
+  }
 }
 
 const CUSTOMER_PASS = "yes";
