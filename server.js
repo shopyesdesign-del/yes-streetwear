@@ -511,6 +511,8 @@ app.get("/theme.css", (req, res) => {
   const t = s.theme || {};
   const bg = s.background && t.bgImageEnabled !== false
     ? `url(${s.background})` : 'none';
+  const mobileBg = s.mobileBackground
+    ? `url(${s.mobileBackground})` : bg;
   const css = `:root {
   --color-bg:          ${t.bgColor      || '#0f0f0f'};
   --color-bg-secondary:${t.bgSecondary  || '#111111'};
@@ -526,6 +528,9 @@ body {
   background-image:    ${bg};
   background-size:     ${t.bgSize     || 'cover'};
   background-position: ${t.bgPosition || 'center'};
+}
+@media (max-width: 768px) {
+  body { background-image: ${mobileBg}; }
 }`;
   res.setHeader('Content-Type', 'text/css');
   res.setHeader('Cache-Control', 'no-cache, no-store');
@@ -548,6 +553,7 @@ app.get("/settings", (req, res) => {
 app.post("/admin/settings", upload.fields([
   { name: "logo" },
   { name: "background" },
+  { name: "mobileBackground" },
   { name: "loginBackground" },
   { name: "bannerImage" },
   { name: "loginVideo" },
@@ -561,6 +567,12 @@ app.post("/admin/settings", upload.fields([
   }
   if (req.files && req.files.background) {
     settings.background = await uploadFile(req.files.background[0]);
+  }
+  if (req.files && req.files.mobileBackground) {
+    settings.mobileBackground = await uploadFile(req.files.mobileBackground[0]);
+  }
+  if (req.body.clearMobileBackground === "1") {
+    settings.mobileBackground = "";
   }
   if (req.files && req.files.loginBackground) {
     settings.loginBackground = await uploadFile(req.files.loginBackground[0]);

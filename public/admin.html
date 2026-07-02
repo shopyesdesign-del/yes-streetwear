@@ -324,6 +324,41 @@
             </div>
           </form>
         </div>
+
+        <div class="editor-card">
+          <div class="card-title">📱 Mobiles Hintergrundbild</div>
+          <p style="font-size:.82rem;color:rgba(255,255,255,.4);margin-bottom:16px;">
+            Eigenes Bild für Smartphones (≤ 768px). Wenn leer, wird das Desktop-Bild verwendet.
+          </p>
+          <form id="mobileBgForm">
+            <div class="form-group">
+              <label>Mobiles Hintergrundbild</label>
+              <div class="upload-zone" id="mobileBgDropZone">
+                <input type="file" name="mobileBackground" id="mobileBgFile" accept="image/*" class="file-input"
+                  onchange="previewFile(this,'mobileBgPreview','mobileBgDropZone')">
+                <div class="upload-label">
+                  <span class="upload-icon">📱</span>
+                  <span>Bild für Handy hochladen</span>
+                  <span class="upload-hint">Empfehlung: Hochformat (z.B. 1080×1920)</span>
+                </div>
+                <div id="mobileBgPreview" class="upload-preview"></div>
+              </div>
+            </div>
+            <div id="mobileBgCurrentWrap" style="display:none;margin-bottom:12px;">
+              <p style="font-size:.8rem;color:rgba(255,255,255,.4);margin-bottom:6px;">Aktuelles Bild:</p>
+              <img id="mobileBgCurrent" src="" style="max-height:120px;border-radius:8px;object-fit:cover;">
+              <div style="margin-top:8px;">
+                <label style="font-size:.8rem;color:rgba(255,255,255,.4);display:flex;align-items:center;gap:8px;cursor:pointer;">
+                  <input type="checkbox" id="clearMobileBg" style="accent-color:#ff2d55;">
+                  Mobiles Hintergrundbild entfernen (Desktop-Bild verwenden)
+                </label>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn-primary">Mobiles Bild speichern</button>
+            </div>
+          </form>
+        </div>
       </div>
       <!-- Tab: Button -->
       <div class="tab-pane" id="tab-button">
@@ -2423,6 +2458,16 @@ async function loadDesign() {
   document.getElementById('t_overlayOpacity').value = ov;
   document.getElementById('overlayVal').textContent = parseFloat(ov).toFixed(2);
 
+  // Mobile background preview
+  const mobileBgWrap = document.getElementById('mobileBgCurrentWrap');
+  const mobileBgImg  = document.getElementById('mobileBgCurrent');
+  if (s.mobileBackground) {
+    mobileBgImg.src = s.mobileBackground;
+    mobileBgWrap.style.display = '';
+  } else {
+    mobileBgWrap.style.display = 'none';
+  }
+
   // Fonts
   if (s.fontDisplay) document.getElementById('fontDisplay').value = s.fontDisplay;
   if (s.fontMain)    document.getElementById('fontMain').value    = s.fontMain;
@@ -2485,6 +2530,29 @@ document.getElementById('bgForm').addEventListener('submit', async (e) => {
   await postSettings(fd);
   toast('Hintergrund gespeichert ✓', 'success');
 });
+
+document.getElementById('mobileBgForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  if (document.getElementById('clearMobileBg')?.checked) {
+    fd.append('clearMobileBackground', '1');
+  }
+  await postSettings(fd);
+  toast('Mobiles Hintergrundbild gespeichert ✓', 'success');
+  loadMobileBgPreview();
+});
+
+async function loadMobileBgPreview() {
+  const s = await fetch('/settings').then(r => r.json());
+  const wrap = document.getElementById('mobileBgCurrentWrap');
+  const img  = document.getElementById('mobileBgCurrent');
+  if (s.mobileBackground) {
+    img.src = s.mobileBackground;
+    wrap.style.display = '';
+  } else {
+    wrap.style.display = 'none';
+  }
+}
 
 // Design tabs
 document.getElementById('designTabs').addEventListener('click', (e) => {
