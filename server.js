@@ -664,8 +664,10 @@ app.get("/uploads/:filename", (req, res) => {
 
 // Temporary debug endpoint — reveals why MongoDB image insert fails
 app.get("/admin/debug-upload", async (req, res) => {
-  const result = { cloudinary: null, mongo: null, disk: null, UPLOADS_DIR };
+  const result = { node: process.version, cloudinary: null, mongo: null, disk: null, UPLOADS_DIR };
   result.cloudinary = getCloudinaryConfig() ? "configured" : "not configured";
+  const uri = process.env.MONGODB_URI;
+  result.mongoUri = uri ? uri.replace(/:\/\/[^@]+@/, "://*:*@") : "NOT SET";
   try {
     await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]);
     const db = await getDb();
