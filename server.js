@@ -71,11 +71,26 @@ async function dbSet(key, data) {
       { $set: { data } },
       { upsert: true }
     );
+    _ttlCache[key] = { data, ts: Date.now() }; // keep cache in sync after write
     return true;
   } catch (e) {
     console.error("[dbSet] failed for key", key, ":", e.message);
     return false;
   }
+}
+
+// ── TTL cache: serve from memory, background-refresh after 8s ──────────────
+const _ttlCache = {};
+const CACHE_TTL = 8000;
+
+async function dbGetCached(key) {
+  const entry = _ttlCache[key];
+  const now   = Date.now();
+  if (entry && (now - entry.ts) < CACHE_TTL) return entry.data; // cache hit
+  // Cache miss or stale — fetch from MongoDB
+  const fresh = await dbGet(key, null);
+  if (fresh !== null) _ttlCache[key] = { data: fresh, ts: now };
+  return fresh;
 }
 
 // On Vercel the filesystem is read-only — writes are silently skipped
@@ -465,11 +480,11 @@ app.post("/admin/passwords", async (req, res) => {
   res.json({ success: true });
 });
 
-// PRODUCTS — always read fresh from MongoDB so cross-instance changes are visible
+// PRODUCTS
 app.get("/products", async (req, res) => {
   try {
-    const fresh = await dbGet("products", null);
-    if (fresh) { _store.products = fresh; return res.json(fresh); }
+    const data = await dbGetCached("products");
+    if (data) { _store.products = data; return res.json(data); }
   } catch (_) {}
   try { await Promise.race([_ready, new Promise(r => setTimeout(r, 3000))]); } catch (_) {}
   res.json(loadProducts());
@@ -754,11 +769,11 @@ app.get("/img/:id", async (req, res) => {
   }
 });
 
-// SETTINGS GET — always read fresh from MongoDB so cross-instance changes are visible
+// SETTINGS GET
 app.get("/settings", async (req, res) => {
   try {
-    const fresh = await dbGet("settings", null);
-    if (fresh) { _store.settings = fresh; return res.json(mergeSettings(fresh)); }
+    const data = await dbGetCached("settings");
+    if (data) { _store.settings = data; return res.json(mergeSettings(data)); }
   } catch (_) {}
   try { await Promise.race([_ready, new Promise(r => setTimeout(r, 4000))]); } catch (_) {}
   res.json(loadSettings());
@@ -896,8 +911,8 @@ function slugify(name) {
 // Public: list visible collections
 app.get("/collections", async (req, res) => {
   try {
-    const fresh = await dbGet("collections", null);
-    if (fresh) { _store.collections = fresh; return res.json(fresh.filter(c => c.visible !== false)); }
+    const data = await dbGetCached("collections");
+    if (data) { _store.collections = data; return res.json(data.filter(c => c.visible !== false)); }
   } catch (_) {}
   try { await Promise.race([_ready, new Promise(r => setTimeout(r, 3000))]); } catch (_) {}
   res.json(loadCollections().filter(c => c.visible !== false));
