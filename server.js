@@ -505,6 +505,33 @@ app.delete("/admin/media/:filename", (req, res) => {
   res.json({ success: true });
 });
 
+// Theme CSS — served before JS loads to prevent flash of default design
+app.get("/theme.css", (req, res) => {
+  const s = loadSettings();
+  const t = s.theme || {};
+  const bg = s.background && t.bgImageEnabled !== false
+    ? `url(${s.background})` : 'none';
+  const css = `:root {
+  --color-bg:          ${t.bgColor      || '#0f0f0f'};
+  --color-bg-secondary:${t.bgSecondary  || '#111111'};
+  --color-card:        ${t.cardColor    || '#1a1a1a'};
+  --color-text:        ${t.textColor    || '#ffffff'};
+  --color-heading:     ${t.headingColor || '#ffffff'};
+  --color-accent:      ${t.accentColor  || '#ff2d55'};
+  --color-button:      ${t.buttonColor  || '#ff2d55'};
+  --color-border:      ${t.borderColor  || '#2a2a2a'};
+  --color-border-soft: ${t.borderColor  || '#333333'};
+}
+body {
+  background-image:    ${bg};
+  background-size:     ${t.bgSize     || 'cover'};
+  background-position: ${t.bgPosition || 'center'};
+}`;
+  res.setHeader('Content-Type', 'text/css');
+  res.setHeader('Cache-Control', 'no-cache, no-store');
+  res.send(css);
+});
+
 // Serve uploaded files from UPLOADS_DIR (fallback when express.static can't find them)
 app.get("/uploads/:filename", (req, res) => {
   const filepath = path.join(UPLOADS_DIR, path.basename(req.params.filename));
