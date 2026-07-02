@@ -797,11 +797,62 @@ input, textarea, select { font-family: inherit; }
 /* ─── RESPONSIVE ─────────────────────────────────────────── */
 @media (max-width: 640px) {
   .header-inner { padding: 14px 16px; }
-  .shop-main, .admin-main { padding: 32px 16px; }
-  .hero-banner { padding: 70px 16px; }
+  .site-title { font-size: 1.1rem; }
+  .btn-cart { padding: 8px 12px; font-size: .8rem; }
+  .shop-main, .admin-main { padding: 24px 14px; }
+  .hero-banner { padding: 60px 16px; }
   .form-row { grid-template-columns: 1fr; }
   .modal-box { padding: 24px 20px; }
   .product-list .product-card { grid-template-columns: 120px 1fr; }
+
+  /* 2-column product grid on mobile */
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .product-info { padding: 12px; }
+  .product-name { font-size: .88rem; }
+  .product-desc { display: none; }
+  .product-footer { flex-direction: column; align-items: stretch; gap: 8px; }
+  .product-price { font-size: 1rem; }
+  .btn-add-cart { text-align: center; padding: 8px 10px; font-size: .72rem; }
+
+  /* Cart: full width */
+  .cart-sidebar { width: 100%; max-width: 100%; right: -100%; }
+
+  /* Checkout modal: bottom sheet on mobile */
+  .co-modal {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .co-panel {
+    max-width: 100%;
+    max-height: 94vh;
+    border-radius: 20px 20px 0 0;
+    animation: coSlideUp .3s cubic-bezier(0.22,1,0.36,1);
+    padding-bottom: env(safe-area-inset-bottom, 12px);
+  }
+  @keyframes coSlideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .co-pane { padding: 20px 18px 24px; }
+  .co-steps-bar { padding: 18px 20px 0; }
+
+  /* Product detail: already a bottom sheet, minor tweaks */
+  .pd-panel { max-height: 92vh; }
+  .pd-main-wrap { min-height: 220px; }
+  .pd-info { padding: 16px; gap: 12px; }
+  .pd-name { font-size: 1.3rem; }
+  .pd-price { font-size: 1.4rem; }
+  .pd-add-cart { padding: 13px 16px; font-size: 13px; }
+
+  /* Admin: full width inputs */
+  .admin-main input[type="text"],
+  .admin-main input[type="number"],
+  .admin-main input[type="email"],
+  .admin-main select,
+  .admin-main textarea { max-width: 100%; }
 }
 
 /* ═══════════════════════════════════════════════════════════
