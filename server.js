@@ -412,7 +412,8 @@ app.post("/admin/passwords", (req, res) => {
 });
 
 // PRODUCTS
-app.get("/products", (req, res) => {
+app.get("/products", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 3000))]); } catch (_) {}
   res.json(loadProducts());
 });
 
@@ -792,12 +793,14 @@ function slugify(name) {
 }
 
 // Public: list visible collections
-app.get("/collections", (req, res) => {
+app.get("/collections", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 3000))]); } catch (_) {}
   res.json(loadCollections().filter(c => c.visible !== false));
 });
 
 // Public: single collection by slug (includes product data)
-app.get("/collection/:slug", (req, res) => {
+app.get("/collection/:slug", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 3000))]); } catch (_) {}
   const col = loadCollections().find(c => c.slug === req.params.slug);
   if (!col || col.visible === false) return res.status(404).json({ error: "Not found" });
   const prods = loadProducts();
@@ -806,7 +809,8 @@ app.get("/collection/:slug", (req, res) => {
 });
 
 // Admin: all collections
-app.get("/admin/collections", (req, res) => {
+app.get("/admin/collections", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 3000))]); } catch (_) {}
   res.json(loadCollections());
 });
 
