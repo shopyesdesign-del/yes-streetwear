@@ -43,8 +43,10 @@ function updateTheme(s) {
   if (s.fontMain)    r.setProperty('--font-main',    `"${s.fontMain}", sans-serif`);
   if (s.fontDisplay) r.setProperty('--font-display', `"${s.fontDisplay}", cursive`);
 
-  if (s.background && t.bgImageEnabled !== false) {
-    document.body.style.backgroundImage    = `url(${s.background})`;
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  const activeBg = (isMobile && s.mobileBackground) ? s.mobileBackground : s.background;
+  if (activeBg && t.bgImageEnabled !== false) {
+    document.body.style.backgroundImage    = `url(${activeBg})`;
     document.body.style.backgroundSize     = t.bgSize     || 'cover';
     document.body.style.backgroundPosition = t.bgPosition || 'center';
   } else {
