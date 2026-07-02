@@ -2578,26 +2578,42 @@ async function saveFonts() {
 
 document.getElementById('bgForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const fd = new FormData(e.target);
-  fd.append('theme', JSON.stringify({
-    bgImageEnabled: document.getElementById('t_bgImageEnabled').checked,
-    bgSize:         document.getElementById('t_bgSize').value,
-    bgPosition:     document.getElementById('t_bgPosition').value,
-    overlayOpacity: parseFloat(document.getElementById('t_overlayOpacity').value),
-  }));
-  await postSettings(fd);
-  toast('Hintergrund gespeichert ✓', 'success');
+  const btn = e.target.querySelector('[type=submit]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Speichert…'; }
+  try {
+    let fd = new FormData(e.target);
+    fd.append('theme', JSON.stringify({
+      bgImageEnabled: document.getElementById('t_bgImageEnabled').checked,
+      bgSize:         document.getElementById('t_bgSize').value,
+      bgPosition:     document.getElementById('t_bgPosition').value,
+      overlayOpacity: parseFloat(document.getElementById('t_overlayOpacity').value),
+    }));
+    fd = await compressFormImages(fd);
+    await postSettings(fd);
+    toast('Hintergrund gespeichert ✓', 'success');
+  } catch (err) {
+    toast('Fehler: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Hintergrund speichern'; }
+  }
 });
 
 document.getElementById('mobileBgForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const fd = new FormData(e.target);
-  if (document.getElementById('clearMobileBg')?.checked) {
-    fd.append('clearMobileBackground', '1');
+  const btn = e.target.querySelector('[type=submit]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Speichert…'; }
+  try {
+    let fd = new FormData(e.target);
+    if (document.getElementById('clearMobileBg')?.checked) fd.append('clearMobileBackground', '1');
+    fd = await compressFormImages(fd);
+    await postSettings(fd);
+    toast('Mobiles Hintergrundbild gespeichert ✓', 'success');
+    loadMobileBgPreview();
+  } catch (err) {
+    toast('Fehler: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Mobiles Bild speichern'; }
   }
-  await postSettings(fd);
-  toast('Mobiles Hintergrundbild gespeichert ✓', 'success');
-  loadMobileBgPreview();
 });
 
 async function loadMobileBgPreview() {
@@ -2836,19 +2852,20 @@ async function deleteMedia(name, btn) {
 
 async function uploadMediaFiles(files) {
   if (!files.length) return;
-  toast('Lädt hoch...', '');
-  const fd = new FormData();
-  Array.from(files).forEach(f => fd.append('files', f));
+  toast('Komprimiert & lädt hoch…', '');
   try {
+    const compressed = await Promise.all(
+      Array.from(files).map(f => f.type.startsWith('image/') ? compressImage(f) : Promise.resolve(f))
+    );
+    const fd = new FormData();
+    compressed.forEach(f => fd.append('files', f));
     const res = await fetch('/admin/media/upload', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error('Server ' + res.status);
     const data = await res.json();
-    if (data.success) {
-      toast(files.length + ' Datei(en) hochgeladen ✓', 'success');
-    } else {
-      toast('Upload fehlgeschlagen: ' + (data.error || ''), 'error');
-    }
+    if (data.success) toast(files.length + ' Bild(er) hochgeladen ✓', 'success');
+    else throw new Error(data.error || 'Unbekannter Fehler');
   } catch (e) {
-    toast('Upload fehlgeschlagen', 'error');
+    toast('Fehler: ' + e.message, 'error');
   }
   loadMedia();
   document.getElementById('mediaUploadInput').value = '';
@@ -2884,7 +2901,47 @@ document.getElementById('loginPageForm').addEventListener('submit', async (e) =>
 // ── Shared helpers ────────────────────────────────────────────
 async function postSettings(formData) {
   const res = await fetch('/admin/settings', { method: 'POST', body: formData });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error('Server ' + res.status + ': ' + text.substring(0, 120));
+  }
   return res.json();
+}
+
+// Compress an image File to max 1600px and ~85% quality (reduces iPhone 8MB → ~400KB)
+async function compressImage(file, maxPx = 1600, quality = 0.85) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width: w, height: h } = img;
+      if (w > maxPx || h > maxPx) {
+        if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
+        else       { w = Math.round(w * maxPx / h); h = maxPx; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => resolve(new File([blob], file.name, { type: 'image/jpeg' })),
+        'image/jpeg', quality);
+    };
+    img.onerror = () => resolve(file); // fallback: use original
+    img.src = url;
+  });
+}
+
+// Replace all image file fields in a FormData with compressed versions
+async function compressFormImages(fd) {
+  const newFd = new FormData();
+  for (const [key, val] of fd.entries()) {
+    if (val instanceof File && val.type.startsWith('image/')) {
+      newFd.append(key, await compressImage(val));
+    } else {
+      newFd.append(key, val);
+    }
+  }
+  return newFd;
 }
 
 function previewFile(input, previewId) {
