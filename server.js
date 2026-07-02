@@ -473,8 +473,12 @@ app.post("/admin/passwords", async (req, res) => {
   res.json({ success: true });
 });
 
-// PRODUCTS
+// PRODUCTS — always read fresh from MongoDB so cross-instance changes are visible
 app.get("/products", async (req, res) => {
+  try {
+    const fresh = await dbGet("products", null);
+    if (fresh) { _store.products = fresh; return res.json(fresh); }
+  } catch (_) {}
   try { await Promise.race([_ready, new Promise(r => setTimeout(r, 3000))]); } catch (_) {}
   res.json(loadProducts());
 });
@@ -758,8 +762,12 @@ app.get("/img/:id", async (req, res) => {
   }
 });
 
-// SETTINGS GET
+// SETTINGS GET — always read fresh from MongoDB so cross-instance changes are visible
 app.get("/settings", async (req, res) => {
+  try {
+    const fresh = await dbGet("settings", null);
+    if (fresh) { _store.settings = fresh; return res.json(mergeSettings(fresh)); }
+  } catch (_) {}
   try { await Promise.race([_ready, new Promise(r => setTimeout(r, 4000))]); } catch (_) {}
   res.json(loadSettings());
 });
@@ -895,6 +903,10 @@ function slugify(name) {
 
 // Public: list visible collections
 app.get("/collections", async (req, res) => {
+  try {
+    const fresh = await dbGet("collections", null);
+    if (fresh) { _store.collections = fresh; return res.json(fresh.filter(c => c.visible !== false)); }
+  } catch (_) {}
   try { await Promise.race([_ready, new Promise(r => setTimeout(r, 3000))]); } catch (_) {}
   res.json(loadCollections().filter(c => c.visible !== false));
 });
