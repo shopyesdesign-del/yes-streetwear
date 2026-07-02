@@ -325,7 +325,11 @@ const defaultSettings = {
 const _store = { products: null, settings: null, orders: null, collections: null };
 
 async function initStore() {
-  // Load all collections in parallel
+  // Load from MongoDB into memory cache — GET endpoints always re-fetch from MongoDB
+  // directly, so this cache is only a cold-start fallback for write routes.
+  // Never seed/overwrite MongoDB here: a slow first connect would cause initStore
+  // to fall back to stale file data and then overwrite real MongoDB data on the
+  // second getDb() call inside the seed block.
   const [dbProducts, dbOrders, dbCollections, dbSettings] = await Promise.all([
     dbGet("products",    null),
     dbGet("orders",      null),
@@ -339,20 +343,8 @@ async function initStore() {
   _store.orders      = dbOrders      || (fs.existsSync(ORDERS_FILE)      ? JSON.parse(fs.readFileSync(ORDERS_FILE))      : []);
   _store.collections = dbCollections || (fs.existsSync(COLLECTIONS_FILE) ? JSON.parse(fs.readFileSync(COLLECTIONS_FILE)) : []);
 
-  // Settings: prefer file if DB is missing key design fields (incomplete seed)
   const dbIncomplete = !dbSettings || (!dbSettings.theme && !dbSettings.background);
   _store.settings    = (dbIncomplete && fileSettings) ? fileSettings : (dbSettings || fileSettings || {});
-
-  // Seed MongoDB in parallel for any missing collections
-  if (await getDb()) {
-    const seeds = [];
-    if (!dbProducts)              seeds.push(dbSet("products",    _store.products));
-    if (!dbOrders)                seeds.push(dbSet("orders",      _store.orders));
-    if (!dbCollections)           seeds.push(dbSet("collections", _store.collections));
-    if (dbIncomplete && fileSettings) seeds.push(dbSet("settings", fileSettings));
-    else if (!dbSettings)         seeds.push(dbSet("settings",    _store.settings));
-    if (seeds.length) await Promise.all(seeds);
-  }
 }
 
 function mergeSettings(saved) {
