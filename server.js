@@ -642,6 +642,31 @@ app.get("/uploads/:filename", (req, res) => {
   res.sendFile(filepath);
 });
 
+// Temporary debug endpoint — reveals why MongoDB image insert fails
+app.get("/admin/debug-upload", async (req, res) => {
+  const result = { cloudinary: null, mongo: null, disk: null, UPLOADS_DIR };
+  result.cloudinary = getCloudinaryConfig() ? "configured" : "not configured";
+  try {
+    await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]);
+    const db = await getDb();
+    if (!db) { result.mongo = "getDb() returned null — MONGODB_URI missing?"; }
+    else {
+      const id = "debug-" + Date.now();
+      await db.collection("images").insertOne({
+        _id: id, data: "dGVzdA==", mime: "image/jpeg", size: 4, at: new Date().toISOString()
+      });
+      await db.collection("images").deleteOne({ _id: id });
+      result.mongo = "OK — insert+delete succeeded";
+    }
+  } catch (e) { result.mongo = "ERROR: " + e.message; }
+  try {
+    const tp = path.join(UPLOADS_DIR, "debug-test.txt");
+    fs.writeFileSync(tp, "test"); fs.unlinkSync(tp);
+    result.disk = "writable";
+  } catch (e) { result.disk = "ERROR: " + e.message; }
+  res.json(result);
+});
+
 // Serve images stored in MongoDB (Vercel-safe persistent image storage)
 app.get("/img/:id", async (req, res) => {
   try {
