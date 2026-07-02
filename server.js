@@ -136,20 +136,15 @@ async function uploadFile(file) {
   // 2. MongoDB — await _ready so the connection is established on cold starts
   try {
     await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]);
-    const db = await getDb();
-    if (db) {
-      const id = crypto.randomBytes(16).toString("hex");
-      const doc = {
-        _id: id,
-        data: file.buffer.toString("base64"),
-        mime: file.mimetype || "image/jpeg",
-        size: file.buffer.length,
-        at: new Date().toISOString(),
-      };
-      // Use updateOne+upsert (same as dbSet) — insertOne fails on some Atlas M0 configs
-      await db.collection("images").updateOne({ _id: id }, { $set: doc }, { upsert: true });
-      return "/img/" + id;
-    }
+    // Store image via dbSet (store collection) — same path that works for products/settings
+    const id = crypto.randomBytes(16).toString("hex");
+    const saved = await dbSet("img_" + id, {
+      data: file.buffer.toString("base64"),
+      mime: file.mimetype || "image/jpeg",
+      size: file.buffer.length,
+      at: new Date().toISOString(),
+    });
+    if (saved) return "/img/" + id;
   } catch (e) {
     console.error("[upload] MongoDB storage failed:", e.message);
   }
@@ -600,15 +595,17 @@ app.get("/admin/media", async (req, res) => {
       } catch (_) {}
     });
   }
-  // MongoDB images (Vercel / production)
+  // MongoDB images stored via dbSet in 'store' collection (key = "img_xxx")
   try {
     const db = await getDb();
     if (db) {
-      const imgs = await db.collection("images")
-        .find({}, { projection: { data: 0 } })
-        .sort({ at: -1 }).toArray();
-      imgs.forEach(img => {
-        items.push({ id: img._id, name: img._id, url: "/img/" + img._id, size: img.size || 0, mtime: img.at });
+      const imgDocs = await db.collection("store")
+        .find({ _id: /^img_/ }, { projection: { data: 0 } })
+        .toArray();
+      imgDocs.forEach(doc => {
+        const id = doc._id.replace(/^img_/, "");
+        const d = doc.data || {};
+        items.push({ id, name: id, url: "/img/" + id, size: d.size || 0, mtime: d.at || "" });
       });
     }
   } catch (e) { console.error("[media] list failed:", e.message); }
@@ -622,11 +619,11 @@ app.delete("/admin/media/:id", async (req, res) => {
   // Try local file first
   const filepath = path.join(UPLOADS_DIR, path.basename(id));
   if (fs.existsSync(filepath)) { fs.unlinkSync(filepath); return res.json({ success: true }); }
-  // Try MongoDB image
+  // Try MongoDB image (stored in store collection as "img_<id>")
   try {
     const db = await getDb();
     if (db) {
-      const r = await db.collection("images").deleteOne({ _id: id });
+      const r = await db.collection("store").deleteOne({ _id: "img_" + id });
       if (r.deletedCount > 0) return res.json({ success: true });
     }
   } catch (e) { console.error("[media] delete failed:", e.message); }
@@ -677,13 +674,11 @@ app.get("/uploads/:filename", async (req, res) => {
 // Serve images stored in MongoDB (Vercel-safe persistent image storage)
 app.get("/img/:id", async (req, res) => {
   try {
-    const db = await getDb();
-    if (!db) return res.status(404).send("Not found");
-    const doc = await db.collection("images").findOne({ _id: req.params.id });
-    if (!doc) return res.status(404).send("Not found");
-    res.setHeader("Content-Type", doc.mime || "image/jpeg");
+    const img = await dbGet("img_" + req.params.id, null);
+    if (!img) return res.status(404).send("Not found");
+    res.setHeader("Content-Type", img.mime || "image/jpeg");
     res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-    res.send(Buffer.from(doc.data, "base64"));
+    res.send(Buffer.from(img.data, "base64"));
   } catch (e) {
     res.status(500).send("Error");
   }
