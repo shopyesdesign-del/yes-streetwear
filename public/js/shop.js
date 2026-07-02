@@ -43,15 +43,22 @@ function updateTheme(s) {
   if (s.fontMain)    r.setProperty('--font-main',    `"${s.fontMain}", sans-serif`);
   if (s.fontDisplay) r.setProperty('--font-display', `"${s.fontDisplay}", cursive`);
 
-  const isMobile = window.matchMedia('(max-width: 768px)').matches;
-  const activeBg = (isMobile && s.mobileBackground) ? s.mobileBackground : s.background;
-  if (activeBg && t.bgImageEnabled !== false) {
-    document.body.style.backgroundImage    = `url(${activeBg})`;
-    document.body.style.backgroundSize     = t.bgSize     || 'cover';
-    document.body.style.backgroundPosition = t.bgPosition || 'center';
-  } else {
-    document.body.style.backgroundImage = 'none';
+  // Background is handled by /theme.css (server-rendered, always fresh).
+  // Only inject a <style> override here so JS stays out of the inline-style battle
+  // that would beat @media rules in /theme.css.
+  let dynBg = document.getElementById('dv-bg-style');
+  if (!dynBg) {
+    dynBg = document.createElement('style');
+    dynBg.id = 'dv-bg-style';
+    document.head.appendChild(dynBg);
   }
+  const desktopBg = (s.background && t.bgImageEnabled !== false) ? `url(${s.background})` : 'none';
+  const mobileBg  = (s.mobileBackground && t.bgImageEnabled !== false)
+    ? `url(${s.mobileBackground})` : desktopBg;
+  dynBg.textContent = `
+    body { background-image: ${desktopBg}; background-size: ${t.bgSize || 'cover'}; background-position: ${t.bgPosition || 'center'}; }
+    @media (max-width: 768px) { body { background-image: ${mobileBg}; } }
+  `;
 }
 
 function applyButtonStyle(bs) {
@@ -120,9 +127,8 @@ function applyEffects(fx) {
 }
 
 async function applySettings() {
-  const cached = localStorage.getItem('themeSettings');
-  if (cached) updateTheme(JSON.parse(cached));
-
+  // /theme.css in <head> already renders correct colors & background server-side.
+  // Fetch fresh settings — don't pre-apply stale localStorage data.
   const s = await fetch('/settings').then(r => r.json());
   localStorage.setItem('themeSettings', JSON.stringify(s));
 
