@@ -18,6 +18,7 @@ async function getDb() {
     maxPoolSize: 1,
     serverSelectionTimeoutMS: 5000,
     connectTimeoutMS: 5000,
+    family: 4, // Force IPv4 — avoids TLS alert 80 on some Vercel instances
   });
   await client.connect();
   _db = client.db("yesdesign");
