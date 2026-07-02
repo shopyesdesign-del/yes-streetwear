@@ -71,6 +71,16 @@
     </div>
   </aside>
 
+  <!-- Mobile sidebar overlay -->
+  <div class="mobile-sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- ══════════════════════ MOBILE TOP BAR ════════════════════ -->
+  <div class="mobile-topbar" id="mobileTopbar">
+    <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+    <span class="mobile-topbar-title" id="mobileTopbarTitle">Dashboard</span>
+    <a href="/shop.html" target="_blank" class="mobile-shop-link">↗</a>
+  </div>
+
   <!-- ══════════════════════ MAIN ══════════════════════════════ -->
   <div class="main-area">
 
@@ -1771,6 +1781,29 @@
       <div id="ordDetailContent"></div>
     </div>
   </div>
+<!-- ══════════════════════ MOBILE BOTTOM NAV ════════════════ -->
+<nav class="mobile-bottom-nav" id="mobileBottomNav">
+  <button class="mbn-item active" data-sec="dashboard">
+    <span class="mbn-icon">▦</span>
+    <span class="mbn-label">Home</span>
+  </button>
+  <button class="mbn-item" data-sec="products">
+    <span class="mbn-icon">⊞</span>
+    <span class="mbn-label">Produkte</span>
+  </button>
+  <button class="mbn-item" data-sec="orders">
+    <span class="mbn-icon">📦</span>
+    <span class="mbn-label">Bestellungen</span>
+  </button>
+  <button class="mbn-item" data-sec="design">
+    <span class="mbn-icon">◑</span>
+    <span class="mbn-label">Design</span>
+  </button>
+  <button class="mbn-item" id="mbnMore">
+    <span class="mbn-icon">⋯</span>
+    <span class="mbn-label">Mehr</span>
+  </button>
+</nav>
 </div><!-- /admin-shell -->
 
 <!-- ══════════════════════ COLLECTION MODAL ══════════════════ -->
@@ -2095,10 +2128,18 @@ let _pColors = [];
 let _pKeepImages = [];  // existing image URLs to keep
 
 // ── Navigation ────────────────────────────────────────────────
+const SEC_LABELS = {
+  dashboard:'Dashboard', products:'Produkte', design:'Design',
+  homepage:'Startseite', media:'Medien', collections:'Collections',
+  cursor:'Brand Cursor', vfx:'Visual Effects', logineditor:'Passwort Seite',
+  orders:'Bestellungen', payment:'Zahlung', settings:'Einstellungen',
+};
+
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', (e) => {
     e.preventDefault();
     navigate(item.dataset.sec);
+    closeMobileSidebar();
   });
 });
 
@@ -2106,9 +2147,14 @@ function navigate(sec) {
   document.querySelectorAll('.nav-item').forEach(n =>
     n.classList.toggle('active', n.dataset.sec === sec)
   );
+  document.querySelectorAll('.mbn-item[data-sec]').forEach(n =>
+    n.classList.toggle('active', n.dataset.sec === sec)
+  );
   document.querySelectorAll('.page').forEach(p =>
     p.classList.toggle('active', p.id === 'sec-' + sec)
   );
+  const title = document.getElementById('mobileTopbarTitle');
+  if (title) title.textContent = SEC_LABELS[sec] || sec;
   if (sec === 'dashboard')   loadDashboard();
   if (sec === 'products')    loadProductsAdmin();
   if (sec === 'design')      { if (!designLoaded) loadDesign(); }
@@ -2118,6 +2164,26 @@ function navigate(sec) {
   if (sec === 'vfx')         loadVFX();
   if (sec === 'logineditor') loadLoginEditor();
 }
+
+// ── Mobile sidebar ─────────────────────────────────────────────
+function openMobileSidebar() {
+  document.querySelector('.sidebar').classList.add('mobile-open');
+  document.getElementById('sidebarOverlay').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeMobileSidebar() {
+  document.querySelector('.sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebarOverlay').classList.remove('active');
+  document.body.style.overflow = '';
+}
+document.getElementById('mobileMenuBtn').addEventListener('click', openMobileSidebar);
+document.getElementById('sidebarOverlay').addEventListener('click', closeMobileSidebar);
+
+// ── Bottom nav ─────────────────────────────────────────────────
+document.querySelectorAll('.mbn-item[data-sec]').forEach(btn => {
+  btn.addEventListener('click', () => navigate(btn.dataset.sec));
+});
+document.getElementById('mbnMore').addEventListener('click', openMobileSidebar);
 
 // ── Dashboard ─────────────────────────────────────────────────
 async function loadDashboard() {
