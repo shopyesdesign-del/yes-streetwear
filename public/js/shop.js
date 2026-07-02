@@ -3,10 +3,12 @@ Auth.requireRole('customer');
 
 // ── State ──────────────────────────────────────────────────────
 let cart = [];
-let pdProduct = null;
-let pdQty     = 1;
-let pdSize    = null;
-let pdColor   = null;
+let pdProduct    = null;
+let pdQty        = 1;
+let pdSize       = null;
+let pdColor      = null;
+let pdCurrentIdx = 0;
+let pdImgs       = [];
 let _particleRAF = null;
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -340,6 +342,9 @@ function openProductDetail(p) {
   const mainPlaceholder = document.getElementById('pdMainPlaceholder');
   const thumbsEl = document.getElementById('pdThumbs');
 
+  pdImgs       = imgs;
+  pdCurrentIdx = 0;
+
   if (imgs.length > 0) {
     mainImg.src = imgs[0];
     mainImg.alt = p.name;
@@ -357,6 +362,7 @@ function openProductDetail(p) {
     mainPlaceholder.style.display = '';
     thumbsEl.innerHTML = '';
   }
+  updateGalleryDots(imgs.length, 0);
 
   // Sizes
   const sizeSec = document.getElementById('pdSizesSection');
@@ -410,13 +416,32 @@ function openProductDetail(p) {
 }
 
 function switchImage(idx, imgs) {
-  const mainImg  = document.getElementById('pdMainImg');
-  const thumbs   = document.querySelectorAll('.pd-thumb');
+  pdCurrentIdx = idx;
+  const mainImg = document.getElementById('pdMainImg');
+  const thumbs  = document.querySelectorAll('.pd-thumb');
   mainImg.classList.remove('pd-img-fade');
   void mainImg.offsetWidth;
   mainImg.src = imgs[idx];
   mainImg.classList.add('pd-img-fade');
   thumbs.forEach((t, i) => t.classList.toggle('active', i === idx));
+  updateGalleryDots(imgs.length, idx);
+  // Scroll thumb into view
+  thumbs[idx]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+
+function updateGalleryDots(total, active) {
+  let dotsEl = document.getElementById('pdGalleryDots');
+  if (total <= 1) { if (dotsEl) dotsEl.style.display = 'none'; return; }
+  if (!dotsEl) {
+    dotsEl = document.createElement('div');
+    dotsEl.id = 'pdGalleryDots';
+    dotsEl.style.cssText = 'position:absolute;bottom:48px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:5;pointer-events:none;';
+    document.getElementById('pdMainWrap').appendChild(dotsEl);
+  }
+  dotsEl.style.display = 'flex';
+  dotsEl.innerHTML = Array.from({ length: total }, (_, i) =>
+    `<span style="width:${i===active?'18px':'6px'};height:6px;border-radius:3px;background:${i===active?'#fff':'rgba(255,255,255,.35)'};transition:all .25s;display:block;"></span>`
+  ).join('');
 }
 
 function closeProductDetail() {
@@ -874,6 +899,37 @@ document.getElementById('coForm1').addEventListener('input', e => {
 document.getElementById('coBack').addEventListener('click', () => coGoto(1));
 document.getElementById('coBtnManual').addEventListener('click', submitManualOrder);
 document.getElementById('coDone').addEventListener('click', closeCheckout);
+
+// ── Touch swipe: gallery images ────────────────────────────────
+(function () {
+  const wrap = document.getElementById('pdMainWrap');
+  let sx = 0, sy = 0;
+  wrap.addEventListener('touchstart', e => {
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+  }, { passive: true });
+  wrap.addEventListener('touchend', e => {
+    if (!pdImgs.length) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+      const next = (pdCurrentIdx + (dx < 0 ? 1 : -1) + pdImgs.length) % pdImgs.length;
+      switchImage(next, pdImgs);
+    }
+  }, { passive: true });
+})();
+
+// ── Swipe-down to close product detail on mobile ───────────────
+(function () {
+  const panel = document.querySelector('.pd-panel');
+  let sy = 0;
+  panel.addEventListener('touchstart', e => { sy = e.touches[0].clientY; }, { passive: true });
+  panel.addEventListener('touchend', e => {
+    if (window.innerWidth > 700) return;
+    const dy = e.changedTouches[0].clientY - sy;
+    if (dy > 80) closeProductDetail();
+  }, { passive: true });
+})();
 
 // ── Boot ───────────────────────────────────────────────────────
 loadAndRender();
