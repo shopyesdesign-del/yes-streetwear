@@ -85,6 +85,8 @@ function getCloudinaryConfig() {
 
 // Upload a file: Cloudinary if configured, otherwise local fallback
 async function uploadFile(file) {
+  // Wait for settings to load from MongoDB so Cloudinary credentials are available
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 6000))]); } catch (_) {}
   const cfg = getCloudinaryConfig();
   if (cfg) {
     cloudinary.config(cfg);
@@ -513,7 +515,8 @@ app.delete("/admin/media/:filename", (req, res) => {
 });
 
 // Theme CSS — served before JS loads to prevent flash of default design
-app.get("/theme.css", (req, res) => {
+app.get("/theme.css", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 4000))]); } catch (_) {}
   const s = loadSettings();
   const t = s.theme || {};
   const bg = s.background && t.bgImageEnabled !== false
@@ -552,7 +555,8 @@ app.get("/uploads/:filename", (req, res) => {
 });
 
 // SETTINGS GET
-app.get("/settings", (req, res) => {
+app.get("/settings", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 4000))]); } catch (_) {}
   res.json(loadSettings());
 });
 
