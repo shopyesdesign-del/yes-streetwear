@@ -133,31 +133,23 @@ async function uploadFile(file) {
     }
   }
 
-  // 2. MongoDB — await _ready so the connection is established on cold starts
+  // 2. Write to disk immediately (fast, reliable within this instance)
+  //    AND kick off a background MongoDB save — /uploads/:filename falls back to MongoDB
+  const filename = crypto.randomBytes(16).toString("hex");
+  const imgPayload = {
+    data: file.buffer.toString("base64"),
+    mime: file.mimetype || "image/jpeg",
+    size: file.buffer.length,
+    at: new Date().toISOString(),
+  };
   try {
-    await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]);
-    // Store image via dbSet (store collection) — same path that works for products/settings
-    const id = crypto.randomBytes(16).toString("hex");
-    const saved = await dbSet("img_" + id, {
-      data: file.buffer.toString("base64"),
-      mime: file.mimetype || "image/jpeg",
-      size: file.buffer.length,
-      at: new Date().toISOString(),
-    });
-    if (saved) return "/img/" + id;
-  } catch (e) {
-    console.error("[upload] MongoDB storage failed:", e.message);
-  }
-
-  // 3. Local disk (dev only — /tmp on Vercel is ephemeral but writable)
-  try {
-    const filename = crypto.randomBytes(16).toString("hex");
     fs.writeFileSync(path.join(UPLOADS_DIR, filename), file.buffer);
-    return "/uploads/" + filename;
-  } catch (e) {
-    console.error("[upload] Disk write failed:", e.message);
-    throw new Error("Upload fehlgeschlagen: Kein Speicher verfügbar. Bitte Cloudinary oder MongoDB konfigurieren.");
-  }
+  } catch (_) { /* /tmp might fail in some envs; MongoDB is the real store */ }
+  // Background: store in MongoDB so other Vercel instances can serve the image
+  dbSet("img_" + filename, imgPayload).catch(e =>
+    console.error("[upload] bg mongo failed:", e.message)
+  );
+  return "/uploads/" + filename;
 }
 
 const CUSTOMER_PASS = "yes";
@@ -665,9 +657,20 @@ body {
 
 // Serve uploaded files from UPLOADS_DIR (fallback when express.static can't find them)
 app.get("/uploads/:filename", async (req, res) => {
-  const filepath = path.join(UPLOADS_DIR, path.basename(req.params.filename));
-  if (!fs.existsSync(filepath)) return res.status(404).send("Not found");
-  res.sendFile(filepath);
+  const name = path.basename(req.params.filename);
+  const filepath = path.join(UPLOADS_DIR, name);
+  // Serve from disk if available on this instance
+  if (fs.existsSync(filepath)) return res.sendFile(filepath);
+  // Fall back to MongoDB — image might have been uploaded on a different Vercel instance
+  try {
+    const img = await dbGet("img_" + name, null);
+    if (img) {
+      res.setHeader("Content-Type", img.mime || "image/jpeg");
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      return res.send(Buffer.from(img.data, "base64"));
+    }
+  } catch (_) {}
+  res.status(404).send("Not found");
 });
 
 
