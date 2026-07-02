@@ -417,6 +417,27 @@ app.get("/admin/db-status", async (req, res) => {
   }
 });
 
+// DB WRITE TEST — writes a value to MongoDB and reads it back
+app.get("/admin/db-test", async (req, res) => {
+  const db = await getDb();
+  if (!db) return res.json({ ok: false, step: "connect", error: "no db" });
+  try {
+    await db.collection("store").updateOne(
+      { _id: "__test__" },
+      { $set: { data: { ts: Date.now() } } },
+      { upsert: true }
+    );
+  } catch (e) {
+    return res.json({ ok: false, step: "write", error: e.message });
+  }
+  try {
+    const doc = await db.collection("store").findOne({ _id: "__test__" });
+    res.json({ ok: !!doc, step: "read", doc });
+  } catch (e) {
+    res.json({ ok: false, step: "read", error: e.message });
+  }
+});
+
 // LOGIN — passwords now configurable via admin
 app.post("/login", async (req, res) => {
   const { password } = req.body;
