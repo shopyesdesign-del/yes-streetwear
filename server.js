@@ -66,7 +66,7 @@ const UPLOADS_DIR = (() => {
 })();
 
 // All uploads go through memory first, then either Cloudinary or local disk
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 4 * 1024 * 1024 } }); // 4 MB server guard
 
 // Resolve Cloudinary config from env var or admin settings
 function getCloudinaryConfig() {
@@ -410,7 +410,14 @@ app.get("/products", (req, res) => {
 });
 
 // ADD PRODUCT (multiple images)
-app.post("/admin/add-product", upload.array("images", 10), async (req, res) => {
+app.post("/admin/add-product", (req, res, next) => {
+  upload.array("images", 10)(req, res, err => {
+    if (err && err.code === "LIMIT_FILE_SIZE")
+      return res.status(413).json({ error: "Bild zu groß (max 4 MB). Bitte komprimiert hochladen." });
+    if (err) return res.status(400).json({ error: err.message });
+    next();
+  });
+}, async (req, res) => {
   if (!req.body.name || !req.body.price) {
     return res.status(400).json({ error: "Name und Preis sind pflicht." });
   }
@@ -440,7 +447,14 @@ app.post("/admin/add-product", upload.array("images", 10), async (req, res) => {
 });
 
 // EDIT PRODUCT (multiple images)
-app.put("/admin/product/:id", upload.array("images", 10), async (req, res) => {
+app.put("/admin/product/:id", (req, res, next) => {
+  upload.array("images", 10)(req, res, err => {
+    if (err && err.code === "LIMIT_FILE_SIZE")
+      return res.status(413).json({ error: "Bild zu groß (max 4 MB). Bitte komprimiert hochladen." });
+    if (err) return res.status(400).json({ error: err.message });
+    next();
+  });
+}, async (req, res) => {
   const products = loadProducts();
   const id = parseInt(req.params.id);
   const idx = products.findIndex((p) => p.id === id);
@@ -518,7 +532,14 @@ app.get("/admin/orders", async (req, res) => {
 
 // MEDIA LIBRARY
 // Dedicated media upload endpoint (used by admin media library)
-app.post("/admin/media/upload", upload.array("files", 20), async (req, res) => {
+app.post("/admin/media/upload", (req, res, next) => {
+  upload.array("files", 20)(req, res, err => {
+    if (err && err.code === "LIMIT_FILE_SIZE")
+      return res.status(413).json({ error: "Datei zu groß (max 4 MB). Bitte ein kleineres Bild wählen." });
+    if (err) return res.status(400).json({ error: err.message });
+    next();
+  });
+}, async (req, res) => {
   if (!req.files || !req.files.length) return res.status(400).json({ error: "No files" });
   try {
     const urls = await Promise.all(req.files.map(f => uploadFile(f)));
@@ -635,16 +656,19 @@ app.get("/settings", async (req, res) => {
 });
 
 // SETTINGS UPDATE (Logo + Background Upload + text fields)
-app.post("/admin/settings", upload.fields([
-  { name: "logo" },
-  { name: "background" },
-  { name: "mobileBackground" },
-  { name: "loginBackground" },
-  { name: "bannerImage" },
-  { name: "loginVideo" },
-  { name: "loginLogo" },
-  { name: "cursorImage" },
-]), async (req, res) => {
+const settingsUploadFields = [
+  { name: "logo" }, { name: "background" }, { name: "mobileBackground" },
+  { name: "loginBackground" }, { name: "bannerImage" }, { name: "loginVideo" },
+  { name: "loginLogo" }, { name: "cursorImage" },
+];
+app.post("/admin/settings", (req, res, next) => {
+  upload.fields(settingsUploadFields)(req, res, err => {
+    if (err && err.code === "LIMIT_FILE_SIZE")
+      return res.status(413).json({ error: "Datei zu groß (max 4 MB). Bitte ein kleineres Bild verwenden." });
+    if (err) return res.status(400).json({ error: err.message });
+    next();
+  });
+}, async (req, res) => {
   const settings = loadSettings();
 
   if (req.files && req.files.logo) {
@@ -780,10 +804,14 @@ app.get("/admin/collections", (req, res) => {
 });
 
 // Admin: add collection
-app.post("/admin/collections", upload.fields([
-  { name: "titleImage" },
-  { name: "bannerImage" },
-]), async (req, res) => {
+app.post("/admin/collections", (req, res, next) => {
+  upload.fields([{ name: "titleImage" }, { name: "bannerImage" }])(req, res, err => {
+    if (err && err.code === "LIMIT_FILE_SIZE")
+      return res.status(413).json({ error: "Bild zu groß (max 4 MB)." });
+    if (err) return res.status(400).json({ error: err.message });
+    next();
+  });
+}, async (req, res) => {
   const cols = loadCollections();
   const name = req.body.name || "New Drop";
   const col  = {
@@ -809,10 +837,14 @@ app.post("/admin/collections", upload.fields([
 });
 
 // Admin: edit collection
-app.put("/admin/collection/:id", upload.fields([
-  { name: "titleImage" },
-  { name: "bannerImage" },
-]), async (req, res) => {
+app.put("/admin/collection/:id", (req, res, next) => {
+  upload.fields([{ name: "titleImage" }, { name: "bannerImage" }])(req, res, err => {
+    if (err && err.code === "LIMIT_FILE_SIZE")
+      return res.status(413).json({ error: "Bild zu groß (max 4 MB)." });
+    if (err) return res.status(400).json({ error: err.message });
+    next();
+  });
+}, async (req, res) => {
   const cols = loadCollections();
   const id   = parseInt(req.params.id);
   const idx  = cols.findIndex(c => c.id === id);
