@@ -127,8 +127,11 @@ function applyEffects(fx) {
 }
 
 async function applySettings() {
-  // /theme.css in <head> already renders correct colors & background server-side.
-  // Fetch fresh settings — don't pre-apply stale localStorage data.
+  // Apply cached theme instantly (0 ms, no flash while waiting for network)
+  const cached = localStorage.getItem('themeSettings');
+  if (cached) { try { updateTheme(JSON.parse(cached)); } catch (_) {} }
+
+  // Fetch fresh settings, then update and save
   const s = await fetch('/settings').then(r => r.json());
   localStorage.setItem('themeSettings', JSON.stringify(s));
 

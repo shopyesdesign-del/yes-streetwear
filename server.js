@@ -603,7 +603,7 @@ app.delete("/admin/media/:id", async (req, res) => {
 
 // Theme CSS — served before JS loads to prevent flash of default design
 app.get("/theme.css", async (req, res) => {
-  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 4000))]); } catch (_) {}
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 1500))]); } catch (_) {}
   const s = loadSettings();
   const t = s.theme || {};
   const bg = s.background && t.bgImageEnabled !== false
