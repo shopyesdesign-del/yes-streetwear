@@ -2325,3 +2325,27 @@ body.page-enter {
   transition: color .2s;
 }
 .cat-back-btn:hover { color: #fff; }
+
+/* ── Admin: focus grid (category banner image cropping) ─ */
+.cb-focus-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 36px);
+  gap: 4px;
+}
+.cb-focus-pt {
+  width: 36px;
+  height: 36px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 6px;
+  color: rgba(255,255,255,.45);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.cb-focus-pt:hover { background: rgba(255,255,255,.14); color: #fff; }
+.cb-focus-pt.cb-focus-active {
+  background: rgba(255,45,85,.55);
+  border-color: #ff2d55;
+  color: #fff;
+}

@@ -335,20 +335,31 @@ const defaultSettings = {
     apiSecret:  "",
   },
   categoryBanners: {
-    enabled: true,
+    enabled:   true,
+    pageFont:  "Bangers",
+    layout:    "side",
+    hoverZoom: true,
     banner1: {
-      slug:      "fashion",
-      title:     "Fashion",
-      subtitle:  "",
-      image:     "",
-      textColor: "#ffffff",
+      slug:            "fashion",
+      title:           "Fashion",
+      subtitle:        "",
+      ctaText:         "Entdecken →",
+      image:           "",
+      textColor:       "#ffffff",
+      titleSize:       "large",
+      bgPosition:      "center center",
+      overlayStrength: 60,
     },
     banner2: {
-      slug:      "design",
-      title:     "Design",
-      subtitle:  "",
-      image:     "",
-      textColor: "#ffffff",
+      slug:            "design",
+      title:           "Design",
+      subtitle:        "",
+      ctaText:         "Entdecken →",
+      image:           "",
+      textColor:       "#ffffff",
+      titleSize:       "large",
+      bgPosition:      "center center",
+      overlayStrength: 60,
     },
   },
 };
@@ -411,7 +422,10 @@ function mergeSettings(saved) {
       const dCB = defaultSettings.categoryBanners;
       const sCB = saved.categoryBanners || {};
       return {
-        enabled: sCB.enabled !== undefined ? sCB.enabled : dCB.enabled,
+        enabled:   sCB.enabled   !== undefined ? sCB.enabled   : dCB.enabled,
+        pageFont:  sCB.pageFont  || dCB.pageFont,
+        layout:    sCB.layout    || dCB.layout,
+        hoverZoom: sCB.hoverZoom !== undefined ? sCB.hoverZoom : dCB.hoverZoom,
         banner1: { ...dCB.banner1, ...(sCB.banner1 || {}) },
         banner2: { ...dCB.banner2, ...(sCB.banner2 || {}) },
       };
@@ -480,6 +494,7 @@ app.get("/admin/db-test", async (req, res) => {
 
 // LOGIN — passwords now configurable via admin
 app.post("/login", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 3000))]); } catch (_) {}
   const { password } = req.body;
   const settings     = loadSettings();
   const pw           = settings.passwords || {};
@@ -494,6 +509,8 @@ app.post("/login", async (req, res) => {
 
 // PASSWORDS
 app.post("/admin/passwords", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]); } catch (_) {}
+  try { const fresh = await dbGetCached("settings"); if (fresh) _store.settings = fresh; } catch (_) {}
   const settings = loadSettings();
   settings.passwords = settings.passwords || {};
   if (req.body.customer !== undefined && req.body.customer !== "")
@@ -822,6 +839,8 @@ app.post("/admin/settings", (req, res, next) => {
     next();
   });
 }, async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]); } catch (_) {}
+  try { const fresh = await dbGetCached("settings"); if (fresh) _store.settings = fresh; } catch (_) {}
   const settings = loadSettings();
 
   if (req.files && req.files.logo) {
@@ -926,13 +945,16 @@ app.post("/admin/settings", (req, res, next) => {
   }
 
   if (req.body.categoryBanners) {
-    const cb = typeof req.body.categoryBanners === "string" ? JSON.parse(req.body.categoryBanners) : req.body.categoryBanners;
+    const cb  = typeof req.body.categoryBanners === "string" ? JSON.parse(req.body.categoryBanners) : req.body.categoryBanners;
     const dCB = defaultSettings.categoryBanners;
     const sCB = settings.categoryBanners || {};
     settings.categoryBanners = {
-      enabled: cb.enabled !== undefined ? cb.enabled : (sCB.enabled !== undefined ? sCB.enabled : dCB.enabled),
-      banner1: { ...dCB.banner1, ...(sCB.banner1 || {}), ...(cb.banner1 || {}) },
-      banner2: { ...dCB.banner2, ...(sCB.banner2 || {}), ...(cb.banner2 || {}) },
+      enabled:   cb.enabled   !== undefined ? cb.enabled   : (sCB.enabled   !== undefined ? sCB.enabled   : dCB.enabled),
+      pageFont:  cb.pageFont  !== undefined ? cb.pageFont  : (sCB.pageFont  || dCB.pageFont),
+      layout:    cb.layout    !== undefined ? cb.layout    : (sCB.layout    || dCB.layout),
+      hoverZoom: cb.hoverZoom !== undefined ? cb.hoverZoom : (sCB.hoverZoom !== undefined ? sCB.hoverZoom : dCB.hoverZoom),
+      banner1:   { ...dCB.banner1, ...(sCB.banner1 || {}), ...(cb.banner1 || {}) },
+      banner2:   { ...dCB.banner2, ...(sCB.banner2 || {}), ...(cb.banner2 || {}) },
     };
   }
   if (req.files?.catBanner1) {
@@ -993,6 +1015,8 @@ app.post("/admin/collections", (req, res, next) => {
     next();
   });
 }, async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]); } catch (_) {}
+  try { const fresh = await dbGetCached("collections"); if (fresh) _store.collections = fresh; } catch (_) {}
   const cols = loadCollections();
   const name = req.body.name || "New Drop";
   const col  = {
@@ -1026,6 +1050,8 @@ app.put("/admin/collection/:id", (req, res, next) => {
     next();
   });
 }, async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]); } catch (_) {}
+  try { const fresh = await dbGetCached("collections"); if (fresh) _store.collections = fresh; } catch (_) {}
   const cols = loadCollections();
   const id   = parseInt(req.params.id);
   const idx  = cols.findIndex(c => c.id === id);
@@ -1054,6 +1080,8 @@ app.put("/admin/collection/:id", (req, res, next) => {
 
 // Admin: delete collection
 app.delete("/admin/collection/:id", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]); } catch (_) {}
+  try { const fresh = await dbGetCached("collections"); if (fresh) _store.collections = fresh; } catch (_) {}
   const cols     = loadCollections();
   const id       = parseInt(req.params.id);
   const filtered = cols.filter(c => c.id !== id);

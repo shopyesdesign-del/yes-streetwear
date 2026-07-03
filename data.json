@@ -63,5 +63,19 @@
       "/uploads/a57a17937f05fce44ac4a44c8f1c4341"
     ],
     "image": "/uploads/60d79f164ee83eddb01a73744a956a94"
+  },
+  {
+    "id": 1783021127843,
+    "name": "TestProdukt",
+    "price": 19.99,
+    "discountPrice": null,
+    "description": "",
+    "category": "",
+    "sizes": [],
+    "colors": [],
+    "badge": "",
+    "visible": true,
+    "images": [],
+    "image": null
   }
 ]

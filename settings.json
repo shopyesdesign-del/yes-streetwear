@@ -1,19 +1,19 @@
 {
-  "shopTitle": "It´s YES Baby!",
+  "shopTitle": "Test",
   "loginText": "Uhhhh shit...",
   "layout": "grid",
   "fontMain": "Inter",
   "fontDisplay": "Bangers",
   "logo": "/uploads/2b6cbad3616b438bd8c9ac903064ef13",
-  "background": "/uploads/1e39e77e98c759a66e978f3be68b162a",
+  "background": "/uploads/7c297138d78be232f0bf1474a41d4295",
   "loginBackground": "/uploads/eb28b3eb9082b8cf7eae10385638778c",
   "theme": {
-    "bgColor": "#ffffff",
+    "bgColor": "#0f0f0f",
     "bgSecondary": "#ffffff",
     "cardColor": "#ffffff",
     "textColor": "#ff40ff",
     "headingColor": "#942192",
-    "accentColor": "#f4a4c0",
+    "accentColor": "#ff2d55",
     "buttonColor": "#ffffff",
     "borderColor": "#2a2a2a",
     "bgImageEnabled": true,
@@ -193,5 +193,10 @@
     "senderEmail": "",
     "subject": "Bestellung {{orderId}} erhalten 🛍",
     "body": "Hallo {{name}},\n\ndanke fuer deine Bestellung {{orderId}}!\nGesamt: {{total}}\n\nArtikel:\n{{items}}"
+  },
+  "cloudinary": {
+    "cloudName": "",
+    "apiKey": "",
+    "apiSecret": ""
   }
 }

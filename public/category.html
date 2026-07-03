@@ -138,6 +138,8 @@
       border-color: #fff;
     }
 
+    .no-hover-zoom .cat-banner:hover .cat-banner-bg { transform: none; }
+
     /* ── Mobile: stack vertically ────────────────── */
     @media (max-width: 640px) {
       body { overflow: auto; }
@@ -158,11 +160,11 @@
   <div class="cat-grid" id="catGrid">
     <a class="cat-banner" id="banner1" href="#">
       <div class="cat-banner-bg" id="bg1"></div>
-      <div class="cat-banner-overlay"></div>
+      <div class="cat-banner-overlay" id="overlay1"></div>
       <div class="cat-banner-content">
         <div class="cat-banner-title" id="title1">Fashion</div>
         <div class="cat-banner-subtitle" id="sub1"></div>
-        <div class="cat-banner-cta">Entdecken →</div>
+        <div class="cat-banner-cta" id="cta1">Entdecken →</div>
       </div>
     </a>
 
@@ -170,11 +172,11 @@
 
     <a class="cat-banner" id="banner2" href="#">
       <div class="cat-banner-bg" id="bg2"></div>
-      <div class="cat-banner-overlay"></div>
+      <div class="cat-banner-overlay" id="overlay2"></div>
       <div class="cat-banner-content">
         <div class="cat-banner-title" id="title2">Design</div>
         <div class="cat-banner-subtitle" id="sub2"></div>
-        <div class="cat-banner-cta">Entdecken →</div>
+        <div class="cat-banner-cta" id="cta2">Entdecken →</div>
       </div>
     </a>
   </div>
@@ -187,6 +189,13 @@
       location.replace('/');
     });
 
+    const TITLE_SIZES = {
+      small:  'clamp(1.8rem, 4vw, 3rem)',
+      medium: 'clamp(2.4rem, 6vw, 4.5rem)',
+      large:  'clamp(3rem, 8vw, 6rem)',
+      xlarge: 'clamp(4rem, 10vw, 8rem)',
+    };
+
     async function init() {
       const s = await fetch('/settings').then(r => r.json()).catch(() => ({}));
       const cb = s.categoryBanners || {};
@@ -196,27 +205,54 @@
         document.getElementById('catLogo').textContent = s.shopTitle;
       }
 
-      // Banner 1
-      const b1 = cb.banner1 || {};
-      document.getElementById('title1').textContent = b1.title || 'Fashion';
-      document.getElementById('sub1').textContent   = b1.subtitle || '';
-      if (b1.textColor) {
-        document.getElementById('title1').style.color = b1.textColor;
-        document.getElementById('sub1').style.color   = b1.textColor;
-      }
-      if (b1.image) document.getElementById('bg1').style.backgroundImage = `url(${b1.image})`;
-      document.getElementById('banner1').href = `/shop.html?cat=${encodeURIComponent(b1.slug || 'fashion')}`;
+      // Page-level: font
+      const pageFont = cb.pageFont || 'Bangers';
+      document.querySelectorAll('.cat-banner-title').forEach(el => el.style.fontFamily = `'${pageFont}', cursive, sans-serif`);
 
-      // Banner 2
-      const b2 = cb.banner2 || {};
-      document.getElementById('title2').textContent = b2.title || 'Design';
-      document.getElementById('sub2').textContent   = b2.subtitle || '';
-      if (b2.textColor) {
-        document.getElementById('title2').style.color = b2.textColor;
-        document.getElementById('sub2').style.color   = b2.textColor;
+      // Page-level: layout
+      if (cb.layout === 'stack') {
+        const grid = document.getElementById('catGrid');
+        grid.style.flexDirection = 'column';
+        grid.style.height = 'auto';
+        grid.style.minHeight = '100dvh';
+        document.querySelectorAll('.cat-banner').forEach(b => { b.style.flex = 'none'; b.style.height = '50dvh'; });
+        document.querySelector('.cat-divider').style.display = 'none';
       }
-      if (b2.image) document.getElementById('bg2').style.backgroundImage = `url(${b2.image})`;
-      document.getElementById('banner2').href = `/shop.html?cat=${encodeURIComponent(b2.slug || 'design')}`;
+
+      // Page-level: hover zoom
+      if (cb.hoverZoom === false) {
+        document.getElementById('catGrid').classList.add('no-hover-zoom');
+      }
+
+      function applyBanner(n, b, defTitle, defSlug) {
+        b = b || {};
+        document.getElementById('title'+n).textContent = b.title || defTitle;
+        document.getElementById('sub'+n).textContent   = b.subtitle || '';
+
+        const cta = document.getElementById('cta'+n);
+        if (cta) cta.textContent = b.ctaText || 'Entdecken →';
+
+        const col = b.textColor || '#ffffff';
+        document.getElementById('title'+n).style.color = col;
+        document.getElementById('sub'+n).style.color   = col;
+
+        const sz = TITLE_SIZES[b.titleSize] || TITLE_SIZES.large;
+        document.getElementById('title'+n).style.fontSize = sz;
+
+        const bgEl = document.getElementById('bg'+n);
+        if (b.image) bgEl.style.backgroundImage = `url(${b.image})`;
+        if (b.bgPosition) bgEl.style.backgroundPosition = b.bgPosition;
+
+        const ov = (b.overlayStrength !== undefined ? b.overlayStrength : 60) / 100;
+        const overlayEl = document.getElementById('overlay'+n);
+        if (overlayEl) overlayEl.style.background =
+          `linear-gradient(to top, rgba(0,0,0,${ov}) 0%, rgba(0,0,0,${(ov*0.3).toFixed(2)}) 55%, transparent 100%)`;
+
+        document.getElementById('banner'+n).href = `/shop.html?cat=${encodeURIComponent(b.slug || defSlug)}`;
+      }
+
+      applyBanner(1, cb.banner1, 'Fashion', 'fashion');
+      applyBanner(2, cb.banner2, 'Design',  'design');
     }
 
     init();

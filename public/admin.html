@@ -514,7 +514,9 @@
 
       <!-- Tab: Category Banners -->
       <div class="tab-pane" id="tab-catbanners">
-        <div class="editor-card">
+
+        <!-- Seiten-Einstellungen -->
+        <div class="editor-card" style="margin-bottom:16px;">
           <div class="card-header-row">
             <div class="card-title">Kategorie-Seite</div>
             <label class="toggle">
@@ -523,70 +525,172 @@
             </label>
           </div>
           <p style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:20px;">Nach dem Login wählen Kunden zwischen zwei Kategorien. Deaktiviert = direkt zum Shop.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:end;">
+            <div class="form-group" style="margin:0;">
+              <label>Schriftart (Titel)</label>
+              <select id="cb_pageFont" class="input-field">
+                <option value="Bangers">Bangers — Display</option>
+                <option value="Inter">Inter — Modern</option>
+                <option value="Rubik Dirt">Rubik Dirt — Grunge</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Layout</label>
+              <select id="cb_layout" class="input-field">
+                <option value="side">Nebeneinander</option>
+                <option value="stack">Übereinander</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label style="display:block;margin-bottom:8px;">Hover-Zoom Effekt</label>
+              <label class="toggle">
+                <input type="checkbox" id="cb_hoverZoom" checked>
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+          </div>
+        </div>
 
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-            <!-- Banner 1 -->
-            <div>
-              <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:12px;">Banner 1</div>
-              <div class="form-group">
-                <label>Titel</label>
-                <input type="text" id="cb1_title" class="input-field" value="Fashion">
-              </div>
-              <div class="form-group">
-                <label>Untertitel</label>
-                <input type="text" id="cb1_subtitle" class="input-field" placeholder="Optional">
-              </div>
-              <div class="form-group">
-                <label>Slug (URL-Kürzel)</label>
+        <!-- Banner-Editoren -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+          <!-- Banner 1 -->
+          <div class="editor-card" style="background:rgba(255,255,255,.03);">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:14px;">Banner 1</div>
+
+            <div class="form-group">
+              <label>Titel</label>
+              <input type="text" id="cb1_title" class="input-field" value="Fashion">
+            </div>
+            <div class="form-group">
+              <label>Untertitel</label>
+              <input type="text" id="cb1_subtitle" class="input-field" placeholder="z.B. Neue Kollektion">
+            </div>
+            <div class="form-group">
+              <label>Button-Text</label>
+              <input type="text" id="cb1_ctaText" class="input-field" value="Entdecken →">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div class="form-group" style="margin:0;">
+                <label>URL-Kürzel</label>
                 <input type="text" id="cb1_slug" class="input-field" value="fashion">
               </div>
-              <div class="form-group">
-                <label>Textfarbe</label>
+              <div class="form-group" style="margin:0;">
+                <label>Titelgröße</label>
+                <select id="cb1_titleSize" class="input-field">
+                  <option value="small">Klein</option>
+                  <option value="medium">Mittel</option>
+                  <option value="large" selected>Groß</option>
+                  <option value="xlarge">XL</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;margin-top:14px;">
+              <div>
+                <label style="display:block;font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px;">Textfarbe</label>
                 <input type="color" id="cb1_textColor" value="#ffffff" style="width:44px;height:36px;border-radius:8px;border:1px solid #333;cursor:pointer;">
               </div>
-              <div class="form-group">
-                <label>Hintergrundbild</label>
-                <input type="file" id="cb1_image" accept="image/*" style="display:none" onchange="previewCatBanner(this,'cb1_preview')">
-                <label for="cb1_image" class="upload-zone" style="cursor:pointer;">
-                  <div class="upload-label"><span class="upload-icon">⬆</span><span>Bild hochladen</span></div>
-                </label>
-                <div id="cb1_preview" style="margin-top:8px;"></div>
+              <div>
+                <label style="display:block;font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px;">Abdunkelung <span id="cb1_overlayVal">60</span>%</label>
+                <input type="range" id="cb1_overlay" min="0" max="95" value="60" style="width:100%;accent-color:#ff2d55;" oninput="document.getElementById('cb1_overlayVal').textContent=this.value">
               </div>
             </div>
+            <div class="form-group" style="margin-top:16px;">
+              <label>Hintergrundbild</label>
+              <input type="file" id="cb1_image" accept="image/*" style="display:none" onchange="previewCatBanner(this,'cb1_preview')">
+              <label for="cb1_image" class="upload-zone" style="cursor:pointer;">
+                <div class="upload-label"><span class="upload-icon">⬆</span><span>Bild hochladen / ersetzen</span></div>
+              </label>
+              <div id="cb1_preview" style="margin-top:8px;"></div>
+            </div>
+            <div class="form-group">
+              <label>Bildausschnitt</label>
+              <p style="font-size:11px;color:rgba(255,255,255,.35);margin:2px 0 8px;">Welcher Teil des Bildes soll sichtbar sein?</p>
+              <div class="cb-focus-grid" id="cb1_focusGrid">
+                <button type="button" class="cb-focus-pt" data-pos="top left">↖</button>
+                <button type="button" class="cb-focus-pt" data-pos="top center">↑</button>
+                <button type="button" class="cb-focus-pt" data-pos="top right">↗</button>
+                <button type="button" class="cb-focus-pt" data-pos="center left">←</button>
+                <button type="button" class="cb-focus-pt cb-focus-active" data-pos="center center">●</button>
+                <button type="button" class="cb-focus-pt" data-pos="center right">→</button>
+                <button type="button" class="cb-focus-pt" data-pos="bottom left">↙</button>
+                <button type="button" class="cb-focus-pt" data-pos="bottom center">↓</button>
+                <button type="button" class="cb-focus-pt" data-pos="bottom right">↘</button>
+              </div>
+              <input type="hidden" id="cb1_bgPosition" value="center center">
+            </div>
+          </div>
 
-            <!-- Banner 2 -->
-            <div>
-              <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:12px;">Banner 2</div>
-              <div class="form-group">
-                <label>Titel</label>
-                <input type="text" id="cb2_title" class="input-field" value="Design">
-              </div>
-              <div class="form-group">
-                <label>Untertitel</label>
-                <input type="text" id="cb2_subtitle" class="input-field" placeholder="Optional">
-              </div>
-              <div class="form-group">
-                <label>Slug (URL-Kürzel)</label>
+          <!-- Banner 2 -->
+          <div class="editor-card" style="background:rgba(255,255,255,.03);">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:14px;">Banner 2</div>
+
+            <div class="form-group">
+              <label>Titel</label>
+              <input type="text" id="cb2_title" class="input-field" value="Design">
+            </div>
+            <div class="form-group">
+              <label>Untertitel</label>
+              <input type="text" id="cb2_subtitle" class="input-field" placeholder="z.B. Neue Kollektion">
+            </div>
+            <div class="form-group">
+              <label>Button-Text</label>
+              <input type="text" id="cb2_ctaText" class="input-field" value="Entdecken →">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div class="form-group" style="margin:0;">
+                <label>URL-Kürzel</label>
                 <input type="text" id="cb2_slug" class="input-field" value="design">
               </div>
-              <div class="form-group">
-                <label>Textfarbe</label>
-                <input type="color" id="cb2_textColor" value="#ffffff" style="width:44px;height:36px;border-radius:8px;border:1px solid #333;cursor:pointer;">
-              </div>
-              <div class="form-group">
-                <label>Hintergrundbild</label>
-                <input type="file" id="cb2_image" accept="image/*" style="display:none" onchange="previewCatBanner(this,'cb2_preview')">
-                <label for="cb2_image" class="upload-zone" style="cursor:pointer;">
-                  <div class="upload-label"><span class="upload-icon">⬆</span><span>Bild hochladen</span></div>
-                </label>
-                <div id="cb2_preview" style="margin-top:8px;"></div>
+              <div class="form-group" style="margin:0;">
+                <label>Titelgröße</label>
+                <select id="cb2_titleSize" class="input-field">
+                  <option value="small">Klein</option>
+                  <option value="medium">Mittel</option>
+                  <option value="large" selected>Groß</option>
+                  <option value="xlarge">XL</option>
+                </select>
               </div>
             </div>
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;margin-top:14px;">
+              <div>
+                <label style="display:block;font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px;">Textfarbe</label>
+                <input type="color" id="cb2_textColor" value="#ffffff" style="width:44px;height:36px;border-radius:8px;border:1px solid #333;cursor:pointer;">
+              </div>
+              <div>
+                <label style="display:block;font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px;">Abdunkelung <span id="cb2_overlayVal">60</span>%</label>
+                <input type="range" id="cb2_overlay" min="0" max="95" value="60" style="width:100%;accent-color:#ff2d55;" oninput="document.getElementById('cb2_overlayVal').textContent=this.value">
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:16px;">
+              <label>Hintergrundbild</label>
+              <input type="file" id="cb2_image" accept="image/*" style="display:none" onchange="previewCatBanner(this,'cb2_preview')">
+              <label for="cb2_image" class="upload-zone" style="cursor:pointer;">
+                <div class="upload-label"><span class="upload-icon">⬆</span><span>Bild hochladen / ersetzen</span></div>
+              </label>
+              <div id="cb2_preview" style="margin-top:8px;"></div>
+            </div>
+            <div class="form-group">
+              <label>Bildausschnitt</label>
+              <p style="font-size:11px;color:rgba(255,255,255,.35);margin:2px 0 8px;">Welcher Teil des Bildes soll sichtbar sein?</p>
+              <div class="cb-focus-grid" id="cb2_focusGrid">
+                <button type="button" class="cb-focus-pt" data-pos="top left">↖</button>
+                <button type="button" class="cb-focus-pt" data-pos="top center">↑</button>
+                <button type="button" class="cb-focus-pt" data-pos="top right">↗</button>
+                <button type="button" class="cb-focus-pt" data-pos="center left">←</button>
+                <button type="button" class="cb-focus-pt cb-focus-active" data-pos="center center">●</button>
+                <button type="button" class="cb-focus-pt" data-pos="center right">→</button>
+                <button type="button" class="cb-focus-pt" data-pos="bottom left">↙</button>
+                <button type="button" class="cb-focus-pt" data-pos="bottom center">↓</button>
+                <button type="button" class="cb-focus-pt" data-pos="bottom right">↘</button>
+              </div>
+              <input type="hidden" id="cb2_bgPosition" value="center center">
+            </div>
           </div>
+        </div>
 
-          <div class="form-actions" style="margin-top:24px;">
-            <button class="btn-primary" onclick="saveCategoryBanners()">Kategorien speichern</button>
-          </div>
+        <div class="form-actions" style="margin-top:20px;">
+          <button class="btn-primary" onclick="saveCategoryBanners()">Kategorien speichern</button>
         </div>
       </div>
 
@@ -2869,47 +2973,79 @@ function previewCatBanner(input, previewId) {
     `<img src="${url}" style="max-height:120px;object-fit:cover;width:100%;border-radius:8px;">`;
 }
 
+function cbSetFocus(gridId, inputId, pos) {
+  const p = pos || 'center center';
+  document.getElementById(inputId).value = p;
+  document.getElementById(gridId).querySelectorAll('.cb-focus-pt').forEach(b => {
+    b.classList.toggle('cb-focus-active', b.dataset.pos === p);
+  });
+}
+function cbInitFocusGrids() {
+  ['cb1','cb2'].forEach(n => {
+    document.getElementById(n+'_focusGrid').querySelectorAll('.cb-focus-pt').forEach(btn => {
+      btn.addEventListener('click', () => cbSetFocus(n+'_focusGrid', n+'_bgPosition', btn.dataset.pos));
+    });
+  });
+}
+
 async function loadCategoryBanners() {
+  cbInitFocusGrids();
   const s  = await fetch('/settings').then(r => r.json());
   const cb = s.categoryBanners || {};
   document.getElementById('cb_enabled').checked = cb.enabled !== false;
-  const b1 = cb.banner1 || {};
-  document.getElementById('cb1_title').value     = b1.title     || 'Fashion';
-  document.getElementById('cb1_subtitle').value  = b1.subtitle  || '';
-  document.getElementById('cb1_slug').value      = b1.slug      || 'fashion';
-  document.getElementById('cb1_textColor').value = b1.textColor || '#ffffff';
-  if (b1.image) document.getElementById('cb1_preview').innerHTML =
-    `<img src="${b1.image}" style="max-height:120px;object-fit:cover;width:100%;border-radius:8px;">`;
-  const b2 = cb.banner2 || {};
-  document.getElementById('cb2_title').value     = b2.title     || 'Design';
-  document.getElementById('cb2_subtitle').value  = b2.subtitle  || '';
-  document.getElementById('cb2_slug').value      = b2.slug      || 'design';
-  document.getElementById('cb2_textColor').value = b2.textColor || '#ffffff';
-  if (b2.image) document.getElementById('cb2_preview').innerHTML =
-    `<img src="${b2.image}" style="max-height:120px;object-fit:cover;width:100%;border-radius:8px;">`;
+
+  const pf = document.getElementById('cb_pageFont');
+  if (cb.pageFont) pf.value = cb.pageFont;
+  const ly = document.getElementById('cb_layout');
+  if (cb.layout) ly.value = cb.layout;
+  document.getElementById('cb_hoverZoom').checked = cb.hoverZoom !== false;
+
+  function loadBanner(n, b) {
+    b = b || {};
+    document.getElementById(n+'_title').value     = b.title     || (n==='cb1'?'Fashion':'Design');
+    document.getElementById(n+'_subtitle').value  = b.subtitle  || '';
+    document.getElementById(n+'_ctaText').value   = b.ctaText   || 'Entdecken →';
+    document.getElementById(n+'_slug').value      = b.slug      || (n==='cb1'?'fashion':'design');
+    document.getElementById(n+'_textColor').value = b.textColor || '#ffffff';
+    const tsEl = document.getElementById(n+'_titleSize');
+    if (b.titleSize) tsEl.value = b.titleSize;
+    const ov = b.overlayStrength !== undefined ? b.overlayStrength : 60;
+    document.getElementById(n+'_overlay').value = ov;
+    document.getElementById(n+'_overlayVal').textContent = ov;
+    cbSetFocus(n+'_focusGrid', n+'_bgPosition', b.bgPosition || 'center center');
+    if (b.image) document.getElementById(n+'_preview').innerHTML =
+      `<img src="${b.image}" style="max-height:140px;object-fit:cover;width:100%;border-radius:8px;">`;
+  }
+  loadBanner('cb1', cb.banner1);
+  loadBanner('cb2', cb.banner2);
 }
 
 async function saveCategoryBanners() {
   const fd = new FormData();
+  function bannerData(n) {
+    return {
+      title:           document.getElementById(n+'_title').value,
+      subtitle:        document.getElementById(n+'_subtitle').value,
+      ctaText:         document.getElementById(n+'_ctaText').value,
+      slug:            document.getElementById(n+'_slug').value,
+      textColor:       document.getElementById(n+'_textColor').value,
+      titleSize:       document.getElementById(n+'_titleSize').value,
+      overlayStrength: parseInt(document.getElementById(n+'_overlay').value, 10),
+      bgPosition:      document.getElementById(n+'_bgPosition').value,
+    };
+  }
   fd.append('categoryBanners', JSON.stringify({
-    enabled: document.getElementById('cb_enabled').checked,
-    banner1: {
-      title:     document.getElementById('cb1_title').value,
-      subtitle:  document.getElementById('cb1_subtitle').value,
-      slug:      document.getElementById('cb1_slug').value,
-      textColor: document.getElementById('cb1_textColor').value,
-    },
-    banner2: {
-      title:     document.getElementById('cb2_title').value,
-      subtitle:  document.getElementById('cb2_subtitle').value,
-      slug:      document.getElementById('cb2_slug').value,
-      textColor: document.getElementById('cb2_textColor').value,
-    },
+    enabled:   document.getElementById('cb_enabled').checked,
+    pageFont:  document.getElementById('cb_pageFont').value,
+    layout:    document.getElementById('cb_layout').value,
+    hoverZoom: document.getElementById('cb_hoverZoom').checked,
+    banner1:   bannerData('cb1'),
+    banner2:   bannerData('cb2'),
   }));
   const img1 = document.getElementById('cb1_image').files[0];
   const img2 = document.getElementById('cb2_image').files[0];
-  if (img1) { const c = await compressImage(img1, 1920, 0.82); fd.append('catBanner1', c); }
-  if (img2) { const c = await compressImage(img2, 1920, 0.82); fd.append('catBanner2', c); }
+  if (img1) { const c = await compressImage(img1, 1920, 0.85); fd.append('catBanner1', c); }
+  if (img2) { const c = await compressImage(img2, 1920, 0.85); fd.append('catBanner2', c); }
   await postSettings(fd);
   toast('Kategorien gespeichert ✓', 'success');
 }
