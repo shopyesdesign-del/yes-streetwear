@@ -1818,18 +1818,42 @@
       <!-- Email notifications -->
       <div class="editor-card">
         <div class="card-title">✉ Automatische Bestätigungs-E-Mail</div>
-        <p class="field-hint" style="margin:0 0 18px">
-          Kunden erhalten nach jeder Bestellung automatisch eine E-Mail.
-          Verwende <code>{{name}}</code>, <code>{{orderId}}</code>, <code>{{total}}</code>,
-          <code>{{items}}</code>, <code>{{address}}</code>, <code>{{paymentMethod}}</code>, <code>{{note}}</code>
-          als Platzhalter im Betreff und Text.
-        </p>
-        <div class="field-row" style="align-items:center">
+
+        <!-- Enable toggle -->
+        <div class="field-row" style="align-items:center;margin-bottom:20px">
           <label class="toggle-label">
             <input type="checkbox" id="em_enabled" class="toggle-cb">
             <span class="toggle-track"></span>
             E-Mail-Benachrichtigungen aktivieren
           </label>
+        </div>
+
+        <!-- Logo upload -->
+        <div style="margin-bottom:20px;padding:16px 18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px">
+          <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#ccc;letter-spacing:.04em">E-Mail Logo</p>
+          <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+            <div id="em_logoPreview" style="width:140px;min-height:70px;background:#111;border:1px solid #333;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+              <span style="color:#555;font-size:12px">Kein Logo</span>
+            </div>
+            <div style="flex:1;min-width:180px">
+              <input style="display:none" type="file" id="em_logoFile" accept="image/*"
+                onchange="previewFile(this,'em_logoPreview')">
+              <label for="em_logoFile" class="btn-outline" style="display:inline-block;cursor:pointer;margin-bottom:8px">Bild auswählen</label>
+              <button class="btn-outline" style="margin-left:6px;font-size:12px;padding:6px 12px;color:#888;border-color:rgba(255,255,255,.15)"
+                onclick="clearEmailLogo()">✕ Entfernen</button>
+              <p class="field-hint" style="margin:8px 0 0">PNG oder SVG mit transparentem Hintergrund empfohlen. Wird in der E-Mail oben zentriert angezeigt.</p>
+              <div class="field-group" style="margin-top:12px">
+                <label class="field-label">Akzentfarbe</label>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <input type="color" id="em_accentColor" value="#ff2d55"
+                    style="width:44px;height:36px;padding:2px;background:none;border:1px solid #333;border-radius:6px;cursor:pointer">
+                  <input type="text" class="input-field" id="em_accentColorHex" value="#ff2d55"
+                    style="width:110px" placeholder="#ff2d55"
+                    oninput="document.getElementById('em_accentColor').value=this.value">
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Resend (recommended) -->
@@ -4211,9 +4235,18 @@ async function loadPaymentSettings() {
   document.getElementById('em_senderEmail').value    = e.senderEmail || '';
   document.getElementById('em_subject').value        = e.subject     || '';
   document.getElementById('em_body').value           = e.body        || '';
-  // Show placeholder text when Resend key already configured
   if (e.resendApiKey) {
     document.getElementById('em_resendApiKey').placeholder = '(gespeichert – leer lassen zum Beibehalten)';
+  }
+  // Logo + accent color
+  const accent = e.accentColor || '#ff2d55';
+  document.getElementById('em_accentColor').value    = accent;
+  document.getElementById('em_accentColorHex').value = accent;
+  if (e.emailLogo) {
+    document.getElementById('em_logoPreview').innerHTML =
+      `<img src="${e.emailLogo}" style="max-height:68px;max-width:136px;object-fit:contain;padding:6px">`;
+  } else {
+    document.getElementById('em_logoPreview').innerHTML = '<span style="color:#555;font-size:12px">Kein Logo</span>';
   }
 
   // Cloudinary settings
@@ -4242,6 +4275,7 @@ async function savePaymentSettings() {
   const email = {
     enabled:      document.getElementById('em_enabled').checked,
     resendApiKey: document.getElementById('em_resendApiKey').value,  // empty = keep existing
+    accentColor:  document.getElementById('em_accentColorHex').value.trim() || '#ff2d55',
     smtpHost:     document.getElementById('em_smtpHost').value.trim(),
     smtpPort:     parseInt(document.getElementById('em_smtpPort').value) || 587,
     smtpSecure:   document.getElementById('em_smtpSecure').checked,
@@ -4261,6 +4295,16 @@ async function savePaymentSettings() {
   fd.append('payment', JSON.stringify(payment));
   fd.append('email', JSON.stringify(email));
   fd.append('cloudinary', JSON.stringify(cloudinary));
+  // Logo upload
+  const logoFile = document.getElementById('em_logoFile').files[0];
+  if (logoFile) {
+    const compressed = await compressImage(logoFile, 800, 0.9);
+    fd.append('emailLogo', compressed);
+  }
+  if (window._clearEmailLogo) {
+    fd.append('clearEmailLogo', '1');
+    window._clearEmailLogo = false;
+  }
   await postSettings(fd);
   toast('Einstellungen gespeichert ✓', 'success');
   // Refresh status display
@@ -4270,6 +4314,18 @@ async function savePaymentSettings() {
     ? '<span style="color:#4CAF50">✓ Cloudinary aktiv — Bilder werden dauerhaft gespeichert</span>'
     : '<span style="color:#ff9800">⚠ Nicht konfiguriert — Bilder gehen bei Server-Neustart verloren</span>';
 }
+
+function clearEmailLogo() {
+  window._clearEmailLogo = true;
+  document.getElementById('em_logoFile').value = '';
+  document.getElementById('em_logoPreview').innerHTML = '<span style="color:#555;font-size:12px">Kein Logo</span>';
+  toast('Logo wird beim nächsten Speichern entfernt', 'success');
+}
+
+// Sync color picker ↔ text input
+document.getElementById('em_accentColor').addEventListener('input', function() {
+  document.getElementById('em_accentColorHex').value = this.value;
+});
 
 async function sendTestEmail() {
   const to  = document.getElementById('em_testAddress').value.trim();

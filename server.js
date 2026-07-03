@@ -492,6 +492,8 @@ const defaultSettings = {
   email: {
     enabled:      false,
     resendApiKey: "",
+    emailLogo:    "",
+    accentColor:  "#ff2d55",
     smtpHost:     "",
     smtpPort:     587,
     smtpSecure:   false,
@@ -500,7 +502,7 @@ const defaultSettings = {
     senderName:   "DRIP VAULT",
     senderEmail:  "",
     subject:      "Deine Bestellung {{orderId}} ist eingegangen 🛍",
-    body:         "Hallo {{name}},\n\nvielen Dank für deine Bestellung bei DRIP VAULT!\n\nDeine Bestellnummer: {{orderId}}\nGesamtbetrag: {{total}}\nZahlungsart: {{paymentMethod}}\n\n📦 Bestellte Artikel:\n{{items}}\n\nLieferadresse:\n{{address}}\n\nWir melden uns, sobald deine Bestellung versendet wurde.\n\nBis bald,\nDas DRIP VAULT Team",
+    body:         "Hallo {{name}},\n\nvielen Dank für deine Bestellung!\n\nDeine Bestellnummer: {{orderId}}\nGesamtbetrag: {{total}}\nZahlungsart: {{paymentMethod}}\n\nArtikel:\n{{items}}\n\nLieferadresse:\n{{address}}\n\nWir melden uns, sobald deine Bestellung versendet wurde.\n\nBis bald,\nDein Team",
   },
   cloudinary: {
     cloudName:  "",
@@ -843,7 +845,7 @@ app.post("/orders", async (req, res) => {
   }
   if (stockChanged) await saveProducts(products);
 
-  sendOrderEmail(order).catch(err => console.error("[email] send failed:", err.message));
+  sendOrderEmail({ ...order, _host: req.headers.host }).catch(err => console.error("[email] send failed:", err.message));
   res.json({ success: true, orderId: order.id });
 });
 
@@ -1003,6 +1005,7 @@ const settingsUploadFields = [
   { name: "loginBackground" }, { name: "bannerImage" }, { name: "loginVideo" },
   { name: "loginLogo" }, { name: "cursorImage" },
   { name: "catBanner1" }, { name: "catBanner2" },
+  { name: "emailLogo" },
 ];
 app.post("/admin/settings", (req, res, next) => {
   upload.fields(settingsUploadFields)(req, res, err => {
@@ -1108,6 +1111,14 @@ app.post("/admin/settings", (req, res, next) => {
     const merged = { ...defaultSettings.email, ...(settings.email || {}) };
     Object.entries(em).forEach(([k, v]) => { if (v !== "") merged[k] = v; });
     settings.email = merged;
+  }
+  if (req.files?.emailLogo) {
+    settings.email = settings.email || {};
+    settings.email.emailLogo = await uploadFile(req.files.emailLogo[0]);
+  }
+  if (req.body.clearEmailLogo === "1") {
+    settings.email = settings.email || {};
+    settings.email.emailLogo = "";
   }
 
   if (req.body.cloudinary) {
@@ -1281,6 +1292,8 @@ function getEmailConfig() {
   return {
     enabled:      process.env.SMTP_ENABLED === "true" || !!cfg.enabled,
     resendApiKey: process.env.RESEND_API_KEY || cfg.resendApiKey || "",
+    emailLogo:    cfg.emailLogo    || "",
+    accentColor:  cfg.accentColor  || "#ff2d55",
     smtpHost:     host,
     smtpPort:     port,
     smtpSecure:   secure,
@@ -1294,61 +1307,96 @@ function getEmailConfig() {
 }
 
 function buildEmailHtml(bodyText, vars, cfg) {
-  const accent = "#ff2d55";
-  const rows = (vars._itemsHtml || "").trim();
+  const accent = cfg.accentColor || "#ff2d55";
+  const rows   = (vars._itemsHtml || "").trim();
+  const year   = new Date().getFullYear();
+
+  // Resolve logo URL to absolute if it's a relative path
+  const logoUrl = cfg.emailLogo
+    ? (cfg.emailLogo.startsWith("http") ? cfg.emailLogo : `https://${vars._host || ""}${cfg.emailLogo}`)
+    : "";
+
+  const headerContent = logoUrl
+    ? `<img src="${logoUrl}" alt="${vars.shopTitle}" style="max-height:70px;max-width:220px;object-fit:contain;display:block;margin:0 auto 12px;">
+       <p style="margin:0;font-size:13px;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;">Bestellbestätigung</p>`
+    : `<h1 style="margin:0 0 8px;font-size:26px;font-weight:900;letter-spacing:.1em;color:#fff;font-family:Arial,sans-serif;">${vars.shopTitle}</h1>
+       <p style="margin:0;font-size:13px;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;">Bestellbestätigung</p>`;
+
   return `<!DOCTYPE html>
 <html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${vars.shopTitle} – Bestellung ${vars.orderId}</title></head>
-<body style="margin:0;padding:0;background:#0f0f0f;font-family:Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0f0f;padding:40px 0;">
+<body style="margin:0;padding:0;background:#111;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#111;padding:32px 16px;">
 <tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#1a1a1a;border-radius:16px;overflow:hidden;border:1px solid #333;">
-  <!-- Header -->
-  <tr><td style="background:${accent};padding:28px 36px;text-align:center;">
-    <h1 style="margin:0;font-size:28px;font-weight:900;letter-spacing:.08em;color:#fff;font-family:Arial,sans-serif;">${vars.shopTitle}</h1>
-    <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,.8);">Bestellbestätigung</p>
-  </td></tr>
-  <!-- Body -->
-  <tr><td style="padding:36px;">
-    <p style="margin:0 0 24px;font-size:16px;color:#fff;">Hallo <strong>${vars.name}</strong>,</p>
-    <p style="margin:0 0 24px;font-size:15px;color:#ccc;line-height:1.6;">vielen Dank für deine Bestellung! Wir haben sie erhalten und werden sie so schnell wie möglich bearbeiten.</p>
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;box-shadow:0 4px 40px rgba(0,0,0,.6);">
 
-    <!-- Order info box -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#111;border-radius:10px;padding:20px;margin-bottom:24px;border:1px solid #333;">
-      <tr><td style="padding:6px 0;">
-        <span style="color:#888;font-size:13px;">Bestellnummer</span><br>
-        <strong style="color:#fff;font-size:15px;">${vars.orderId}</strong>
+  <!-- Header band -->
+  <tr><td style="background:${accent};padding:32px 40px;text-align:center;">
+    ${headerContent}
+  </td></tr>
+
+  <!-- Greeting -->
+  <tr><td style="background:#1c1c1e;padding:32px 40px 0;">
+    <p style="margin:0 0 8px;font-size:17px;font-weight:700;color:#fff;">Hallo ${vars.name},</p>
+    <p style="margin:0;font-size:14px;color:#aaa;line-height:1.7;">vielen Dank für deine Bestellung – wir haben sie erhalten und kümmern uns darum!</p>
+  </td></tr>
+
+  <!-- Order summary box -->
+  <tr><td style="background:#1c1c1e;padding:24px 40px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#111;border-radius:12px;overflow:hidden;">
+      <tr><td colspan="2" style="padding:14px 18px;border-bottom:1px solid #2a2a2a;">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#666;">Bestellnummer</span><br>
+        <span style="font-size:15px;font-weight:700;color:#fff;">${vars.orderId}</span>
       </td></tr>
-      <tr><td style="padding:6px 0;border-top:1px solid #333;">
-        <span style="color:#888;font-size:13px;">Zahlungsart</span><br>
-        <strong style="color:#fff;font-size:15px;">${vars.paymentMethod}</strong>
-      </td></tr>
-      ${vars.address ? `<tr><td style="padding:6px 0;border-top:1px solid #333;">
-        <span style="color:#888;font-size:13px;">Lieferadresse</span><br>
-        <strong style="color:#fff;font-size:15px;">${vars.address}</strong>
+      <tr>
+        <td style="padding:14px 18px;border-bottom:1px solid #2a2a2a;border-right:1px solid #2a2a2a;width:50%">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#666;">Zahlungsart</span><br>
+          <span style="font-size:14px;color:#ccc;">${vars.paymentMethod}</span>
+        </td>
+        <td style="padding:14px 18px;border-bottom:1px solid #2a2a2a;width:50%">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#666;">Gesamtbetrag</span><br>
+          <span style="font-size:16px;font-weight:900;color:${accent};">${vars.total}</span>
+        </td>
+      </tr>
+      ${vars.address ? `<tr><td colspan="2" style="padding:14px 18px;">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#666;">Lieferadresse</span><br>
+        <span style="font-size:14px;color:#ccc;">${vars.address}</span>
       </td></tr>` : ""}
     </table>
+  </td></tr>
 
-    <!-- Items -->
-    <h3 style="margin:0 0 12px;font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888;">Bestellte Artikel</h3>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">${rows}</table>
-
-    <!-- Total -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#111;border-radius:10px;padding:16px 20px;border:1px solid #333;margin-bottom:28px;">
-      <tr>
-        <td style="color:#ccc;font-size:15px;">Gesamtbetrag</td>
-        <td align="right" style="color:${accent};font-size:20px;font-weight:900;">${vars.total}</td>
-      </tr>
+  <!-- Items -->
+  <tr><td style="background:#1c1c1e;padding:0 40px 24px;">
+    <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#666;">Bestellte Artikel</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#111;border-radius:12px;overflow:hidden;">
+      ${rows}
     </table>
-
-    ${vars.note ? `<div style="background:#111;border-radius:10px;padding:14px 18px;margin-bottom:24px;border:1px solid #333;"><p style="margin:0;color:#888;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Anmerkung</p><p style="margin:6px 0 0;color:#ccc;font-size:14px;">${vars.note}</p></div>` : ""}
-
-    <p style="margin:0;font-size:14px;color:#888;line-height:1.8;">Wir melden uns, sobald deine Bestellung versendet wurde.<br>Bei Fragen antworte einfach auf diese E-Mail.</p>
   </td></tr>
+
+  ${vars.note ? `<!-- Note -->
+  <tr><td style="background:#1c1c1e;padding:0 40px 24px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#111;border-radius:12px;">
+      <tr><td style="padding:14px 18px;">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#666;">Anmerkung</span><br>
+        <span style="font-size:14px;color:#ccc;">${vars.note}</span>
+      </td></tr>
+    </table>
+  </td></tr>` : ""}
+
+  <!-- Closing -->
+  <tr><td style="background:#1c1c1e;padding:0 40px 32px;">
+    <p style="margin:0;font-size:13px;color:#777;line-height:1.8;">
+      Wir melden uns, sobald deine Bestellung auf dem Weg zu dir ist.<br>
+      Bei Fragen? Einfach auf diese E-Mail antworten.
+    </p>
+  </td></tr>
+
   <!-- Footer -->
-  <tr><td style="padding:20px 36px;border-top:1px solid #333;text-align:center;">
-    <p style="margin:0;font-size:12px;color:#555;">© ${new Date().getFullYear()} ${vars.shopTitle}</p>
+  <tr><td style="background:#161618;padding:20px 40px;text-align:center;border-top:1px solid #2a2a2a;">
+    ${logoUrl ? `<img src="${logoUrl}" alt="${vars.shopTitle}" style="max-height:32px;object-fit:contain;display:block;margin:0 auto 8px;opacity:.5;">` : ""}
+    <p style="margin:0;font-size:11px;color:#444;">© ${year} ${vars.shopTitle} · Alle Rechte vorbehalten</p>
   </td></tr>
+
 </table>
 </td></tr>
 </table>
@@ -1385,6 +1433,7 @@ async function sendOrderEmail(order) {
     note:          order.note          || "",
     shopTitle:     s.shopTitle         || "DRIP VAULT",
     _itemsHtml:    itemsHtml,
+    _host:         order._host         || "",
   };
 
   const subject = renderEmailTemplate(cfg.subject || "Deine Bestellung {{orderId}} ist eingegangen", vars);
@@ -1446,6 +1495,7 @@ app.post("/admin/test-email", async (req, res) => {
       paymentMethod: "manual",
       note:          "Bitte schnell liefern!",
       items:         [{ name: "Drip Tee", price: 59.99, qty: 1 }, { name: "Cap", price: 29.99, qty: 1 }],
+      _host:         req.headers.host,
     };
     await sendOrderEmail(fakeOrder);
     res.json({ success: true });
@@ -1560,7 +1610,7 @@ app.post("/checkout/capture-paypal-order", async (req, res) => {
     };
     orders.unshift(order);
     safeWrite(ORDERS_FILE, orders);
-    sendOrderEmail(order).catch(err => console.error("[email] send failed:", err.message));
+    sendOrderEmail({ ...order, _host: req.headers.host }).catch(err => console.error("[email] send failed:", err.message));
     res.json({ success: true, orderId: order.id });
   } catch (err) {
     res.status(500).json({ error: "Capture failed", details: err.message });
