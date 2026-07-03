@@ -268,9 +268,9 @@ async function loadAndRender() {
       </div>
     `;
 
-    // Click card → open detail
+    // Click card → open detail (exclude interactive card elements)
     card.addEventListener('click', (e) => {
-      if (!e.target.classList.contains('btn-add-cart') && !e.target.closest('.btn-add-cart')) {
+      if (!e.target.closest('.btn-add-cart') && !e.target.closest('.card-size-btn')) {
         openProductDetail(p);
       }
     });
@@ -382,9 +382,11 @@ function openProductDetail(p) {
       <img class="pd-thumb ${i === 0 ? 'active' : ''}" src="${src}" alt="Bild ${i+1}"
            data-idx="${i}" loading="lazy">
     `).join('');
-    thumbsEl.querySelectorAll('.pd-thumb').forEach(t => {
-      t.addEventListener('click', () => switchImage(parseInt(t.dataset.idx), imgs));
-    });
+    // Event delegation — more reliable on iOS than per-<img> listeners
+    thumbsEl.onclick = (e) => {
+      const t = e.target.closest('.pd-thumb');
+      if (t) switchImage(parseInt(t.dataset.idx), pdImgs);
+    };
   } else {
     mainImg.style.display = 'none';
     mainPlaceholder.style.display = '';
@@ -501,7 +503,16 @@ document.getElementById('pdQtyPlus').addEventListener('click', () => {
 // Add to cart from detail
 document.getElementById('pdAddCart').addEventListener('click', () => {
   if (!pdProduct) return;
-  const p     = pdProduct;
+  const p = pdProduct;
+
+  // Require size if product has sizes
+  if (p.sizes && p.sizes.length > 0 && !pdSize) {
+    const sec = document.getElementById('pdSizesSection');
+    sec.classList.add('shake');
+    setTimeout(() => sec.classList.remove('shake'), 600);
+    return;
+  }
+
   const price = p.discountPrice && p.discountPrice < p.price ? p.discountPrice : p.price;
   const label = [p.name, pdSize, pdColor].filter(Boolean).join(' · ');
   for (let i = 0; i < pdQty; i++) addToCart(String(p.id), label, price, getImages(p)[0] || '');
@@ -526,13 +537,15 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Fullscreen / lightbox
-document.getElementById('pdFullscreenBtn').addEventListener('click', () => {
-  const src = document.getElementById('pdMainImg').src;
-  if (!src || document.getElementById('pdMainImg').style.display === 'none') return;
-  document.getElementById('pdLightboxImg').src = src;
+// Fullscreen / lightbox — both the button and a click on the main image open it
+function openLightbox() {
+  const img = document.getElementById('pdMainImg');
+  if (!img.src || img.style.display === 'none') return;
+  document.getElementById('pdLightboxImg').src = img.src;
   document.getElementById('pdLightbox').classList.add('open');
-});
+}
+document.getElementById('pdFullscreenBtn').addEventListener('click', openLightbox);
+document.getElementById('pdMainImg').addEventListener('click', openLightbox);
 function closeLightbox() {
   document.getElementById('pdLightbox').classList.remove('open');
 }

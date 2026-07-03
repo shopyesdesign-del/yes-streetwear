@@ -538,7 +538,7 @@ input, textarea, select { font-family: inherit; }
 .cart-item-controls { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
 .card-sizes { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0 8px; }
-.card-size-btn { padding: 4px 10px; font-size: .75rem; font-weight: 600; background: transparent; border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.7); border-radius: 5px; cursor: pointer; transition: all .15s; }
+.card-size-btn { padding: 4px 10px; font-size: .75rem; font-weight: 600; background: transparent; border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.7); border-radius: 5px; cursor: pointer; transition: all .15s; touch-action: manipulation; }
 .card-size-btn:hover { border-color: rgba(255,255,255,.5); color: #fff; }
 .card-size-btn.selected { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
 .card-sizes.shake { animation: sizeShake .5s ease; }
@@ -1018,6 +1018,7 @@ input, textarea, select { font-family: inherit; }
   align-items: center;
   justify-content: center;
 }
+.pd-close { touch-action: manipulation; }
 .pd-close:hover { background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.2); }
 
 .pd-inner {
@@ -1043,6 +1044,7 @@ input, textarea, select { font-family: inherit; }
   overflow: hidden;
   min-height: 340px;
   cursor: zoom-in;
+  touch-action: manipulation;
 }
 
 .pd-main-img {
@@ -1101,6 +1103,7 @@ input, textarea, select { font-family: inherit; }
   overflow-x: auto;
   background: rgba(0,0,0,0.4);
   flex-shrink: 0;
+  touch-action: pan-x;
 }
 .pd-thumbs::-webkit-scrollbar { height: 3px; }
 .pd-thumbs::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
@@ -1115,6 +1118,8 @@ input, textarea, select { font-family: inherit; }
   transition: opacity 0.2s, transform 0.2s, border-color 0.2s;
   border: 2px solid transparent;
   flex-shrink: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .pd-thumb:hover { opacity: 0.8; transform: scale(1.05); }
 .pd-thumb.active { opacity: 1; border-color: var(--color-accent); }
@@ -1221,6 +1226,7 @@ input, textarea, select { font-family: inherit; }
   cursor: pointer;
   transition: all 0.15s;
   letter-spacing: 0.3px;
+  touch-action: manipulation;
 }
 .pd-size-btn:hover { border-color: var(--color-accent); color: #fff; }
 .pd-size-btn.selected {
