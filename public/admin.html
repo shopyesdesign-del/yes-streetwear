@@ -57,6 +57,9 @@
       <a class="nav-item" data-sec="payment" href="#">
         <span class="ni">💳</span> Zahlung
       </a>
+      <a class="nav-item" data-sec="email" href="#">
+        <span class="ni">✉</span> E-Mail
+      </a>
       <div class="nav-divider"></div>
       <a class="nav-item" data-sec="settings" href="#">
         <span class="ni">⚙</span> Einstellungen
@@ -1997,6 +2000,19 @@
       </div>
     </section>
 
+    <!-- ══════════════════ E-MAIL ══════════════════════════════════ -->
+    <section id="sec-email" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">E-Mail Einstellungen</h1>
+          <p class="page-sub">Automatische Bestellbestätigung an Kunden konfigurieren.</p>
+        </div>
+        <button class="btn-primary" onclick="saveEmailSettings()">Speichern</button>
+      </div>
+      <!-- email card is moved here from sec-payment via JS on first open -->
+      <div id="emailSectionMount"></div>
+    </section>
+
   </div><!-- /main-area -->
 
   <!-- Order detail modal -->
@@ -2373,7 +2389,7 @@ const SEC_LABELS = {
   dashboard:'Dashboard', products:'Produkte', design:'Design',
   homepage:'Startseite', media:'Medien', collections:'Collections',
   cursor:'Brand Cursor', vfx:'Visual Effects', logineditor:'Passwort Seite',
-  orders:'Bestellungen', payment:'Zahlung', settings:'Einstellungen',
+  orders:'Bestellungen', payment:'Zahlung', email:'E-Mail', settings:'Einstellungen',
 };
 
 document.querySelectorAll('.nav-item').forEach(item => {
@@ -3675,6 +3691,7 @@ navigate = (function(orig) {
     if (sec === 'cursor')      loadCursorSettings();
     if (sec === 'orders')      loadOrdersAdmin();
     if (sec === 'payment')     loadPaymentSettings();
+    if (sec === 'email')       { loadPaymentSettings(); mountEmailCard(); }
   };
 })(navigate);
 
@@ -4313,6 +4330,42 @@ async function savePaymentSettings() {
   document.getElementById('cldStatus').innerHTML = configured
     ? '<span style="color:#4CAF50">✓ Cloudinary aktiv — Bilder werden dauerhaft gespeichert</span>'
     : '<span style="color:#ff9800">⚠ Nicht konfiguriert — Bilder gehen bei Server-Neustart verloren</span>';
+}
+
+function mountEmailCard() {
+  const mount = document.getElementById('emailSectionMount');
+  const card  = document.querySelector('#sec-payment .editor-card:has(#em_enabled)');
+  if (card && mount && !mount.contains(card)) mount.appendChild(card);
+}
+
+async function saveEmailSettings() {
+  const email = {
+    enabled:      document.getElementById('em_enabled').checked,
+    resendApiKey: document.getElementById('em_resendApiKey').value,
+    accentColor:  document.getElementById('em_accentColorHex').value.trim() || '#ff2d55',
+    smtpHost:     document.getElementById('em_smtpHost').value.trim(),
+    smtpPort:     parseInt(document.getElementById('em_smtpPort').value) || 587,
+    smtpSecure:   document.getElementById('em_smtpSecure').checked,
+    smtpUser:     document.getElementById('em_smtpUser').value.trim(),
+    smtpPass:     document.getElementById('em_smtpPass').value,
+    senderName:   document.getElementById('em_senderName').value.trim(),
+    senderEmail:  document.getElementById('em_senderEmail').value.trim(),
+    subject:      document.getElementById('em_subject').value,
+    body:         document.getElementById('em_body').value,
+  };
+  const fd = new FormData();
+  fd.append('email', JSON.stringify(email));
+  const logoFile = document.getElementById('em_logoFile').files[0];
+  if (logoFile) {
+    const compressed = await compressImage(logoFile, 800, 0.9);
+    fd.append('emailLogo', compressed);
+  }
+  if (window._clearEmailLogo) {
+    fd.append('clearEmailLogo', '1');
+    window._clearEmailLogo = false;
+  }
+  await postSettings(fd);
+  toast('E-Mail Einstellungen gespeichert ✓', 'success');
 }
 
 function clearEmailLogo() {
