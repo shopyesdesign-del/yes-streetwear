@@ -491,6 +491,7 @@ const defaultSettings = {
   },
   email: {
     enabled:      false,
+    resendApiKey: "",
     smtpHost:     "",
     smtpPort:     587,
     smtpSecure:   false,
@@ -1273,37 +1274,105 @@ function getEmailConfig() {
   const cfg = s.email || {};
   const host = process.env.SMTP_HOST || cfg.smtpHost || "";
   const port = parseInt(process.env.SMTP_PORT || cfg.smtpPort || 587);
-  // Env vars take strict priority; auto-detect secure from port if not set
   const secureEnv = process.env.SMTP_SECURE;
   const secure = secureEnv !== undefined
     ? secureEnv === "true"
     : (cfg.smtpSecure !== undefined ? !!cfg.smtpSecure : port === 465);
   return {
-    enabled:     process.env.SMTP_ENABLED === "true" || !!cfg.enabled,
-    smtpHost:    host,
-    smtpPort:    port,
-    smtpSecure:  secure,
-    smtpUser:    process.env.SMTP_USER || cfg.smtpUser || "",
-    smtpPass:    process.env.SMTP_PASS || cfg.smtpPass || "",
-    senderName:  process.env.SMTP_SENDER_NAME  || cfg.senderName  || "DRIP VAULT",
-    senderEmail: process.env.SMTP_SENDER_EMAIL || cfg.senderEmail || "",
-    subject:     cfg.subject || "Deine Bestellung {{orderId}}",
-    body:        cfg.body    || "Hallo {{name}}, danke für deine Bestellung!",
+    enabled:      process.env.SMTP_ENABLED === "true" || !!cfg.enabled,
+    resendApiKey: process.env.RESEND_API_KEY || cfg.resendApiKey || "",
+    smtpHost:     host,
+    smtpPort:     port,
+    smtpSecure:   secure,
+    smtpUser:     process.env.SMTP_USER || cfg.smtpUser || "",
+    smtpPass:     process.env.SMTP_PASS || cfg.smtpPass || "",
+    senderName:   process.env.SMTP_SENDER_NAME  || cfg.senderName  || "DRIP VAULT",
+    senderEmail:  process.env.SMTP_SENDER_EMAIL || cfg.senderEmail || "",
+    subject:      cfg.subject || "Deine Bestellung {{orderId}}",
+    body:         cfg.body    || "Hallo {{name}}, danke für deine Bestellung!",
   };
 }
 
+function buildEmailHtml(bodyText, vars, cfg) {
+  const accent = "#ff2d55";
+  const rows = (vars._itemsHtml || "").trim();
+  return `<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${vars.shopTitle} – Bestellung ${vars.orderId}</title></head>
+<body style="margin:0;padding:0;background:#0f0f0f;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0f0f;padding:40px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#1a1a1a;border-radius:16px;overflow:hidden;border:1px solid #333;">
+  <!-- Header -->
+  <tr><td style="background:${accent};padding:28px 36px;text-align:center;">
+    <h1 style="margin:0;font-size:28px;font-weight:900;letter-spacing:.08em;color:#fff;font-family:Arial,sans-serif;">${vars.shopTitle}</h1>
+    <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,.8);">Bestellbestätigung</p>
+  </td></tr>
+  <!-- Body -->
+  <tr><td style="padding:36px;">
+    <p style="margin:0 0 24px;font-size:16px;color:#fff;">Hallo <strong>${vars.name}</strong>,</p>
+    <p style="margin:0 0 24px;font-size:15px;color:#ccc;line-height:1.6;">vielen Dank für deine Bestellung! Wir haben sie erhalten und werden sie so schnell wie möglich bearbeiten.</p>
+
+    <!-- Order info box -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#111;border-radius:10px;padding:20px;margin-bottom:24px;border:1px solid #333;">
+      <tr><td style="padding:6px 0;">
+        <span style="color:#888;font-size:13px;">Bestellnummer</span><br>
+        <strong style="color:#fff;font-size:15px;">${vars.orderId}</strong>
+      </td></tr>
+      <tr><td style="padding:6px 0;border-top:1px solid #333;">
+        <span style="color:#888;font-size:13px;">Zahlungsart</span><br>
+        <strong style="color:#fff;font-size:15px;">${vars.paymentMethod}</strong>
+      </td></tr>
+      ${vars.address ? `<tr><td style="padding:6px 0;border-top:1px solid #333;">
+        <span style="color:#888;font-size:13px;">Lieferadresse</span><br>
+        <strong style="color:#fff;font-size:15px;">${vars.address}</strong>
+      </td></tr>` : ""}
+    </table>
+
+    <!-- Items -->
+    <h3 style="margin:0 0 12px;font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888;">Bestellte Artikel</h3>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">${rows}</table>
+
+    <!-- Total -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#111;border-radius:10px;padding:16px 20px;border:1px solid #333;margin-bottom:28px;">
+      <tr>
+        <td style="color:#ccc;font-size:15px;">Gesamtbetrag</td>
+        <td align="right" style="color:${accent};font-size:20px;font-weight:900;">${vars.total}</td>
+      </tr>
+    </table>
+
+    ${vars.note ? `<div style="background:#111;border-radius:10px;padding:14px 18px;margin-bottom:24px;border:1px solid #333;"><p style="margin:0;color:#888;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Anmerkung</p><p style="margin:6px 0 0;color:#ccc;font-size:14px;">${vars.note}</p></div>` : ""}
+
+    <p style="margin:0;font-size:14px;color:#888;line-height:1.8;">Wir melden uns, sobald deine Bestellung versendet wurde.<br>Bei Fragen antworte einfach auf diese E-Mail.</p>
+  </td></tr>
+  <!-- Footer -->
+  <tr><td style="padding:20px 36px;border-top:1px solid #333;text-align:center;">
+    <p style="margin:0;font-size:12px;color:#555;">© ${new Date().getFullYear()} ${vars.shopTitle}</p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+}
+
 async function sendOrderEmail(order) {
+  // Always refresh settings from MongoDB before sending
+  try { const f = await dbGetCached("settings"); if (f) _store.settings = f; } catch (_) {}
+
   const s   = loadSettings();
   const cfg = getEmailConfig();
-  if (!cfg.enabled || !cfg.smtpHost || !cfg.smtpUser || !cfg.smtpPass || !order.email) return;
+  if (!cfg.enabled || !order.email) return;
 
   const fmt = n => parseFloat(n || 0).toLocaleString("de-DE", { style: "currency", currency: s.payment?.currency || "EUR" });
-  const itemsList = (order.items || [])
-    .map(i => `  • ${i.name} × ${i.qty}  — ${fmt(i.price * i.qty)}`)
-    .join("\n");
   const payLabels = { paypal: "PayPal", manual: "Auf Rechnung / Manuell", card: "Kreditkarte" };
   const address   = [order.street, `${order.zip || ""} ${order.city || ""}`.trim(), order.country]
     .filter(Boolean).join(", ");
+
+  const itemsHtml = (order.items || []).map(i =>
+    `<tr><td style="padding:8px 0;border-bottom:1px solid #333;color:#fff;font-size:14px;">${i.name} × ${i.qty}</td>
+     <td align="right" style="padding:8px 0;border-bottom:1px solid #333;color:#ccc;font-size:14px;">${fmt(i.price * i.qty)}</td></tr>`
+  ).join("");
+  const itemsText = (order.items || []).map(i => `  • ${i.name} × ${i.qty}  — ${fmt(i.price * i.qty)}`).join("\n");
 
   const vars = {
     name:          order.name          || "",
@@ -1311,15 +1380,37 @@ async function sendOrderEmail(order) {
     orderId:       order.id            || "",
     total:         fmt(order.total),
     paymentMethod: payLabels[order.paymentMethod] || order.paymentMethod || "—",
-    items:         itemsList,
+    items:         itemsText,
     address,
     note:          order.note          || "",
     shopTitle:     s.shopTitle         || "DRIP VAULT",
+    _itemsHtml:    itemsHtml,
   };
 
-  const subject = renderEmailTemplate(cfg.subject || "Deine Bestellung {{orderId}}", vars);
-  const text    = renderEmailTemplate(cfg.body    || "Hallo {{name}}, danke für deine Bestellung!", vars);
+  const subject = renderEmailTemplate(cfg.subject || "Deine Bestellung {{orderId}} ist eingegangen", vars);
+  const textBody = renderEmailTemplate(cfg.body   || "Hallo {{name}}, danke für deine Bestellung!", vars);
+  const htmlBody = buildEmailHtml(textBody, vars, cfg);
+  const from     = `${cfg.senderName || "DRIP VAULT"} <${cfg.senderEmail || cfg.smtpUser || "noreply@example.com"}>`;
 
+  // ── 1. Resend API (recommended — works on all Vercel plans) ────────────────
+  if (cfg.resendApiKey) {
+    const res = await fetch("https://api.resend.com/emails", {
+      method:  "POST",
+      headers: { "Authorization": `Bearer ${cfg.resendApiKey}`, "Content-Type": "application/json" },
+      body:    JSON.stringify({ from, to: [order.email], subject, html: htmlBody, text: textBody }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`Resend API: ${err.message || res.status}`);
+    }
+    return;
+  }
+
+  // ── 2. SMTP fallback (may be blocked on Vercel Hobby) ─────────────────────
+  if (!cfg.smtpHost || !cfg.smtpUser || !cfg.smtpPass) {
+    console.warn("[email] No Resend key and no SMTP credentials — skipping");
+    return;
+  }
   const transporter = nodemailer.createTransport({
     host:       cfg.smtpHost,
     port:       cfg.smtpPort,
@@ -1328,23 +1419,20 @@ async function sendOrderEmail(order) {
     auth:       { user: cfg.smtpUser, pass: cfg.smtpPass },
     tls:        { rejectUnauthorized: false },
   });
-
-  await transporter.sendMail({
-    from:    `"${cfg.senderName || "DRIP VAULT"}" <${cfg.senderEmail || cfg.smtpUser}>`,
-    to:      order.email,
-    subject,
-    text,
-    html:    text.replace(/\n/g, "<br>"),
-  });
+  await transporter.sendMail({ from, to: order.email, subject, text: textBody, html: htmlBody });
 }
 
 // Test-email endpoint — sends a preview to the configured address
 app.post("/admin/test-email", async (req, res) => {
+  // Refresh settings so we always use the latest credentials
+  try { const f = await dbGetCached("settings"); if (f) _store.settings = f; } catch (_) {}
   const cfg = getEmailConfig();
-  if (!cfg.smtpHost || !cfg.smtpUser || !cfg.smtpPass) {
-    return res.status(400).json({ error: "SMTP nicht konfiguriert." });
+  if (!cfg.enabled) return res.status(400).json({ error: "E-Mail-Benachrichtigungen sind deaktiviert." });
+  if (!cfg.resendApiKey && (!cfg.smtpHost || !cfg.smtpUser || !cfg.smtpPass)) {
+    return res.status(400).json({ error: "Weder Resend API-Key noch SMTP-Zugangsdaten konfiguriert." });
   }
-  const to = req.body.to || cfg.smtpUser;
+  const to = (req.body.to || "").trim();
+  if (!to) return res.status(400).json({ error: "Bitte eine Ziel-E-Mail-Adresse angeben." });
   try {
     const fakeOrder = {
       id:            "ORD-TEST",
@@ -1356,9 +1444,10 @@ app.post("/admin/test-email", async (req, res) => {
       country:       "DE",
       total:         89.99,
       paymentMethod: "manual",
+      note:          "Bitte schnell liefern!",
       items:         [{ name: "Drip Tee", price: 59.99, qty: 1 }, { name: "Cap", price: 29.99, qty: 1 }],
     };
-    await sendOrderEmail({ ...fakeOrder, email: to });
+    await sendOrderEmail(fakeOrder);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

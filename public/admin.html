@@ -1832,46 +1832,73 @@
           </label>
         </div>
 
+        <!-- Resend (recommended) -->
+        <div style="margin-top:20px;padding:16px 18px;background:rgba(255,45,85,.08);border:1px solid rgba(255,45,85,.3);border-radius:10px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+            <span style="font-size:14px;font-weight:700;color:#ff2d55;letter-spacing:.04em">⚡ Resend API</span>
+            <span style="font-size:11px;background:#ff2d55;color:#fff;padding:2px 8px;border-radius:20px;font-weight:700;letter-spacing:.06em">EMPFOHLEN</span>
+          </div>
+          <p class="field-hint" style="margin:0 0 12px">
+            Resend funktioniert auf Vercel zuverlässig (kein SMTP-Block). Konto kostenlos erstellen auf
+            <strong>resend.com</strong> → API-Key kopieren → hier einfügen.<br>
+            <strong>Absender-E-Mail muss eine verifizierte Domain bei Resend sein</strong> (z.B. noreply@deineshop.de).
+            Für Tests reicht <code>onboarding@resend.dev</code> als Absender (nur an eigene E-Mail möglich).
+          </p>
+          <div class="field-group">
+            <label class="field-label">Resend API-Key</label>
+            <input type="password" class="input-field" id="em_resendApiKey"
+              placeholder="re_••••••••  (von resend.com → API Keys)">
+            <span class="field-hint">Wird verschlüsselt gespeichert und nie angezeigt.</span>
+          </div>
+        </div>
+
+        <!-- SMTP fallback -->
+        <details style="margin-top:16px">
+          <summary style="cursor:pointer;font-size:13px;color:#888;padding:6px 0;user-select:none">
+            ▸ Alternativ: SMTP (nicht empfohlen auf Vercel – Ports gesperrt)
+          </summary>
+          <div style="margin-top:12px">
+            <div class="field-row">
+              <div class="field-group" style="flex:1">
+                <label class="field-label">SMTP-Host</label>
+                <input type="text" class="input-field" id="em_smtpHost"
+                  placeholder="smtp.gmail.com  /  smtp.strato.de  /  …">
+              </div>
+              <div class="field-group" style="max-width:110px">
+                <label class="field-label">Port</label>
+                <input type="number" class="input-field" id="em_smtpPort" value="587" min="1" max="65535">
+              </div>
+              <div class="field-group" style="max-width:120px;align-self:flex-end;padding-bottom:4px">
+                <label class="toggle-label" style="font-size:12px">
+                  <input type="checkbox" id="em_smtpSecure" class="toggle-cb">
+                  <span class="toggle-track"></span>
+                  SSL (Port 465)
+                </label>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-group" style="flex:1">
+                <label class="field-label">SMTP-Benutzer / E-Mail</label>
+                <input type="email" class="input-field" id="em_smtpUser" placeholder="shop@example.com">
+              </div>
+              <div class="field-group" style="flex:1">
+                <label class="field-label">SMTP-Passwort / App-Passwort</label>
+                <input type="password" class="input-field" id="em_smtpPass" placeholder="••••••••">
+                <span class="field-hint">Wird nicht angezeigt wenn bereits gespeichert.</span>
+              </div>
+            </div>
+          </div>
+        </details>
+
         <div class="field-row" style="margin-top:16px">
-          <div class="field-group" style="flex:1">
-            <label class="field-label">SMTP-Host</label>
-            <input type="text" class="input-field" id="em_smtpHost"
-              placeholder="smtp.gmail.com  /  smtp.strato.de  /  …">
-          </div>
-          <div class="field-group" style="max-width:110px">
-            <label class="field-label">Port</label>
-            <input type="number" class="input-field" id="em_smtpPort" value="587" min="1" max="65535">
-          </div>
-          <div class="field-group" style="max-width:120px;align-self:flex-end;padding-bottom:4px">
-            <label class="toggle-label" style="font-size:12px">
-              <input type="checkbox" id="em_smtpSecure" class="toggle-cb">
-              <span class="toggle-track"></span>
-              SSL (Port 465)
-            </label>
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group" style="flex:1">
-            <label class="field-label">SMTP-Benutzer / E-Mail</label>
-            <input type="email" class="input-field" id="em_smtpUser" placeholder="shop@example.com">
-          </div>
-          <div class="field-group" style="flex:1">
-            <label class="field-label">SMTP-Passwort / App-Passwort</label>
-            <input type="password" class="input-field" id="em_smtpPass" placeholder="••••••••">
-            <span class="field-hint">Wird nicht angezeigt wenn bereits gespeichert.</span>
-          </div>
-        </div>
-
-        <div class="field-row">
           <div class="field-group" style="flex:1">
             <label class="field-label">Absender-Name</label>
             <input type="text" class="input-field" id="em_senderName" placeholder="DRIP VAULT">
           </div>
           <div class="field-group" style="flex:1">
-            <label class="field-label">Absender-E-Mail (optional)</label>
+            <label class="field-label">Absender-E-Mail</label>
             <input type="email" class="input-field" id="em_senderEmail"
-              placeholder="noreply@example.com  (Standard: SMTP-Benutzer)">
+              placeholder="noreply@deineshop.de">
           </div>
         </div>
 
@@ -1882,11 +1909,11 @@
         </div>
 
         <div class="field-group" style="margin-top:12px">
-          <label class="field-label">E-Mail-Text</label>
+          <label class="field-label">E-Mail-Text (wird auch als HTML-E-Mail gesendet)</label>
           <textarea class="input-field" id="em_body" rows="12"
             style="font-family:monospace;font-size:13px;line-height:1.6;resize:vertical"
             placeholder="Hallo {{name}},&#10;&#10;danke für deine Bestellung!&#10;…"></textarea>
-          <span class="field-hint">Zeilenumbrüche werden als &lt;br&gt; ins HTML umgewandelt.</span>
+          <span class="field-hint">Zeilenumbrüche werden automatisch umgewandelt. Die eigentliche E-Mail wird schön formatiert versendet.</span>
         </div>
 
         <div class="field-row" style="margin-top:12px;align-items:center;gap:10px;flex-wrap:wrap">
@@ -4174,15 +4201,20 @@ async function loadPaymentSettings() {
   // Email settings
   const e = s.email || {};
   document.getElementById('em_enabled').checked      = !!e.enabled;
+  document.getElementById('em_resendApiKey').value   = '';  // never pre-fill secrets
   document.getElementById('em_smtpHost').value       = e.smtpHost    || '';
   document.getElementById('em_smtpPort').value       = e.smtpPort    || 587;
   document.getElementById('em_smtpSecure').checked   = !!e.smtpSecure;
   document.getElementById('em_smtpUser').value       = e.smtpUser    || '';
-  document.getElementById('em_smtpPass').value       = '';  // never pre-fill password
+  document.getElementById('em_smtpPass').value       = '';  // never pre-fill secrets
   document.getElementById('em_senderName').value     = e.senderName  || '';
   document.getElementById('em_senderEmail').value    = e.senderEmail || '';
   document.getElementById('em_subject').value        = e.subject     || '';
   document.getElementById('em_body').value           = e.body        || '';
+  // Show placeholder text when Resend key already configured
+  if (e.resendApiKey) {
+    document.getElementById('em_resendApiKey').placeholder = '(gespeichert – leer lassen zum Beibehalten)';
+  }
 
   // Cloudinary settings
   const cl = s.cloudinary || {};
@@ -4209,11 +4241,12 @@ async function savePaymentSettings() {
   };
   const email = {
     enabled:      document.getElementById('em_enabled').checked,
+    resendApiKey: document.getElementById('em_resendApiKey').value,  // empty = keep existing
     smtpHost:     document.getElementById('em_smtpHost').value.trim(),
     smtpPort:     parseInt(document.getElementById('em_smtpPort').value) || 587,
     smtpSecure:   document.getElementById('em_smtpSecure').checked,
     smtpUser:     document.getElementById('em_smtpUser').value.trim(),
-    smtpPass:     document.getElementById('em_smtpPass').value,  // empty = keep existing on server
+    smtpPass:     document.getElementById('em_smtpPass').value,  // empty = keep existing
     senderName:   document.getElementById('em_senderName').value.trim(),
     senderEmail:  document.getElementById('em_senderEmail').value.trim(),
     subject:      document.getElementById('em_subject').value,
