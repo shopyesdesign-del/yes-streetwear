@@ -177,6 +177,7 @@
         <button class="tab" data-tab="button">Button</button>
         <button class="tab" data-tab="effects">Effekte</button>
         <button class="tab" data-tab="catbanners">Kategorien</button>
+        <button class="tab" data-tab="emaildesign">✉ E-Mail</button>
       </div>
 
       <!-- Tab: Colors -->
@@ -694,6 +695,95 @@
 
         <div class="form-actions" style="margin-top:20px;">
           <button class="btn-primary" onclick="saveCategoryBanners()">Kategorien speichern</button>
+        </div>
+      </div>
+
+      <!-- ══ E-MAIL DESIGN TAB ══════════════════════════════════ -->
+      <div class="tab-pane" id="tab-emaildesign">
+
+        <!-- Enable + send test -->
+        <div class="editor-card">
+          <div class="card-title">✉ Automatische Bestellbestätigung</div>
+          <div class="field-row" style="align-items:center;margin-bottom:0">
+            <label class="toggle-label">
+              <input type="checkbox" id="emd_enabled" class="toggle-cb">
+              <span class="toggle-track"></span>
+              E-Mail nach jeder Bestellung automatisch senden
+            </label>
+          </div>
+        </div>
+
+        <!-- Logo & Colors -->
+        <div class="editor-card">
+          <div class="card-title">🎨 Logo & Farben</div>
+          <div class="field-row" style="gap:20px;flex-wrap:wrap">
+            <!-- Logo upload -->
+            <div style="flex:1;min-width:220px">
+              <label class="field-label">Logo (wird oben in der E-Mail angezeigt)</label>
+              <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+                <div id="emd_logoPreview" style="width:120px;min-height:60px;background:#111;border:1px solid #333;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+                  <span style="color:#555;font-size:11px">Kein Logo</span>
+                </div>
+                <div>
+                  <input style="display:none" type="file" id="emd_logoFile" accept="image/*"
+                    onchange="emdPreviewLogo(this)">
+                  <label for="emd_logoFile" class="btn-outline" style="display:block;cursor:pointer;text-align:center;margin-bottom:6px">Bild wählen</label>
+                  <button class="btn-outline" style="width:100%;font-size:11px;padding:5px 8px;color:#888;border-color:rgba(255,255,255,.15)"
+                    onclick="emdClearLogo()">✕ Entfernen</button>
+                </div>
+              </div>
+              <span class="field-hint">PNG mit transparentem Hintergrund empfohlen.</span>
+            </div>
+            <!-- Accent color -->
+            <div style="flex:1;min-width:180px">
+              <label class="field-label">Akzentfarbe (Kopfzeile & Preisangabe)</label>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                <input type="color" id="emd_accentColor" value="#ff2d55"
+                  style="width:44px;height:36px;padding:2px;background:none;border:1px solid #333;border-radius:6px;cursor:pointer"
+                  oninput="document.getElementById('emd_accentHex').value=this.value">
+                <input type="text" class="input-field" id="emd_accentHex" value="#ff2d55"
+                  style="width:110px" placeholder="#ff2d55"
+                  oninput="document.getElementById('emd_accentColor').value=this.value">
+              </div>
+              <label class="field-label" style="margin-top:12px">Absender-Name</label>
+              <input type="text" class="input-field" id="emd_senderName" placeholder="YES Streetwear">
+              <label class="field-label" style="margin-top:12px">Absender-E-Mail</label>
+              <input type="email" class="input-field" id="emd_senderEmail" placeholder="shop@gmail.com">
+            </div>
+          </div>
+        </div>
+
+        <!-- Text content -->
+        <div class="editor-card">
+          <div class="card-title">📝 Inhalt</div>
+          <div class="field-group">
+            <label class="field-label">Betreff</label>
+            <input type="text" class="input-field" id="emd_subject"
+              placeholder="Deine Bestellung {{orderId}} ist eingegangen 🛍">
+          </div>
+          <div class="field-group" style="margin-top:12px">
+            <label class="field-label">Persönliche Nachricht (erscheint unter der Begrüßung)</label>
+            <textarea class="input-field" id="emd_body" rows="6"
+              style="font-family:monospace;font-size:13px;line-height:1.6;resize:vertical"
+              placeholder="Hallo {{name}},&#10;&#10;vielen Dank für deine Bestellung!…"></textarea>
+            <span class="field-hint">Platzhalter: <code>{{name}}</code> <code>{{orderId}}</code> <code>{{total}}</code> <code>{{items}}</code> <code>{{address}}</code> <code>{{paymentMethod}}</code></span>
+          </div>
+        </div>
+
+        <!-- Test send -->
+        <div class="editor-card">
+          <div class="card-title">⚡ Test-E-Mail</div>
+          <div class="field-row" style="align-items:flex-end;gap:10px;flex-wrap:wrap">
+            <div class="field-group" style="flex:1;min-width:200px">
+              <label class="field-label">Test senden an</label>
+              <input type="email" class="input-field" id="emd_testAddress" placeholder="deine@email.de">
+            </div>
+            <button class="btn-outline" style="align-self:flex-end" onclick="emdSendTest()">Test senden</button>
+          </div>
+        </div>
+
+        <div class="form-actions" style="margin-top:4px">
+          <button class="btn-primary" onclick="saveEmailDesign()">E-Mail Einstellungen speichern</button>
         </div>
       </div>
 
@@ -2911,9 +3001,10 @@ document.getElementById('designTabs').addEventListener('click', (e) => {
   document.querySelectorAll('.tab-pane').forEach(p =>
     p.classList.toggle('active', p.id === 'tab-' + tab)
   );
-  if (tab === 'button')     loadButtonStyle();
-  if (tab === 'effects')    loadEffects();
-  if (tab === 'catbanners') loadCategoryBanners();
+  if (tab === 'button')      loadButtonStyle();
+  if (tab === 'effects')     loadEffects();
+  if (tab === 'catbanners')  loadCategoryBanners();
+  if (tab === 'emaildesign') loadEmailDesign();
 });
 
 // ── Button Style ──────────────────────────────────────────────
@@ -4330,6 +4421,79 @@ async function savePaymentSettings() {
   document.getElementById('cldStatus').innerHTML = configured
     ? '<span style="color:#4CAF50">✓ Cloudinary aktiv — Bilder werden dauerhaft gespeichert</span>'
     : '<span style="color:#ff9800">⚠ Nicht konfiguriert — Bilder gehen bei Server-Neustart verloren</span>';
+}
+
+// ── Email Design Tab (in Design editor) ───────────────────────
+let _emdLoaded = false;
+async function loadEmailDesign() {
+  if (_emdLoaded) return; _emdLoaded = true;
+  const s = await fetch('/settings').then(r => r.json()).catch(() => ({}));
+  const e = s.email || {};
+  document.getElementById('emd_enabled').checked    = !!e.enabled;
+  const accent = e.accentColor || '#ff2d55';
+  document.getElementById('emd_accentColor').value  = accent;
+  document.getElementById('emd_accentHex').value    = accent;
+  document.getElementById('emd_senderName').value   = e.senderName  || '';
+  document.getElementById('emd_senderEmail').value  = e.senderEmail || '';
+  document.getElementById('emd_subject').value      = e.subject     || '';
+  document.getElementById('emd_body').value         = e.body        || '';
+  if (e.emailLogo) {
+    document.getElementById('emd_logoPreview').innerHTML =
+      `<img src="${e.emailLogo}" style="max-height:58px;max-width:116px;object-fit:contain;padding:4px">`;
+  }
+}
+
+function emdPreviewLogo(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('emd_logoPreview').innerHTML =
+      `<img src="${e.target.result}" style="max-height:58px;max-width:116px;object-fit:contain;padding:4px">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function emdClearLogo() {
+  window._emdClearLogo = true;
+  document.getElementById('emd_logoFile').value = '';
+  document.getElementById('emd_logoPreview').innerHTML = '<span style="color:#555;font-size:11px">Kein Logo</span>';
+  toast('Logo wird beim Speichern entfernt', 'success');
+}
+
+async function saveEmailDesign() {
+  const email = {
+    enabled:     document.getElementById('emd_enabled').checked,
+    accentColor: document.getElementById('emd_accentHex').value.trim() || '#ff2d55',
+    senderName:  document.getElementById('emd_senderName').value.trim(),
+    senderEmail: document.getElementById('emd_senderEmail').value.trim(),
+    subject:     document.getElementById('emd_subject').value,
+    body:        document.getElementById('emd_body').value,
+  };
+  const fd = new FormData();
+  fd.append('email', JSON.stringify(email));
+  const logoFile = document.getElementById('emd_logoFile').files[0];
+  if (logoFile) {
+    const c = await compressImage(logoFile, 800, 0.9);
+    fd.append('emailLogo', c);
+  }
+  if (window._emdClearLogo) { fd.append('clearEmailLogo', '1'); window._emdClearLogo = false; }
+  await postSettings(fd);
+  _emdLoaded = false; // force reload next open to confirm saved values
+  toast('E-Mail Einstellungen gespeichert ✓', 'success');
+}
+
+async function emdSendTest() {
+  const to = document.getElementById('emd_testAddress').value.trim();
+  if (!to) { toast('Bitte eine E-Mail-Adresse eingeben', 'error'); return; }
+  await saveEmailDesign();
+  const res = await fetch('/admin/test-email', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ to }),
+  }).catch(() => null);
+  if (!res) { toast('Server nicht erreichbar', 'error'); return; }
+  const data = await res.json();
+  if (data.success) toast(`Test-E-Mail an ${to} gesendet ✓`, 'success');
+  else toast('Fehler: ' + (data.error || 'Unbekannt'), 'error');
 }
 
 function mountEmailCard() {
