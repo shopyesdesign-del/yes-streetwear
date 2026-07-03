@@ -173,6 +173,7 @@
         <button class="tab" data-tab="bg">Hintergrund</button>
         <button class="tab" data-tab="button">Button</button>
         <button class="tab" data-tab="effects">Effekte</button>
+        <button class="tab" data-tab="catbanners">Kategorien</button>
       </div>
 
       <!-- Tab: Colors -->
@@ -507,6 +508,84 @@
 
           <div class="form-actions" style="margin-top:24px;">
             <button class="btn-primary" onclick="saveEffects()">Effekte speichern</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Category Banners -->
+      <div class="tab-pane" id="tab-catbanners">
+        <div class="editor-card">
+          <div class="card-header-row">
+            <div class="card-title">Kategorie-Seite</div>
+            <label class="toggle">
+              <input type="checkbox" id="cb_enabled" checked>
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+          <p style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:20px;">Nach dem Login wählen Kunden zwischen zwei Kategorien. Deaktiviert = direkt zum Shop.</p>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+            <!-- Banner 1 -->
+            <div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:12px;">Banner 1</div>
+              <div class="form-group">
+                <label>Titel</label>
+                <input type="text" id="cb1_title" class="input-field" value="Fashion">
+              </div>
+              <div class="form-group">
+                <label>Untertitel</label>
+                <input type="text" id="cb1_subtitle" class="input-field" placeholder="Optional">
+              </div>
+              <div class="form-group">
+                <label>Slug (URL-Kürzel)</label>
+                <input type="text" id="cb1_slug" class="input-field" value="fashion">
+              </div>
+              <div class="form-group">
+                <label>Textfarbe</label>
+                <input type="color" id="cb1_textColor" value="#ffffff" style="width:44px;height:36px;border-radius:8px;border:1px solid #333;cursor:pointer;">
+              </div>
+              <div class="form-group">
+                <label>Hintergrundbild</label>
+                <input type="file" id="cb1_image" accept="image/*" style="display:none" onchange="previewCatBanner(this,'cb1_preview')">
+                <label for="cb1_image" class="upload-zone" style="cursor:pointer;">
+                  <div class="upload-label"><span class="upload-icon">⬆</span><span>Bild hochladen</span></div>
+                </label>
+                <div id="cb1_preview" style="margin-top:8px;"></div>
+              </div>
+            </div>
+
+            <!-- Banner 2 -->
+            <div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:12px;">Banner 2</div>
+              <div class="form-group">
+                <label>Titel</label>
+                <input type="text" id="cb2_title" class="input-field" value="Design">
+              </div>
+              <div class="form-group">
+                <label>Untertitel</label>
+                <input type="text" id="cb2_subtitle" class="input-field" placeholder="Optional">
+              </div>
+              <div class="form-group">
+                <label>Slug (URL-Kürzel)</label>
+                <input type="text" id="cb2_slug" class="input-field" value="design">
+              </div>
+              <div class="form-group">
+                <label>Textfarbe</label>
+                <input type="color" id="cb2_textColor" value="#ffffff" style="width:44px;height:36px;border-radius:8px;border:1px solid #333;cursor:pointer;">
+              </div>
+              <div class="form-group">
+                <label>Hintergrundbild</label>
+                <input type="file" id="cb2_image" accept="image/*" style="display:none" onchange="previewCatBanner(this,'cb2_preview')">
+                <label for="cb2_image" class="upload-zone" style="cursor:pointer;">
+                  <div class="upload-label"><span class="upload-icon">⬆</span><span>Bild hochladen</span></div>
+                </label>
+                <div id="cb2_preview" style="margin-top:8px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top:24px;">
+            <button class="btn-primary" onclick="saveCategoryBanners()">Kategorien speichern</button>
           </div>
         </div>
       </div>
@@ -2016,9 +2095,19 @@
         </div>
       </div>
 
-      <div class="form-group">
-        <label>Lagerbestand <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:400">(leer = unbegrenzt)</span></label>
-        <input type="number" id="p_stock" class="input-field" placeholder="z.B. 10" min="0" step="1">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Hauptkategorie</label>
+          <select id="p_mainCategory" class="input-field">
+            <option value="all">Beide (Fashion &amp; Design)</option>
+            <option value="fashion">Fashion</option>
+            <option value="design">Design</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Lagerbestand <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:400">(leer = unbegrenzt)</span></label>
+          <input type="number" id="p_stock" class="input-field" placeholder="z.B. 10" min="0" step="1">
+        </div>
       </div>
 
       <div class="form-group">
@@ -2296,6 +2385,7 @@ function openEditModal(id) {
   document.getElementById('p_badge').value          = p.badge         || '';
   document.getElementById('p_visible').value        = p.visible ? 'true' : 'false';
   document.getElementById('p_stock').value          = p.stock !== null && p.stock !== undefined ? p.stock : '';
+  document.getElementById('p_mainCategory').value   = p.mainCategory || 'all';
 
   // Load sizes
   _pSizes = Array.isArray(p.sizes) ? [...p.sizes] : [];
@@ -2423,6 +2513,7 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
   fd.append('badge',         document.getElementById('p_badge').value);
   fd.append('visible',       document.getElementById('p_visible').value);
   fd.append('stock',         document.getElementById('p_stock').value);
+  fd.append('mainCategory',  document.getElementById('p_mainCategory').value);
   fd.append('sizes',         JSON.stringify(_pSizes));
   fd.append('colors',        JSON.stringify(_pColors));
   fd.append('keepImages',    JSON.stringify(_pKeepImages));
@@ -2649,8 +2740,9 @@ document.getElementById('designTabs').addEventListener('click', (e) => {
   document.querySelectorAll('.tab-pane').forEach(p =>
     p.classList.toggle('active', p.id === 'tab-' + tab)
   );
-  if (tab === 'button')  loadButtonStyle();
-  if (tab === 'effects') loadEffects();
+  if (tab === 'button')     loadButtonStyle();
+  if (tab === 'effects')    loadEffects();
+  if (tab === 'catbanners') loadCategoryBanners();
 });
 
 // ── Button Style ──────────────────────────────────────────────
@@ -2768,6 +2860,60 @@ function updateFontPreview(selectId, previewId, isDisplay) {
 }
 
 // ── Homepage (Banner) ─────────────────────────────────────────
+// ── Category Banners ──────────────────────────────────────────
+function previewCatBanner(input, previewId) {
+  const file = input.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  document.getElementById(previewId).innerHTML =
+    `<img src="${url}" style="max-height:120px;object-fit:cover;width:100%;border-radius:8px;">`;
+}
+
+async function loadCategoryBanners() {
+  const s  = await fetch('/settings').then(r => r.json());
+  const cb = s.categoryBanners || {};
+  document.getElementById('cb_enabled').checked = cb.enabled !== false;
+  const b1 = cb.banner1 || {};
+  document.getElementById('cb1_title').value     = b1.title     || 'Fashion';
+  document.getElementById('cb1_subtitle').value  = b1.subtitle  || '';
+  document.getElementById('cb1_slug').value      = b1.slug      || 'fashion';
+  document.getElementById('cb1_textColor').value = b1.textColor || '#ffffff';
+  if (b1.image) document.getElementById('cb1_preview').innerHTML =
+    `<img src="${b1.image}" style="max-height:120px;object-fit:cover;width:100%;border-radius:8px;">`;
+  const b2 = cb.banner2 || {};
+  document.getElementById('cb2_title').value     = b2.title     || 'Design';
+  document.getElementById('cb2_subtitle').value  = b2.subtitle  || '';
+  document.getElementById('cb2_slug').value      = b2.slug      || 'design';
+  document.getElementById('cb2_textColor').value = b2.textColor || '#ffffff';
+  if (b2.image) document.getElementById('cb2_preview').innerHTML =
+    `<img src="${b2.image}" style="max-height:120px;object-fit:cover;width:100%;border-radius:8px;">`;
+}
+
+async function saveCategoryBanners() {
+  const fd = new FormData();
+  fd.append('categoryBanners', JSON.stringify({
+    enabled: document.getElementById('cb_enabled').checked,
+    banner1: {
+      title:     document.getElementById('cb1_title').value,
+      subtitle:  document.getElementById('cb1_subtitle').value,
+      slug:      document.getElementById('cb1_slug').value,
+      textColor: document.getElementById('cb1_textColor').value,
+    },
+    banner2: {
+      title:     document.getElementById('cb2_title').value,
+      subtitle:  document.getElementById('cb2_subtitle').value,
+      slug:      document.getElementById('cb2_slug').value,
+      textColor: document.getElementById('cb2_textColor').value,
+    },
+  }));
+  const img1 = document.getElementById('cb1_image').files[0];
+  const img2 = document.getElementById('cb2_image').files[0];
+  if (img1) { const c = await compressImage(img1, 1920, 0.82); fd.append('catBanner1', c); }
+  if (img2) { const c = await compressImage(img2, 1920, 0.82); fd.append('catBanner2', c); }
+  await postSettings(fd);
+  toast('Kategorien gespeichert ✓', 'success');
+}
+
 async function loadHomepage() {
   homepageLoaded = true;
   const s = await fetch('/settings').then(r => r.json());

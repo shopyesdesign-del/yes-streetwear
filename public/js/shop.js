@@ -183,6 +183,15 @@ async function loadAndRender() {
   const empty = document.getElementById('emptyState');
   grid.innerHTML = '<p class="loading-state">Lädt...</p>';
 
+  // Category filter from URL ?cat=fashion or ?cat=design
+  const urlCat = new URLSearchParams(location.search).get('cat');
+  if (urlCat) {
+    const backWrap = document.getElementById('catBackWrap');
+    if (backWrap) backWrap.style.display = '';
+    const titleEl = document.getElementById('sectionTitle');
+    if (titleEl) titleEl.textContent = urlCat.charAt(0).toUpperCase() + urlCat.slice(1);
+  }
+
   let products;
   try {
     products = await fetch('/products').then(r => r.json());
@@ -193,7 +202,12 @@ async function loadAndRender() {
     return;
   }
 
-  const visible = products.filter(p => p.visible);
+  let visible = products.filter(p => p.visible);
+  if (urlCat) {
+    visible = visible.filter(p =>
+      !p.mainCategory || p.mainCategory === 'all' || p.mainCategory === urlCat
+    );
+  }
   grid.innerHTML = '';
 
   if (visible.length === 0) {

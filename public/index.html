@@ -796,7 +796,12 @@
     document.body.classList.add('lp-out');
 
     await sleep(600);
-    location.replace(role === 'admin' ? '/admin.html' : '/shop.html');
+    if (role === 'admin') { location.replace('/admin.html'); return; }
+    try {
+      const s = await fetch('/settings').then(r => r.json());
+      const cb = s.categoryBanners;
+      location.replace(cb && cb.enabled !== false ? '/category.html' : '/shop.html');
+    } catch (_) { location.replace('/shop.html'); }
   }
 
   function spawnBurst(accent) {

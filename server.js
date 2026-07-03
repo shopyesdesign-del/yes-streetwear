@@ -334,6 +334,23 @@ const defaultSettings = {
     apiKey:     "",
     apiSecret:  "",
   },
+  categoryBanners: {
+    enabled: true,
+    banner1: {
+      slug:      "fashion",
+      title:     "Fashion",
+      subtitle:  "",
+      image:     "",
+      textColor: "#ffffff",
+    },
+    banner2: {
+      slug:      "design",
+      title:     "Design",
+      subtitle:  "",
+      image:     "",
+      textColor: "#ffffff",
+    },
+  },
 };
 
 // ── In-memory store (loaded once at startup from MongoDB or files) ──
@@ -390,6 +407,15 @@ function mergeSettings(saved) {
     payment:    { ...defaultSettings.payment,    ...(saved.payment    || {}) },
     email:      { ...defaultSettings.email,      ...(saved.email      || {}) },
     cloudinary: { ...defaultSettings.cloudinary, ...(saved.cloudinary || {}) },
+    categoryBanners: (() => {
+      const dCB = defaultSettings.categoryBanners;
+      const sCB = saved.categoryBanners || {};
+      return {
+        enabled: sCB.enabled !== undefined ? sCB.enabled : dCB.enabled,
+        banner1: { ...dCB.banner1, ...(sCB.banner1 || {}) },
+        banner2: { ...dCB.banner2, ...(sCB.banner2 || {}) },
+      };
+    })(),
   };
 }
 
@@ -523,6 +549,7 @@ app.post("/admin/add-product", (req, res, next) => {
     visible:       req.body.visible !== "false",
     stock:         isNaN(stockRaw) ? null : stockRaw,
     soldOut:       false,
+    mainCategory:  req.body.mainCategory || "all",
     images,
     image:         images[0] || null,
   };
@@ -565,6 +592,7 @@ app.put("/admin/product/:id", (req, res, next) => {
     visible:       req.body.visible       !== undefined ? req.body.visible !== "false" : existing.visible,
     stock:         editStock,
     soldOut:       editStock !== null && editStock <= 0,
+    mainCategory:  req.body.mainCategory !== undefined ? req.body.mainCategory : (existing.mainCategory || "all"),
     images:        allImages,
     image:         allImages[0] || existing.image,
   };
@@ -784,6 +812,7 @@ const settingsUploadFields = [
   { name: "logo" }, { name: "background" }, { name: "mobileBackground" },
   { name: "loginBackground" }, { name: "bannerImage" }, { name: "loginVideo" },
   { name: "loginLogo" }, { name: "cursorImage" },
+  { name: "catBanner1" }, { name: "catBanner2" },
 ];
 app.post("/admin/settings", (req, res, next) => {
   upload.fields(settingsUploadFields)(req, res, err => {
@@ -894,6 +923,27 @@ app.post("/admin/settings", (req, res, next) => {
     const merged = { ...defaultSettings.cloudinary, ...(settings.cloudinary || {}) };
     Object.entries(cl).forEach(([k, v]) => { if (v !== "") merged[k] = v; });
     settings.cloudinary = merged;
+  }
+
+  if (req.body.categoryBanners) {
+    const cb = typeof req.body.categoryBanners === "string" ? JSON.parse(req.body.categoryBanners) : req.body.categoryBanners;
+    const dCB = defaultSettings.categoryBanners;
+    const sCB = settings.categoryBanners || {};
+    settings.categoryBanners = {
+      enabled: cb.enabled !== undefined ? cb.enabled : (sCB.enabled !== undefined ? sCB.enabled : dCB.enabled),
+      banner1: { ...dCB.banner1, ...(sCB.banner1 || {}), ...(cb.banner1 || {}) },
+      banner2: { ...dCB.banner2, ...(sCB.banner2 || {}), ...(cb.banner2 || {}) },
+    };
+  }
+  if (req.files?.catBanner1) {
+    settings.categoryBanners = settings.categoryBanners || { ...defaultSettings.categoryBanners };
+    settings.categoryBanners.banner1 = settings.categoryBanners.banner1 || {};
+    settings.categoryBanners.banner1.image = await uploadFile(req.files.catBanner1[0]);
+  }
+  if (req.files?.catBanner2) {
+    settings.categoryBanners = settings.categoryBanners || { ...defaultSettings.categoryBanners };
+    settings.categoryBanners.banner2 = settings.categoryBanners.banner2 || {};
+    settings.categoryBanners.banner2.image = await uploadFile(req.files.catBanner2[0]);
   }
 
   await saveSettings(settings);

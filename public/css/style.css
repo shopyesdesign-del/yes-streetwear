@@ -2307,3 +2307,21 @@ body.page-enter {
   color: rgba(255,255,255,.3);
   margin-bottom: 24px;
 }
+
+
+/* ── Category back button ────────────────────────────── */
+.cat-back-wrap { padding: 0 0 4px; }
+.cat-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.5);
+  text-decoration: none;
+  padding: 6px 0;
+  transition: color .2s;
+}
+.cat-back-btn:hover { color: #fff; }

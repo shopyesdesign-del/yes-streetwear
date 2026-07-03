@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kategorie wählen</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/theme.css" />
+  <script src="/js/auth.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0f0f0f;
+      color: #fff;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────── */
+    .cat-header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 28px;
+      background: linear-gradient(to bottom, rgba(0,0,0,.7) 0%, transparent 100%);
+    }
+    .cat-logo {
+      font-family: 'Bangers', cursive;
+      font-size: 1.6rem;
+      letter-spacing: .08em;
+      color: #fff;
+      text-decoration: none;
+    }
+    .cat-logout {
+      background: none;
+      border: 1px solid rgba(255,255,255,.25);
+      color: rgba(255,255,255,.7);
+      font-size: .75rem;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .cat-logout:hover { border-color: #fff; color: #fff; }
+
+    /* ── Banner grid ─────────────────────────────── */
+    .cat-grid {
+      display: flex;
+      height: 100dvh;
+    }
+
+    .cat-banner {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+    }
+
+    .cat-banner-bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      background-color: #111;
+      transition: transform .7s cubic-bezier(.25,.46,.45,.94);
+    }
+    .cat-banner:hover .cat-banner-bg { transform: scale(1.05); }
+
+    .cat-banner-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,.7) 0%, rgba(0,0,0,.2) 60%, transparent 100%);
+      transition: background .4s;
+    }
+    .cat-banner:hover .cat-banner-overlay {
+      background: linear-gradient(to top, rgba(0,0,0,.6) 0%, rgba(0,0,0,.15) 60%, transparent 100%);
+    }
+
+    .cat-divider {
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 50%;
+      width: 1px;
+      background: rgba(255,255,255,.18);
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .cat-banner-content {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 40px 36px;
+      z-index: 2;
+    }
+
+    .cat-banner-title {
+      font-family: 'Bangers', cursive;
+      font-size: clamp(3rem, 8vw, 6rem);
+      letter-spacing: .06em;
+      line-height: 1;
+      color: #fff;
+      text-shadow: 0 2px 24px rgba(0,0,0,.5);
+      transition: transform .3s;
+    }
+    .cat-banner:hover .cat-banner-title { transform: translateY(-4px); }
+
+    .cat-banner-subtitle {
+      font-size: .95rem;
+      color: rgba(255,255,255,.7);
+      margin-top: 8px;
+      letter-spacing: .04em;
+    }
+
+    .cat-banner-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 20px;
+      padding: 10px 22px;
+      border: 1px solid rgba(255,255,255,.5);
+      border-radius: 30px;
+      font-size: .8rem;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #fff;
+      transition: all .3s;
+    }
+    .cat-banner:hover .cat-banner-cta {
+      background: rgba(255,255,255,.15);
+      border-color: #fff;
+    }
+
+    /* ── Mobile: stack vertically ────────────────── */
+    @media (max-width: 640px) {
+      body { overflow: auto; }
+      .cat-grid { flex-direction: column; height: auto; min-height: 100dvh; }
+      .cat-banner { flex: none; height: 50dvh; }
+      .cat-divider { display: none; }
+      .cat-banner-title { font-size: clamp(2.5rem, 12vw, 4rem); }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="cat-header">
+    <a class="cat-logo" id="catLogo" href="#">DRIP VAULT</a>
+    <button class="cat-logout" id="logoutBtn">Logout</button>
+  </header>
+
+  <div class="cat-grid" id="catGrid">
+    <a class="cat-banner" id="banner1" href="#">
+      <div class="cat-banner-bg" id="bg1"></div>
+      <div class="cat-banner-overlay"></div>
+      <div class="cat-banner-content">
+        <div class="cat-banner-title" id="title1">Fashion</div>
+        <div class="cat-banner-subtitle" id="sub1"></div>
+        <div class="cat-banner-cta">Entdecken →</div>
+      </div>
+    </a>
+
+    <div class="cat-divider"></div>
+
+    <a class="cat-banner" id="banner2" href="#">
+      <div class="cat-banner-bg" id="bg2"></div>
+      <div class="cat-banner-overlay"></div>
+      <div class="cat-banner-content">
+        <div class="cat-banner-title" id="title2">Design</div>
+        <div class="cat-banner-subtitle" id="sub2"></div>
+        <div class="cat-banner-cta">Entdecken →</div>
+      </div>
+    </a>
+  </div>
+
+  <script>
+    Auth.requireRole('customer');
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      Auth.logout();
+      location.replace('/');
+    });
+
+    async function init() {
+      const s = await fetch('/settings').then(r => r.json()).catch(() => ({}));
+      const cb = s.categoryBanners || {};
+
+      if (s.shopTitle) {
+        document.title = s.shopTitle + ' — Kategorie';
+        document.getElementById('catLogo').textContent = s.shopTitle;
+      }
+
+      // Banner 1
+      const b1 = cb.banner1 || {};
+      document.getElementById('title1').textContent = b1.title || 'Fashion';
+      document.getElementById('sub1').textContent   = b1.subtitle || '';
+      if (b1.textColor) {
+        document.getElementById('title1').style.color = b1.textColor;
+        document.getElementById('sub1').style.color   = b1.textColor;
+      }
+      if (b1.image) document.getElementById('bg1').style.backgroundImage = `url(${b1.image})`;
+      document.getElementById('banner1').href = `/shop.html?cat=${encodeURIComponent(b1.slug || 'fashion')}`;
+
+      // Banner 2
+      const b2 = cb.banner2 || {};
+      document.getElementById('title2').textContent = b2.title || 'Design';
+      document.getElementById('sub2').textContent   = b2.subtitle || '';
+      if (b2.textColor) {
+        document.getElementById('title2').style.color = b2.textColor;
+        document.getElementById('sub2').style.color   = b2.textColor;
+      }
+      if (b2.image) document.getElementById('bg2').style.backgroundImage = `url(${b2.image})`;
+      document.getElementById('banner2').href = `/shop.html?cat=${encodeURIComponent(b2.slug || 'design')}`;
+    }
+
+    init();
+  </script>
+</body>
+</html>
