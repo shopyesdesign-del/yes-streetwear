@@ -139,13 +139,15 @@ async function getLeaderboardPool() {
     ["DATABASE_URL", process.env.DATABASE_URL],
     ["POSTGRES_URL", process.env.POSTGRES_URL],
     ["POSTGRES_PRISMA_URL", process.env.POSTGRES_PRISMA_URL],
+    ["DATABASE_URL_UNPOOLED", process.env.DATABASE_URL_UNPOOLED],
+    ["POSTGRES_URL_NON_POOLING", process.env.POSTGRES_URL_NON_POOLING],
   ].filter(([, connectionString]) => {
     if (typeof connectionString !== "string" || !connectionString || seenUrls.has(connectionString)) return false;
     seenUrls.add(connectionString);
     return true;
   }).map(([envName, connectionString]) => [envName, { connectionString }]);
 
-  const host = process.env.PGHOST || process.env.POSTGRES_HOST;
+  const host = process.env.PGHOST || process.env.POSTGRES_HOST || process.env.PGHOST_UNPOOLED;
   const database = process.env.PGDATABASE || process.env.POSTGRES_DATABASE;
   const user = process.env.PGUSER || process.env.POSTGRES_USER;
   const password = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD;
