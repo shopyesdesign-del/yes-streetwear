@@ -109,6 +109,19 @@ const LEADERBOARD_LIMIT = 50;
 const MAX_LEADERBOARD_SCORE = 10000000;
 let _leaderboardPool = null;
 let _leaderboardPoolPromise = null;
+let _leaderboardFailureCode = "database_config_missing";
+
+function getLeaderboardFailureCode(error) {
+  const code = error?.code;
+  if (code === "28P01" || code === "28000") return "database_auth_failed";
+  if (code === "3D000") return "database_not_found";
+  if (code === "42P01") return "leaderboard_table_missing";
+  if (code === "42501") return "database_permission_denied";
+  if (code === "42703") return "leaderboard_schema_mismatch";
+  if (["ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "ENOTFOUND", "EHOSTUNREACH", "ENETUNREACH"].includes(code))
+    return "database_connection_failed";
+  return "database_unavailable";
+}
 
 function logLeaderboardError(action, error) {
   console.error(`[leaderboard] ${action} failed`, {
@@ -130,17 +143,37 @@ async function getLeaderboardPool() {
     if (typeof connectionString !== "string" || !connectionString || seenUrls.has(connectionString)) return false;
     seenUrls.add(connectionString);
     return true;
-  });
+  }).map(([envName, connectionString]) => [envName, { connectionString }]);
+
+  const host = process.env.PGHOST || process.env.POSTGRES_HOST;
+  const database = process.env.PGDATABASE || process.env.POSTGRES_DATABASE;
+  const user = process.env.PGUSER || process.env.POSTGRES_USER;
+  const password = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD;
+
+  if (host && database && user && password) {
+    connectionCandidates.push([
+      "PGHOST/PGDATABASE credentials",
+      {
+        host,
+        port: Number(process.env.PGPORT || process.env.POSTGRES_PORT) || 5432,
+        database,
+        user,
+        password,
+        ssl: true,
+      },
+    ]);
+  }
 
   if (!connectionCandidates.length) {
-    console.error("[leaderboard] no database connection URL is configured");
+    _leaderboardFailureCode = "database_config_missing";
+    console.error("[leaderboard] no database connection settings are configured");
     return null;
   }
 
   _leaderboardPoolPromise = (async () => {
-    for (const [envName, connectionString] of connectionCandidates) {
+    for (const [envName, connectionConfig] of connectionCandidates) {
       const pool = new Pool({
-        connectionString,
+        ...connectionConfig,
         max: 1,
         idleTimeoutMillis: 10000,
         connectionTimeoutMillis: 10000,
@@ -150,8 +183,10 @@ async function getLeaderboardPool() {
         if (process.env.VERCEL) attachDatabasePool(pool);
         await pool.query("SELECT 1 FROM public.money_jump_scores LIMIT 0");
         _leaderboardPool = pool;
+        _leaderboardFailureCode = null;
         return pool;
       } catch (error) {
+        _leaderboardFailureCode = getLeaderboardFailureCode(error);
         logLeaderboardError(`connection via ${envName}`, error);
         await pool.end().catch(() => {});
       }
@@ -175,15 +210,23 @@ async function queryLeaderboard(pool) {
   return rows;
 }
 
+function sendLeaderboardUnavailable(res, message) {
+  return res.status(503).json({
+    error: message,
+    code: _leaderboardFailureCode || "database_unavailable",
+  });
+}
+
 app.get("/api/money-jump/scores", async (_req, res) => {
   res.set("Cache-Control", "no-store");
   try {
     const pool = await getLeaderboardPool();
-    if (!pool) return res.status(503).json({ error: "Rangliste momentan nicht verfügbar." });
+    if (!pool) return sendLeaderboardUnavailable(res, "Rangliste momentan nicht verfügbar.");
     return res.json({ scores: await queryLeaderboard(pool) });
   } catch (error) {
+    _leaderboardFailureCode = getLeaderboardFailureCode(error);
     logLeaderboardError("read", error);
-    return res.status(503).json({ error: "Rangliste momentan nicht verfügbar." });
+    return sendLeaderboardUnavailable(res, "Rangliste momentan nicht verfügbar.");
   }
 });
 
@@ -202,15 +245,16 @@ app.post("/api/money-jump/scores", async (req, res) => {
 
   try {
     const pool = await getLeaderboardPool();
-    if (!pool) return res.status(503).json({ error: "Rangliste momentan nicht verfügbar." });
+    if (!pool) return sendLeaderboardUnavailable(res, "Punktestand konnte nicht gespeichert werden.");
     await pool.query(
       "INSERT INTO public.money_jump_scores (name_key, player_name, score) VALUES ($1, $2, $3) ON CONFLICT (name_key) DO UPDATE SET player_name = EXCLUDED.player_name, score = GREATEST(money_jump_scores.score, EXCLUDED.score), updated_at = CASE WHEN EXCLUDED.score > money_jump_scores.score THEN NOW() ELSE money_jump_scores.updated_at END",
       [name.toLowerCase(), name, score]
     );
     return res.json({ scores: await queryLeaderboard(pool) });
   } catch (error) {
+    _leaderboardFailureCode = getLeaderboardFailureCode(error);
     logLeaderboardError("write", error);
-    return res.status(503).json({ error: "Punktestand konnte nicht gespeichert werden." });
+    return sendLeaderboardUnavailable(res, "Punktestand konnte nicht gespeichert werden.");
   }
 });
 
