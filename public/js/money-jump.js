@@ -18,51 +18,20 @@
 #mj-fab:focus-visible { outline:3px solid #fff; outline-offset:3px; }
 /* Spiel-Fenster */
 #mj { --black:#0e0e0e; --paper:#f2efe6; --lime:#c6ff00; --mute:#8d8a82;
-  position:fixed; inset:0; z-index:2147483000; display:none; align-items:center; justify-content:center;
-  padding:12px; background:rgba(14,14,14,.76); color:var(--paper); font-family:'Archivo', Arial, sans-serif;
-  line-height:1.3; overflow:auto; backdrop-filter:blur(5px); }
+  position:fixed; inset:0; z-index:2147483000; display:none; align-items:stretch; justify-content:stretch;
+  padding:0; background:var(--black); color:var(--paper); font-family:'Archivo', Arial, sans-serif;
+  line-height:1.3; overflow:hidden; }
 #mj.open { display:flex; }
 #mj *, #mj *::before, #mj *::after { box-sizing:border-box; }
-#mj #mj-panel { position:relative; display:flex; align-items:center; justify-content:center;
-  width:min(94vw, 430px); height:min(700px, calc(100vh - 24px)); height:min(700px, calc(100dvh - 24px));
-  padding:56px 12px 12px; border:3px solid var(--lime); background:var(--black);
-  box-shadow:0 24px 80px rgba(0,0,0,.55); }
-#mj #mj-close { position:absolute; top:8px; right:8px; width:44px; height:44px;
+#mj #mj-panel { position:relative; display:flex; align-items:stretch; justify-content:stretch;
+  width:100%; height:100vh; height:100dvh; padding:0;
+  border:0; background:var(--black); box-shadow:none; overflow:hidden; }
+#mj #mj-close { position:absolute; z-index:2; top:max(8px, env(safe-area-inset-top, 0px)); right:max(8px, env(safe-area-inset-right, 0px)); width:44px; height:44px;
   border:3px solid var(--paper); background:var(--black); color:var(--paper); font:700 20px Arial, sans-serif;
   cursor:pointer; border-radius:0; padding:0; }
 #mj #mj-close:focus-visible { outline:3px solid var(--lime); outline-offset:2px; }
 #mj h1, #mj h2 { letter-spacing:normal; font-weight:400; }
-#mj #mj-wrap { position:relative; width:min(100%, 400px); aspect-ratio:2/3; max-height:100%; }
-@media (max-height:720px) { #mj #mj-panel { width:min(94vw, 320px); } }
-@media (max-width:749px) {
-  #mj {
-    padding:0;
-    overflow:hidden;
-    background:var(--black);
-    backdrop-filter:none;
-  }
-  #mj #mj-panel {
-    width:100%;
-    height:100vh;
-    height:100dvh;
-    padding:calc(56px + env(safe-area-inset-top, 0px))
-      calc(8px + env(safe-area-inset-right, 0px))
-      calc(8px + env(safe-area-inset-bottom, 0px))
-      calc(8px + env(safe-area-inset-left, 0px));
-    box-shadow:none;
-  }
-  #mj #mj-close {
-    top:max(8px, env(safe-area-inset-top, 0px));
-    right:max(8px, env(safe-area-inset-right, 0px));
-  }
-}
-@media (min-width:750px) {
-  #mj { align-items:flex-end; justify-content:flex-end; padding:24px; }
-  #mj #mj-panel { width:min(420px, calc(100vw - 48px)); height:min(700px, calc(100vh - 48px)); height:min(700px, calc(100dvh - 48px)); }
-}
-@media (min-width:750px) and (max-height:720px) {
-  #mj #mj-panel { width:min(320px, calc(100vw - 48px)); }
-}
+#mj #mj-wrap { position:relative; flex:1; width:100%; height:100%; min-width:0; min-height:0; }
 #mj canvas { width:100%; height:100%; display:block; background:#fff;
            border:4px solid var(--paper); touch-action:none; }
 #mj #mj-overlay { position:absolute; inset:4px; background:rgba(14,14,14,.93); display:flex; flex-direction:column;
@@ -132,7 +101,7 @@
 
   function run() {
   var fab = document.getElementById('mj-fab'), modal = document.getElementById('mj'), closeBtn = document.getElementById('mj-close');
-  var stop = null, refreshBoard = null, inited = false, returnFocus = fab;
+  var stop = null, refreshBoard = null, resizeGame = null, inited = false, returnFocus = fab;
 
   // Logo auf den Button setzen
   function arrow() { fab.textContent = '\u25B6'; }
@@ -142,8 +111,9 @@
   function init() {
     if (inited) return; inited = true;
     const $ = id => document.getElementById('mj-' + id);
-    const cv = $('c'), ctx = cv.getContext('2d');
-    const W = 400, H = 600;
+    const cv = $('c'), ctx = cv.getContext('2d'), wrap = $('wrap');
+    const BASE_W = 400, BASE_H = 600;
+    let W = BASE_W, H = BASE_H;
     const overlay = $('overlay'), msg = $('msg'), title = $('title'), startBtn = $('start'),
           nameIn = $('name'), board = $('board');
 
@@ -169,7 +139,8 @@
       x2:    { name: 'DOPPELTE PUNKTE', frames: 600 }
     };
     const CASH_CHANCE = 0.12;
-    const GRAVITY = 0.4, JUMP = -11.5, SPEED = 5, TOP_N = 7;
+    const GRAVITY = 0.4, JUMP = -11.5, BASE_SPEED = 5, TOP_N = 7;
+    let SPEED = BASE_SPEED;
     const FRAME_INTERVAL = 1000 / 60;
     let pu = { type: null, t: 0 };
     let lastFrameTime = 0;
@@ -356,6 +327,36 @@
       }
       ctx.font = '700 12px Archivo, Arial'; ctx.fillStyle = '#8d8a82'; ctx.fillText(playerName.toUpperCase(), 14, 50);
     }
+    function resizeCanvas() {
+      const rect = wrap.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      const scale = rect.height / BASE_H;
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+      const width = Math.round(rect.width * pixelRatio);
+      const height = Math.round(rect.height * pixelRatio);
+
+      if (cv.width !== width || cv.height !== height) {
+        cv.width = width;
+        cv.height = height;
+      }
+
+      W = rect.width / scale;
+      H = rect.height / scale;
+      SPEED = BASE_SPEED * Math.max(1, W / BASE_W);
+      ctx.setTransform(scale * pixelRatio, 0, 0, scale * pixelRatio, 0, 0);
+
+      if (running && p) {
+        p.x = Math.max(0, Math.min(p.x, W - p.w));
+        for (const platform of plats) {
+          platform.x = Math.max(0, Math.min(platform.x, W - platform.w));
+        }
+      } else {
+        reset();
+      }
+      draw();
+    }
+
     function loop(timestamp = performance.now()) {
       if (!running) { lastFrameTime = 0; return; }
       if (!lastFrameTime) lastFrameTime = timestamp;
@@ -421,6 +422,8 @@
     if (tier + 1 < TIERS.length) msg.innerHTML += '<br><b style="color:#c6ff00">' + TIERS.map(t => t.score + ' Punkte = ' + t.label).join(' · ') + '</b>';
     const MSG_START = msg.innerHTML;
     showCoupon(); reset(); draw(); renderBoard();
+    resizeGame = resizeCanvas;
+    window.addEventListener('resize', resizeCanvas, { passive: true });
     stop = function () { // Fenster geschlossen: zurück ins Menü, Gutschein wieder verbergen
       running = false; tier = -1; wonNow = false; showCoupon();
       title.innerHTML = 'MON€Y<br>JUMP'; msg.innerHTML = MSG_START; startBtn.textContent = "Los geht's";
@@ -429,7 +432,11 @@
   }
   function open(event) {
     if (event && event.currentTarget) returnFocus = event.currentTarget;
-    init(); if (refreshBoard) refreshBoard(); modal.classList.add('open'); document.documentElement.style.overflow = 'hidden'; closeBtn.focus();
+    modal.classList.add('open'); document.documentElement.style.overflow = 'hidden';
+    init();
+    if (resizeGame) resizeGame();
+    if (refreshBoard) refreshBoard();
+    closeBtn.focus();
   }
   function close() {
     if (stop) stop();
