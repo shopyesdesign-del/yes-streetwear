@@ -33,7 +33,8 @@
 #mj h1, #mj h2 { letter-spacing:normal; font-weight:400; }
 #mj #mj-title-logo { display:block; width:min(74vw, 280px); height:min(32dvh, 220px); object-fit:contain; }
 #mj #mj-wrap { position:relative; flex:1; width:100%; height:100%; min-width:0; min-height:0; }
-#mj canvas { width:100%; height:100%; display:block; background:#fff;
+#mj canvas { width:100%; height:100%; display:block; background-color:#f2efe6;
+           background-image:url('/money-jump-background.jpeg'); background-size:cover; background-position:center; background-repeat:no-repeat;
            border:4px solid var(--paper); touch-action:none; }
 #mj #mj-overlay { position:absolute; inset:4px; background:rgba(14,14,14,.93); display:flex; flex-direction:column;
              align-items:center; justify-content:center; gap:10px; padding:16px; text-align:center; overflow:auto; }
