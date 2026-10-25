@@ -31,6 +31,7 @@
   cursor:pointer; border-radius:0; padding:0; }
 #mj #mj-close:focus-visible { outline:3px solid var(--lime); outline-offset:2px; }
 #mj h1, #mj h2 { letter-spacing:normal; font-weight:400; }
+#mj #mj-title-logo { display:block; width:min(74vw, 280px); height:min(32dvh, 220px); object-fit:contain; }
 #mj #mj-wrap { position:relative; flex:1; width:100%; height:100%; min-width:0; min-height:0; }
 #mj canvas { width:100%; height:100%; display:block; background:#fff;
            border:4px solid var(--paper); touch-action:none; }
@@ -66,14 +67,15 @@
 #mj #mj-coupon a { font-family:'Archivo Black', Impact, sans-serif; text-transform:uppercase; text-decoration:none;
               border:3px solid var(--lime); background:var(--lime); color:var(--black); }
 #mj .hidden { display:none !important; }`;
-  var HTML = `<button id="mj-fab" type="button" aria-label="MON€Y JUMP Spiel starten" aria-haspopup="dialog" aria-controls="mj"></button>
-<div id="mj" role="dialog" aria-modal="true" aria-label="MON€Y JUMP Spiel">
+  var HTML = `<button id="mj-fab" type="button" aria-label="Money Jump Spiel starten" aria-haspopup="dialog" aria-controls="mj"></button>
+<div id="mj" role="dialog" aria-modal="true" aria-label="Money Jump Spiel">
   <div id="mj-panel">
     <button id="mj-close" type="button" aria-label="Spiel schließen">×</button>
     <div id="mj-wrap">
-      <canvas id="mj-c" width="400" height="600" tabindex="0" aria-label="MON€Y JUMP Spielbereich. Steuerung mit Pfeiltasten, A und D oder durch Tippen links und rechts.">Dein Browser unterstützt das Spiel-Canvas nicht.</canvas>
+      <canvas id="mj-c" width="400" height="600" tabindex="0" aria-label="Money Jump Spielbereich. Steuerung mit Pfeiltasten, A und D oder durch Tippen links und rechts.">Dein Browser unterstützt das Spiel-Canvas nicht.</canvas>
   <div id="mj-overlay">
-    <h1 id="mj-title">MON€Y<br>JUMP</h1>
+    <img id="mj-title-logo" src="/js/money-jump-logo.png" alt="Money Jump" />
+    <h1 id="mj-title" class="hidden"></h1>
     <p id="mj-msg">Steuern mit ← → oder A / D.<br>Am Handy: links / rechts tippen.<br>Sammle Geldbündel für Powerups.</p>
     <div id="mj-coupon" class="hidden">
       <small id="mj-coupon-label">Dein Gutschein</small>
@@ -114,7 +116,7 @@
     const cv = $('c'), ctx = cv.getContext('2d'), wrap = $('wrap');
     const BASE_W = 400, BASE_H = 600;
     let W = BASE_W, H = BASE_H;
-    const overlay = $('overlay'), msg = $('msg'), title = $('title'), startBtn = $('start'),
+    const overlay = $('overlay'), msg = $('msg'), title = $('title'), logo = $('title-logo'), startBtn = $('start'),
           nameIn = $('name'), board = $('board');
 
     /* ===== EINSTELLUNGEN: hier anpassen ===== */
@@ -380,6 +382,8 @@
       running = false; lastScore = score;
       addScore(playerName, score);
       if (!nameIn.value.trim()) nameIn.value = playerName;
+      logo.classList.add('hidden');
+      title.classList.remove('hidden');
       title.textContent = wonNow ? 'Geschafft' : 'Gestürzt';
       const points = document.createElement('b');
       points.style.color = '#f2efe6';
@@ -426,7 +430,8 @@
     window.addEventListener('resize', resizeCanvas, { passive: true });
     stop = function () { // Fenster geschlossen: zurück ins Menü, Gutschein wieder verbergen
       running = false; tier = -1; wonNow = false; showCoupon();
-      title.innerHTML = 'MON€Y<br>JUMP'; msg.innerHTML = MSG_START; startBtn.textContent = "Los geht's";
+      logo.classList.remove('hidden'); title.classList.add('hidden'); title.textContent = '';
+      msg.innerHTML = MSG_START; startBtn.textContent = "Los geht's";
       renderBoard(); overlay.classList.remove('hidden');
     };
   }
