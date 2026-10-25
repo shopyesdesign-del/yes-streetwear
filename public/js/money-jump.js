@@ -30,9 +30,7 @@
   border:3px solid var(--paper); background:var(--black); color:var(--paper); font:700 20px Arial, sans-serif;
   cursor:pointer; border-radius:0; padding:0; }
 #mj #mj-close:focus-visible { outline:3px solid var(--lime); outline-offset:2px; }
-#mj #mj-sound-toggle { position:absolute; z-index:2; top:max(8px, env(safe-area-inset-top, 0px));
-  right:calc(env(safe-area-inset-right, 0px) + 60px); min-width:78px; height:44px; padding:0 10px; font-size:.75rem; }
-#mj #mj-sound-toggle:disabled { cursor:not-allowed; opacity:.55; }
+
 #mj h1, #mj h2 { letter-spacing:normal; font-weight:400; }
 #mj #mj-title-logo { display:block; width:min(74vw, 280px); height:min(32dvh, 220px); object-fit:contain; }
 #mj #mj-wrap { position:relative; flex:1; width:100%; height:100%; min-width:0; min-height:0; }
@@ -74,7 +72,6 @@
 <div id="mj" role="dialog" aria-modal="true" aria-label="Money Jump Spiel">
   <div id="mj-panel">
     <button id="mj-close" type="button" aria-label="Spiel schließen">×</button>
-    <button id="mj-sound-toggle" type="button" aria-label="Soundeffekte" aria-pressed="true" title="Soundeffekte ausschalten">Ton an</button>
     <div id="mj-wrap">
       <canvas id="mj-c" width="400" height="600" tabindex="0" aria-label="Money Jump Spielbereich. Steuerung mit Pfeiltasten, A und D oder durch Tippen links und rechts.">Dein Browser unterstützt das Spiel-Canvas nicht.</canvas>
   <div id="mj-overlay">
@@ -121,7 +118,7 @@
     const BASE_W = 400, BASE_H = 600;
     let W = BASE_W, H = BASE_H;
     const overlay = $('overlay'), msg = $('msg'), title = $('title'), logo = $('title-logo'), startBtn = $('start'),
-          nameIn = $('name'), board = $('board'), soundButton = $('sound-toggle');
+          nameIn = $('name'), board = $('board');
 
     /* ===== EINSTELLUNGEN: hier anpassen ===== */
     /* Spielfigur (eingebettet, keine extra Dateien nötig) */
@@ -158,29 +155,19 @@
     let p, plats, score, running = false, dir = 0, keys = {}, scores = [], playerName = '', lastScore = -1;
 
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    const SOUND_LEVEL = 0.65;
+    const SOUND_LEVEL = 0.9;
     const SOUND_PATTERNS = {
-      start: [[392, 523, 0.1, 0.045, 'triangle', 0], [523, 659, 0.12, 0.04, 'triangle', 0.08]],
-      bounce: [[320, 460, 0.07, 0.032, 'sine', 0]],
-      powerup: [[659, 880, 0.09, 0.045, 'sine', 0], [880, 1175, 0.12, 0.04, 'triangle', 0.06]],
-      reward: [[523, 659, 0.12, 0.04, 'triangle', 0], [659, 784, 0.12, 0.04, 'triangle', 0.1], [784, 1047, 0.2, 0.045, 'triangle', 0.2]],
-      gameOver: [[330, 247, 0.15, 0.035, 'triangle', 0], [247, 165, 0.22, 0.04, 'sine', 0.12]]
+      start: [[392, 523, 0.1, 0.16, 'triangle', 0], [523, 659, 0.12, 0.15, 'triangle', 0.08]],
+      bounce: [[320, 460, 0.07, 0.13, 'sine', 0]],
+      powerup: [[659, 880, 0.09, 0.17, 'sine', 0], [880, 1175, 0.12, 0.15, 'triangle', 0.06]],
+      reward: [[523, 659, 0.12, 0.14, 'triangle', 0], [659, 784, 0.12, 0.14, 'triangle', 0.1], [784, 1047, 0.2, 0.16, 'triangle', 0.2]],
+      gameOver: [[330, 247, 0.15, 0.14, 'triangle', 0], [247, 165, 0.22, 0.15, 'sine', 0.12]]
     };
     let audioUnavailable = !AudioContextClass;
-    let audioContext = null, soundOutput = null, soundEnabled = Boolean(AudioContextClass);
-
-    function syncSoundButton() {
-      soundButton.disabled = audioUnavailable;
-      soundButton.textContent = soundEnabled ? 'Ton an' : 'Ton aus';
-      soundButton.setAttribute('aria-pressed', String(soundEnabled));
-      soundButton.setAttribute('aria-label', audioUnavailable ? 'Soundeffekte nicht verfügbar' : 'Soundeffekte');
-      soundButton.title = audioUnavailable
-        ? 'Dieser Browser unterstützt keine Soundeffekte'
-        : soundEnabled ? 'Soundeffekte ausschalten' : 'Soundeffekte einschalten';
-    }
+    let audioContext = null, soundOutput = null;
 
     function getAudioContext() {
-      if (!soundEnabled || audioUnavailable) return null;
+      if (audioUnavailable) return null;
       try {
         if (!audioContext || audioContext.state === 'closed') {
           audioContext = new AudioContextClass();
@@ -188,12 +175,9 @@
           soundOutput.gain.value = SOUND_LEVEL;
           soundOutput.connect(audioContext.destination);
         }
-        if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
         return audioContext;
-      } catch (error) {
+      } catch {
         audioUnavailable = true;
-        soundEnabled = false;
-        syncSoundButton();
         return null;
       }
     }
@@ -216,16 +200,18 @@
     }
 
     function playSound(effect) {
-      if (!soundEnabled) return;
       const audio = getAudioContext();
       const pattern = SOUND_PATTERNS[effect];
       if (!audio || !soundOutput || !pattern) return;
-      pattern.forEach(([startFrequency, endFrequency, duration, volume, type, delay]) => {
-        scheduleTone(audio, startFrequency, endFrequency, duration, volume, type, delay);
-      });
+      const schedule = () => {
+        if (audio !== audioContext || audio.state !== 'running') return;
+        pattern.forEach(([startFrequency, endFrequency, duration, volume, type, delay]) => {
+          scheduleTone(audio, startFrequency, endFrequency, duration, volume, type, delay);
+        });
+      };
+      if (audio.state === 'running') schedule();
+      else audio.resume().then(schedule).catch(() => {});
     }
-
-    syncSoundButton();
 
     /* ---------- Gemeinsame Rangliste ---------- */
     let boardStatus = 'Rangliste wird geladen …';
@@ -499,14 +485,6 @@
       try { navigator.clipboard.writeText(TIERS[tier].code).then(done, done); } catch (e) { done(); }
     };
     startBtn.onclick = start;
-    soundButton.addEventListener('click', function () {
-      soundEnabled = !soundEnabled;
-      if (soundOutput && audioContext) {
-        soundOutput.gain.setTargetAtTime(soundEnabled ? SOUND_LEVEL : 0, audioContext.currentTime, 0.01);
-      }
-      syncSoundButton();
-      if (soundEnabled) getAudioContext();
-    });
     nameIn.addEventListener('input', renderBoard);
     nameIn.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) start(); });
     addEventListener('keydown', e => {
