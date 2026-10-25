@@ -108,42 +108,87 @@ app.use(express.static(path.join(__dirname, "public")));
 const LEADERBOARD_LIMIT = 50;
 const MAX_LEADERBOARD_SCORE = 10000000;
 let _leaderboardPool = null;
+let _leaderboardPoolPromise = null;
 
-function getLeaderboardPool() {
-  if (_leaderboardPool) return _leaderboardPool;
-  if (!process.env.DATABASE_URL) return null;
-
-  _leaderboardPool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    max: 1,
-    idleTimeoutMillis: 10000,
-    connectionTimeoutMillis: 5000,
+function logLeaderboardError(action, error) {
+  console.error(`[leaderboard] ${action} failed`, {
+    code: error?.code || "UNKNOWN",
+    message: typeof error?.message === "string" ? error.message.slice(0, 200) : "Unknown database error",
   });
-  if (process.env.VERCEL) attachDatabasePool(_leaderboardPool);
-  return _leaderboardPool;
+}
+
+async function getLeaderboardPool() {
+  if (_leaderboardPool) return _leaderboardPool;
+  if (_leaderboardPoolPromise) return _leaderboardPoolPromise;
+
+  const seenUrls = new Set();
+  const connectionCandidates = [
+    ["DATABASE_URL", process.env.DATABASE_URL],
+    ["POSTGRES_URL", process.env.POSTGRES_URL],
+    ["POSTGRES_PRISMA_URL", process.env.POSTGRES_PRISMA_URL],
+  ].filter(([, connectionString]) => {
+    if (typeof connectionString !== "string" || !connectionString || seenUrls.has(connectionString)) return false;
+    seenUrls.add(connectionString);
+    return true;
+  });
+
+  if (!connectionCandidates.length) {
+    console.error("[leaderboard] no database connection URL is configured");
+    return null;
+  }
+
+  _leaderboardPoolPromise = (async () => {
+    for (const [envName, connectionString] of connectionCandidates) {
+      const pool = new Pool({
+        connectionString,
+        max: 1,
+        idleTimeoutMillis: 10000,
+        connectionTimeoutMillis: 10000,
+      });
+
+      try {
+        if (process.env.VERCEL) attachDatabasePool(pool);
+        await pool.query("SELECT 1 FROM public.money_jump_scores LIMIT 0");
+        _leaderboardPool = pool;
+        return pool;
+      } catch (error) {
+        logLeaderboardError(`connection via ${envName}`, error);
+        await pool.end().catch(() => {});
+      }
+    }
+
+    return null;
+  })();
+
+  try {
+    return await _leaderboardPoolPromise;
+  } finally {
+    _leaderboardPoolPromise = null;
+  }
 }
 
 async function queryLeaderboard(pool) {
   const { rows } = await pool.query(
-    "SELECT player_name AS name, score FROM money_jump_scores ORDER BY score DESC, created_at ASC, name_key ASC LIMIT $1",
+    "SELECT player_name AS name, score FROM public.money_jump_scores ORDER BY score DESC, created_at ASC, name_key ASC LIMIT $1",
     [LEADERBOARD_LIMIT]
   );
   return rows;
 }
 
 app.get("/api/money-jump/scores", async (_req, res) => {
+  res.set("Cache-Control", "no-store");
   try {
-    const pool = getLeaderboardPool();
+    const pool = await getLeaderboardPool();
     if (!pool) return res.status(503).json({ error: "Rangliste momentan nicht verfügbar." });
-    res.set("Cache-Control", "no-store");
     return res.json({ scores: await queryLeaderboard(pool) });
-  } catch (_) {
-    console.error("[leaderboard] read failed");
+  } catch (error) {
+    logLeaderboardError("read", error);
     return res.status(503).json({ error: "Rangliste momentan nicht verfügbar." });
   }
 });
 
 app.post("/api/money-jump/scores", async (req, res) => {
+  res.set("Cache-Control", "no-store");
   const rawName = req.body && req.body.name;
   const name = typeof rawName === "string"
     ? rawName.normalize("NFKC").replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/gu, " ").trim()
@@ -156,16 +201,15 @@ app.post("/api/money-jump/scores", async (req, res) => {
     return res.status(400).json({ error: "Ungültiger Punktestand." });
 
   try {
-    const pool = getLeaderboardPool();
+    const pool = await getLeaderboardPool();
     if (!pool) return res.status(503).json({ error: "Rangliste momentan nicht verfügbar." });
     await pool.query(
-      "INSERT INTO money_jump_scores (name_key, player_name, score) VALUES ($1, $2, $3) ON CONFLICT (name_key) DO UPDATE SET player_name = EXCLUDED.player_name, score = GREATEST(money_jump_scores.score, EXCLUDED.score), updated_at = CASE WHEN EXCLUDED.score > money_jump_scores.score THEN NOW() ELSE money_jump_scores.updated_at END",
+      "INSERT INTO public.money_jump_scores (name_key, player_name, score) VALUES ($1, $2, $3) ON CONFLICT (name_key) DO UPDATE SET player_name = EXCLUDED.player_name, score = GREATEST(money_jump_scores.score, EXCLUDED.score), updated_at = CASE WHEN EXCLUDED.score > money_jump_scores.score THEN NOW() ELSE money_jump_scores.updated_at END",
       [name.toLowerCase(), name, score]
     );
-    res.set("Cache-Control", "no-store");
     return res.json({ scores: await queryLeaderboard(pool) });
-  } catch (_) {
-    console.error("[leaderboard] write failed");
+  } catch (error) {
+    logLeaderboardError("write", error);
     return res.status(503).json({ error: "Punktestand konnte nicht gespeichert werden." });
   }
 });
@@ -1399,6 +1443,7 @@ app.delete("/admin/order/:id", async (req, res) => {
 });
 
 if (require.main === module) {
-  _ready.finally(() => app.listen(3000, () => console.log("Shop läuft auf http://localhost:3000")));
+  const port = Number(process.env.PORT) || 3000;
+  _ready.finally(() => app.listen(port, () => console.log(`Shop läuft auf http://localhost:${port}`)));
 }
 module.exports = app;
