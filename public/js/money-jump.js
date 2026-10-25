@@ -34,7 +34,6 @@
 #mj #mj-title-logo { display:block; width:min(74vw, 280px); height:min(32dvh, 220px); object-fit:contain; }
 #mj #mj-wrap { position:relative; flex:1; width:100%; height:100%; min-width:0; min-height:0; }
 #mj canvas { width:100%; height:100%; display:block; background-color:#f2efe6;
-           background-image:url('/money-jump-background.jpeg'); background-size:cover; background-position:center; background-repeat:no-repeat;
            border:4px solid var(--paper); touch-action:none; }
 #mj #mj-overlay { position:absolute; inset:4px; background:rgba(14,14,14,.93); display:flex; flex-direction:column;
              align-items:center; justify-content:center; gap:10px; padding:16px; text-align:center; overflow:auto; }
@@ -129,6 +128,10 @@
     const HERO_H = 72;
     const IMG = {};
     for (const k in SPRITES) { IMG[k] = new Image(); IMG[k].onload = () => { if (!running) draw(); }; IMG[k].src = SPRITES[k]; }
+    const backgroundImage = new Image();
+    backgroundImage.crossOrigin = 'anonymous';
+    backgroundImage.onload = () => { if (!running) draw(); };
+    backgroundImage.src = '/money-jump-background.jpeg';
     const CFG = window.MJ_CONFIG || {};
     const SHOP_URL = CFG.shopUrl || '';
     const TIERS = [
@@ -304,8 +307,19 @@
       ctx.drawImage(img, -dw / 2, -dh, dw, dh);
       ctx.restore();
     }
+    function drawBackground() {
+      ctx.fillStyle = '#f2efe6';
+      ctx.fillRect(0, 0, W, H);
+      if (!backgroundImage.complete || !backgroundImage.naturalWidth || !backgroundImage.naturalHeight) return;
+      const scale = Math.max(W / backgroundImage.naturalWidth, H / backgroundImage.naturalHeight);
+      const width = backgroundImage.naturalWidth * scale;
+      const height = backgroundImage.naturalHeight * scale;
+      ctx.drawImage(backgroundImage, (W - width) / 2, (H - height) / 2, width, height);
+    }
+
     function draw() {
       ctx.clearRect(0, 0, W, H);
+      drawBackground();
       ctx.fillStyle = 'rgba(14,14,14,.06)'; // Beton-Fugen
       for (let y = ((score * .3) % 120); y < H; y += 120) ctx.fillRect(0, y, W, 2);
       ctx.fillRect(W / 2, 0, 2, H);
