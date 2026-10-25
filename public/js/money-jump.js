@@ -132,7 +132,7 @@
 
   function run() {
   var fab = document.getElementById('mj-fab'), modal = document.getElementById('mj'), closeBtn = document.getElementById('mj-close');
-  var stop = null, inited = false, returnFocus = fab;
+  var stop = null, refreshBoard = null, inited = false, returnFocus = fab;
 
   // Logo auf den Button setzen
   function arrow() { fab.textContent = '\u25B6'; }
@@ -176,22 +176,47 @@
     let wonNow = false, toastUntil = 0, toastText = '', tier = -1;
     let p, plats, score, running = false, dir = 0, keys = {}, scores = [], playerName = '', lastScore = -1;
 
-    /* ---------- Rangliste (lokal im Browser gespeichert) ---------- */
-    try { scores = JSON.parse(localStorage.getItem('sj-scores')) || []; } catch (e) {}
+    /* ---------- Gemeinsame Rangliste ---------- */
+    let boardStatus = 'Rangliste wird geladen …';
     try { nameIn.value = localStorage.getItem('sj-name') || ''; } catch (e) {}
-    const save = () => { try { localStorage.setItem('sj-scores', JSON.stringify(scores)); } catch (e) {} };
     const same = (a, b) => a.toLowerCase() === b.toLowerCase();
 
-    function addScore(name, s) {
-      const e = scores.find(x => same(x.name, name));
-      if (!e) scores.push({ name, score: s });
-      else if (s > e.score) { e.score = s; e.name = name; }
-      scores.sort((a, b) => b.score - a.score);
-      scores = scores.slice(0, 50); save();
+    async function loadScores() {
+      boardStatus = 'Rangliste wird geladen …';
+      renderBoard();
+      try {
+        const response = await fetch('/api/money-jump/scores', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Leaderboard request failed');
+        const data = await response.json();
+        scores = Array.isArray(data.scores) ? data.scores : [];
+        boardStatus = '';
+      } catch (e) {
+        boardStatus = 'Rangliste gerade nicht erreichbar.';
+      }
+      renderBoard();
+    }
+
+    async function addScore(name, s) {
+      boardStatus = 'Punktestand wird gespeichert …';
+      renderBoard();
+      try {
+        const response = await fetch('/api/money-jump/scores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, score: s })
+        });
+        if (!response.ok) throw new Error('Leaderboard save failed');
+        const data = await response.json();
+        scores = Array.isArray(data.scores) ? data.scores : scores;
+        boardStatus = '';
+      } catch (e) {
+        boardStatus = 'Punktestand konnte nicht gespeichert werden.';
+      }
+      renderBoard();
     }
 
     function renderBoard() {
-      board.innerHTML = '';
+      board.replaceChildren();
       const me = nameIn.value.trim();
       const row = (rank, e) => {
         const li = document.createElement('li');
@@ -201,15 +226,25 @@
         });
         board.appendChild(li);
       };
-      if (!scores.length) { const li = document.createElement('li'); li.className = 'gap';
-        li.textContent = 'Noch leer. Sei der Erste.'; board.appendChild(li); return; }
+      if (!scores.length) {
+        const li = document.createElement('li'); li.className = 'gap';
+        li.textContent = boardStatus || 'Noch leer. Sei der Erste.';
+        board.appendChild(li);
+        return;
+      }
       scores.slice(0, TOP_N).forEach((e, i) => row(i + 1, e));
       const mi = scores.findIndex(e => me && same(e.name, me));
       if (mi >= TOP_N) {
         const g = document.createElement('li'); g.className = 'gap'; g.textContent = '···'; board.appendChild(g);
         row(mi + 1, scores[mi]);
       }
+      if (boardStatus) {
+        const li = document.createElement('li'); li.className = 'gap';
+        li.textContent = boardStatus; board.appendChild(li);
+      }
     }
+
+    refreshBoard = loadScores;
 
     /* ---------- Spiel ---------- */
     function makePlat(y, moving) {
@@ -394,7 +429,7 @@
   }
   function open(event) {
     if (event && event.currentTarget) returnFocus = event.currentTarget;
-    init(); modal.classList.add('open'); document.documentElement.style.overflow = 'hidden'; closeBtn.focus();
+    init(); if (refreshBoard) refreshBoard(); modal.classList.add('open'); document.documentElement.style.overflow = 'hidden'; closeBtn.focus();
   }
   function close() {
     if (stop) stop();
