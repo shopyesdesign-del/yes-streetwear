@@ -34,6 +34,15 @@
 #mj h1, #mj h2 { letter-spacing:normal; font-weight:400; }
 #mj #mj-wrap { position:relative; width:min(100%, 400px); aspect-ratio:2/3; max-height:100%; }
 @media (max-height:720px) { #mj #mj-panel { width:min(94vw, 320px); } }
+@media (max-width:749px) {
+  #mj { padding:6px; }
+  #mj #mj-panel {
+    width:min(100%, 480px);
+    height:min(96vh, 860px);
+    height:min(96dvh, 860px);
+    padding:56px 8px 8px;
+  }
+}
 @media (min-width:750px) {
   #mj { align-items:flex-end; justify-content:flex-end; padding:24px; }
   #mj #mj-panel { width:min(420px, calc(100vw - 48px)); height:min(700px, calc(100vh - 48px)); height:min(700px, calc(100dvh - 48px)); }
