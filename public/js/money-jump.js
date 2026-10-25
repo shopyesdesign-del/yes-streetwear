@@ -30,6 +30,9 @@
   border:3px solid var(--paper); background:var(--black); color:var(--paper); font:700 20px Arial, sans-serif;
   cursor:pointer; border-radius:0; padding:0; }
 #mj #mj-close:focus-visible { outline:3px solid var(--lime); outline-offset:2px; }
+#mj #mj-sound-toggle { position:absolute; z-index:2; top:max(8px, env(safe-area-inset-top, 0px));
+  right:calc(env(safe-area-inset-right, 0px) + 60px); min-width:78px; height:44px; padding:0 10px; font-size:.75rem; }
+#mj #mj-sound-toggle:disabled { cursor:not-allowed; opacity:.55; }
 #mj h1, #mj h2 { letter-spacing:normal; font-weight:400; }
 #mj #mj-title-logo { display:block; width:min(74vw, 280px); height:min(32dvh, 220px); object-fit:contain; }
 #mj #mj-wrap { position:relative; flex:1; width:100%; height:100%; min-width:0; min-height:0; }
@@ -71,6 +74,7 @@
 <div id="mj" role="dialog" aria-modal="true" aria-label="Money Jump Spiel">
   <div id="mj-panel">
     <button id="mj-close" type="button" aria-label="Spiel schließen">×</button>
+    <button id="mj-sound-toggle" type="button" aria-label="Soundeffekte" aria-pressed="true" title="Soundeffekte ausschalten">Ton an</button>
     <div id="mj-wrap">
       <canvas id="mj-c" width="400" height="600" tabindex="0" aria-label="Money Jump Spielbereich. Steuerung mit Pfeiltasten, A und D oder durch Tippen links und rechts.">Dein Browser unterstützt das Spiel-Canvas nicht.</canvas>
   <div id="mj-overlay">
@@ -117,7 +121,7 @@
     const BASE_W = 400, BASE_H = 600;
     let W = BASE_W, H = BASE_H;
     const overlay = $('overlay'), msg = $('msg'), title = $('title'), logo = $('title-logo'), startBtn = $('start'),
-          nameIn = $('name'), board = $('board');
+          nameIn = $('name'), board = $('board'), soundButton = $('sound-toggle');
 
     /* ===== EINSTELLUNGEN: hier anpassen ===== */
     /* Spielfigur (eingebettet, keine extra Dateien nötig) */
@@ -152,6 +156,76 @@
     let lastFrameTime = 0;
     let wonNow = false, toastUntil = 0, toastText = '', tier = -1;
     let p, plats, score, running = false, dir = 0, keys = {}, scores = [], playerName = '', lastScore = -1;
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    const SOUND_LEVEL = 0.65;
+    const SOUND_PATTERNS = {
+      start: [[392, 523, 0.1, 0.045, 'triangle', 0], [523, 659, 0.12, 0.04, 'triangle', 0.08]],
+      bounce: [[320, 460, 0.07, 0.032, 'sine', 0]],
+      powerup: [[659, 880, 0.09, 0.045, 'sine', 0], [880, 1175, 0.12, 0.04, 'triangle', 0.06]],
+      reward: [[523, 659, 0.12, 0.04, 'triangle', 0], [659, 784, 0.12, 0.04, 'triangle', 0.1], [784, 1047, 0.2, 0.045, 'triangle', 0.2]],
+      gameOver: [[330, 247, 0.15, 0.035, 'triangle', 0], [247, 165, 0.22, 0.04, 'sine', 0.12]]
+    };
+    let audioUnavailable = !AudioContextClass;
+    let audioContext = null, soundOutput = null, soundEnabled = Boolean(AudioContextClass);
+
+    function syncSoundButton() {
+      soundButton.disabled = audioUnavailable;
+      soundButton.textContent = soundEnabled ? 'Ton an' : 'Ton aus';
+      soundButton.setAttribute('aria-pressed', String(soundEnabled));
+      soundButton.setAttribute('aria-label', audioUnavailable ? 'Soundeffekte nicht verfügbar' : 'Soundeffekte');
+      soundButton.title = audioUnavailable
+        ? 'Dieser Browser unterstützt keine Soundeffekte'
+        : soundEnabled ? 'Soundeffekte ausschalten' : 'Soundeffekte einschalten';
+    }
+
+    function getAudioContext() {
+      if (!soundEnabled || audioUnavailable) return null;
+      try {
+        if (!audioContext || audioContext.state === 'closed') {
+          audioContext = new AudioContextClass();
+          soundOutput = audioContext.createGain();
+          soundOutput.gain.value = SOUND_LEVEL;
+          soundOutput.connect(audioContext.destination);
+        }
+        if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
+        return audioContext;
+      } catch (error) {
+        audioUnavailable = true;
+        soundEnabled = false;
+        syncSoundButton();
+        return null;
+      }
+    }
+
+    function scheduleTone(audio, startFrequency, endFrequency, duration, volume, type, delay) {
+      const oscillator = audio.createOscillator();
+      const envelope = audio.createGain();
+      const startAt = audio.currentTime + delay;
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(startFrequency, startAt);
+      oscillator.frequency.exponentialRampToValueAtTime(endFrequency, startAt + duration);
+      envelope.gain.setValueAtTime(0.0001, startAt);
+      envelope.gain.exponentialRampToValueAtTime(volume, startAt + Math.min(0.012, duration / 3));
+      envelope.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+      oscillator.connect(envelope);
+      envelope.connect(soundOutput);
+      oscillator.onended = () => { oscillator.disconnect(); envelope.disconnect(); };
+      oscillator.start(startAt);
+      oscillator.stop(startAt + duration + 0.02);
+    }
+
+    function playSound(effect) {
+      if (!soundEnabled) return;
+      const audio = getAudioContext();
+      const pattern = SOUND_PATTERNS[effect];
+      if (!audio || !soundOutput || !pattern) return;
+      pattern.forEach(([startFrequency, endFrequency, duration, volume, type, delay]) => {
+        scheduleTone(audio, startFrequency, endFrequency, duration, volume, type, delay);
+      });
+    }
+
+    syncSoundButton();
 
     /* ---------- Gemeinsame Rangliste ---------- */
     let boardStatus = 'Rangliste wird geladen …';
@@ -244,7 +318,7 @@
       p.y += p.vy;
       if (pu.type && --pu.t <= 0) pu.type = null;
       if (p.vy > 0) for (const pl of plats)
-        if (p.x + p.w > pl.x && p.x < pl.x + pl.w && p.y + p.h > pl.y && p.y + p.h < pl.y + pl.h + p.vy + 2) { p.vy = pu.type === 'mega' ? JUMP * 1.4 : JUMP; p.sq = 9; break; }
+        if (p.x + p.w > pl.x && p.x < pl.x + pl.w && p.y + p.h > pl.y && p.y + p.h < pl.y + pl.h + p.vy + 2) { p.vy = pu.type === 'mega' ? JUMP * 1.4 : JUMP; p.sq = 9; playSound('bounce'); break; }
       for (const pl of plats) if (pl.mv) { pl.x += pl.mv; if (pl.x < 0 || pl.x + pl.w > W) pl.mv *= -1; }
       for (const pl of plats) if (pl.cash) {
         const cx = pl.x + pl.w / 2 - 14, cy = pl.y - 26;
@@ -252,6 +326,7 @@
           pl.cash = false;
           const k = ['turbo', 'mega', 'x2'][Math.floor(Math.random() * 3)];
           pu = { type: k, t: POWERUPS[k].frames };
+          playSound('powerup');
         }
       }
       if (p.y < H / 2.2) { const d = H / 2.2 - p.y; p.y = H / 2.2; score += Math.round(d) * (pu.type === 'x2' ? 2 : 1); plats.forEach(pl => pl.y += d); }
@@ -261,6 +336,7 @@
       while (top > -20) { top -= gap; plats.push(makePlat(top, score > 600 && Math.random() < .3)); }
       while (tier + 1 < TIERS.length && score >= TIERS[tier + 1].score) {
         tier++; wonNow = true; toastText = TIERS[tier].label; toastUntil = performance.now() + 3000;
+        playSound('reward');
           }
       if (p.y > H) end();
     }
@@ -391,10 +467,11 @@
       playerName = nameIn.value.trim() || 'Anonym';
       nameIn.value = playerName === 'Anonym' && !nameIn.value.trim() ? '' : playerName;
       try { localStorage.setItem('sj-name', nameIn.value); } catch (e) {}
-      tier = -1; showCoupon(); wonNow = false; toastUntil = 0; keys = {}; dir = 0; reset(); lastFrameTime = 0; running = true; overlay.classList.add('hidden'); loop();
+      tier = -1; showCoupon(); wonNow = false; toastUntil = 0; keys = {}; dir = 0; reset(); lastFrameTime = 0; running = true; overlay.classList.add('hidden'); playSound('start'); loop();
     }
     function end() {
       running = false; lastScore = score;
+      playSound('gameOver');
       addScore(playerName, score);
       if (!nameIn.value.trim()) nameIn.value = playerName;
       logo.classList.add('hidden');
@@ -422,6 +499,14 @@
       try { navigator.clipboard.writeText(TIERS[tier].code).then(done, done); } catch (e) { done(); }
     };
     startBtn.onclick = start;
+    soundButton.addEventListener('click', function () {
+      soundEnabled = !soundEnabled;
+      if (soundOutput && audioContext) {
+        soundOutput.gain.setTargetAtTime(soundEnabled ? SOUND_LEVEL : 0, audioContext.currentTime, 0.01);
+      }
+      syncSoundButton();
+      if (soundEnabled) getAudioContext();
+    });
     nameIn.addEventListener('input', renderBoard);
     nameIn.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) start(); });
     addEventListener('keydown', e => {
@@ -444,7 +529,9 @@
     resizeGame = resizeCanvas;
     window.addEventListener('resize', resizeCanvas, { passive: true });
     stop = function () { // Fenster geschlossen: zurück ins Menü, Gutschein wieder verbergen
-      running = false; tier = -1; wonNow = false; showCoupon();
+      running = false;
+      if (audioContext && audioContext.state === 'running') audioContext.suspend().catch(() => {});
+      tier = -1; wonNow = false; showCoupon();
       logo.classList.remove('hidden'); title.classList.add('hidden'); title.textContent = '';
       msg.innerHTML = MSG_START; startBtn.textContent = "Los geht's";
       renderBoard(); overlay.classList.remove('hidden');
