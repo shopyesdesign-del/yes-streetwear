@@ -18,29 +18,20 @@
 #mj-fab:focus-visible { outline:3px solid #fff; outline-offset:3px; }
 /* Spiel-Fenster */
 #mj { --black:#0e0e0e; --paper:#f2efe6; --lime:#c6ff00; --mute:#8d8a82;
-  position:fixed; inset:0; z-index:2147483000; display:none; align-items:center; justify-content:center;
-  padding:12px; background:rgba(14,14,14,.76); color:var(--paper); font-family:'Archivo', Arial, sans-serif;
-  line-height:1.3; overflow:auto; backdrop-filter:blur(5px); }
+  position:fixed; inset:0; z-index:2147483000; display:none; align-items:stretch; justify-content:stretch;
+  padding:0; background:var(--black); color:var(--paper); font-family:'Archivo', Arial, sans-serif;
+  line-height:1.3; overflow:hidden; }
 #mj.open { display:flex; }
 #mj *, #mj *::before, #mj *::after { box-sizing:border-box; }
-#mj #mj-panel { position:relative; display:flex; align-items:center; justify-content:center;
-  width:min(94vw, 430px); height:min(700px, calc(100vh - 24px)); height:min(700px, calc(100dvh - 24px));
-  padding:56px 12px 12px; border:3px solid var(--lime); background:var(--black);
-  box-shadow:0 24px 80px rgba(0,0,0,.55); }
-#mj #mj-close { position:absolute; top:8px; right:8px; width:44px; height:44px;
+#mj #mj-panel { position:relative; display:flex; align-items:stretch; justify-content:stretch;
+  width:100%; height:100vh; height:100dvh; padding:0;
+  border:0; background:var(--black); box-shadow:none; overflow:hidden; }
+#mj #mj-close { position:absolute; z-index:2; top:max(8px, env(safe-area-inset-top, 0px)); right:max(8px, env(safe-area-inset-right, 0px)); width:44px; height:44px;
   border:3px solid var(--paper); background:var(--black); color:var(--paper); font:700 20px Arial, sans-serif;
   cursor:pointer; border-radius:0; padding:0; }
 #mj #mj-close:focus-visible { outline:3px solid var(--lime); outline-offset:2px; }
 #mj h1, #mj h2 { letter-spacing:normal; font-weight:400; }
-#mj #mj-wrap { position:relative; width:min(100%, 400px); aspect-ratio:2/3; max-height:100%; }
-@media (max-height:720px) { #mj #mj-panel { width:min(94vw, 320px); } }
-@media (min-width:750px) {
-  #mj { align-items:flex-end; justify-content:flex-end; padding:24px; }
-  #mj #mj-panel { width:min(420px, calc(100vw - 48px)); height:min(700px, calc(100vh - 48px)); height:min(700px, calc(100dvh - 48px)); }
-}
-@media (min-width:750px) and (max-height:720px) {
-  #mj #mj-panel { width:min(320px, calc(100vw - 48px)); }
-}
+#mj #mj-wrap { position:relative; flex:1; width:100%; height:100%; min-width:0; min-height:0; }
 #mj canvas { width:100%; height:100%; display:block; background:#fff;
            border:4px solid var(--paper); touch-action:none; }
 #mj #mj-overlay { position:absolute; inset:4px; background:rgba(14,14,14,.93); display:flex; flex-direction:column;
@@ -110,7 +101,7 @@
 
   function run() {
   var fab = document.getElementById('mj-fab'), modal = document.getElementById('mj'), closeBtn = document.getElementById('mj-close');
-  var stop = null, inited = false, returnFocus = fab;
+  var stop = null, refreshBoard = null, resizeGame = null, inited = false, returnFocus = fab;
 
   // Logo auf den Button setzen
   function arrow() { fab.textContent = '\u25B6'; }
@@ -120,8 +111,9 @@
   function init() {
     if (inited) return; inited = true;
     const $ = id => document.getElementById('mj-' + id);
-    const cv = $('c'), ctx = cv.getContext('2d');
-    const W = 400, H = 600;
+    const cv = $('c'), ctx = cv.getContext('2d'), wrap = $('wrap');
+    const BASE_W = 400, BASE_H = 600;
+    let W = BASE_W, H = BASE_H;
     const overlay = $('overlay'), msg = $('msg'), title = $('title'), startBtn = $('start'),
           nameIn = $('name'), board = $('board');
 
@@ -147,27 +139,55 @@
       x2:    { name: 'DOPPELTE PUNKTE', frames: 600 }
     };
     const CASH_CHANCE = 0.12;
-    const GRAVITY = 0.4, JUMP = -11.5, SPEED = 5, TOP_N = 7;
+    const GRAVITY = 0.4, JUMP = -11.5, BASE_SPEED = 5, TOP_N = 7;
+    let SPEED = BASE_SPEED;
+    const FRAME_INTERVAL = 1000 / 60;
     let pu = { type: null, t: 0 };
+    let lastFrameTime = 0;
     let wonNow = false, toastUntil = 0, toastText = '', tier = -1;
     let p, plats, score, running = false, dir = 0, keys = {}, scores = [], playerName = '', lastScore = -1;
 
-    /* ---------- Rangliste (lokal im Browser gespeichert) ---------- */
-    try { scores = JSON.parse(localStorage.getItem('sj-scores')) || []; } catch (e) {}
+    /* ---------- Gemeinsame Rangliste ---------- */
+    let boardStatus = 'Rangliste wird geladen …';
     try { nameIn.value = localStorage.getItem('sj-name') || ''; } catch (e) {}
-    const save = () => { try { localStorage.setItem('sj-scores', JSON.stringify(scores)); } catch (e) {} };
     const same = (a, b) => a.toLowerCase() === b.toLowerCase();
 
-    function addScore(name, s) {
-      const e = scores.find(x => same(x.name, name));
-      if (!e) scores.push({ name, score: s });
-      else if (s > e.score) { e.score = s; e.name = name; }
-      scores.sort((a, b) => b.score - a.score);
-      scores = scores.slice(0, 50); save();
+    async function loadScores() {
+      boardStatus = 'Rangliste wird geladen …';
+      renderBoard();
+      try {
+        const response = await fetch('/api/money-jump/scores', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Leaderboard request failed');
+        const data = await response.json();
+        scores = Array.isArray(data.scores) ? data.scores : [];
+        boardStatus = '';
+      } catch (e) {
+        boardStatus = 'Rangliste gerade nicht erreichbar.';
+      }
+      renderBoard();
+    }
+
+    async function addScore(name, s) {
+      boardStatus = 'Punktestand wird gespeichert …';
+      renderBoard();
+      try {
+        const response = await fetch('/api/money-jump/scores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, score: s })
+        });
+        if (!response.ok) throw new Error('Leaderboard save failed');
+        const data = await response.json();
+        scores = Array.isArray(data.scores) ? data.scores : scores;
+        boardStatus = '';
+      } catch (e) {
+        boardStatus = 'Punktestand konnte nicht gespeichert werden.';
+      }
+      renderBoard();
     }
 
     function renderBoard() {
-      board.innerHTML = '';
+      board.replaceChildren();
       const me = nameIn.value.trim();
       const row = (rank, e) => {
         const li = document.createElement('li');
@@ -177,15 +197,25 @@
         });
         board.appendChild(li);
       };
-      if (!scores.length) { const li = document.createElement('li'); li.className = 'gap';
-        li.textContent = 'Noch leer. Sei der Erste.'; board.appendChild(li); return; }
+      if (!scores.length) {
+        const li = document.createElement('li'); li.className = 'gap';
+        li.textContent = boardStatus || 'Noch leer. Sei der Erste.';
+        board.appendChild(li);
+        return;
+      }
       scores.slice(0, TOP_N).forEach((e, i) => row(i + 1, e));
       const mi = scores.findIndex(e => me && same(e.name, me));
       if (mi >= TOP_N) {
         const g = document.createElement('li'); g.className = 'gap'; g.textContent = '···'; board.appendChild(g);
         row(mi + 1, scores[mi]);
       }
+      if (boardStatus) {
+        const li = document.createElement('li'); li.className = 'gap';
+        li.textContent = boardStatus; board.appendChild(li);
+      }
     }
+
+    refreshBoard = loadScores;
 
     /* ---------- Spiel ---------- */
     function makePlat(y, moving) {
@@ -297,13 +327,54 @@
       }
       ctx.font = '700 12px Archivo, Arial'; ctx.fillStyle = '#8d8a82'; ctx.fillText(playerName.toUpperCase(), 14, 50);
     }
-    function loop() { if (!running) return; update(); draw(); requestAnimationFrame(loop); }
+    function resizeCanvas() {
+      const rect = wrap.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      const scale = rect.height / BASE_H;
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+      const width = Math.round(rect.width * pixelRatio);
+      const height = Math.round(rect.height * pixelRatio);
+
+      if (cv.width !== width || cv.height !== height) {
+        cv.width = width;
+        cv.height = height;
+      }
+
+      W = rect.width / scale;
+      H = rect.height / scale;
+      SPEED = BASE_SPEED * Math.max(1, W / BASE_W);
+      ctx.setTransform(scale * pixelRatio, 0, 0, scale * pixelRatio, 0, 0);
+
+      if (running && p) {
+        p.x = Math.max(0, Math.min(p.x, W - p.w));
+        for (const platform of plats) {
+          platform.x = Math.max(0, Math.min(platform.x, W - platform.w));
+        }
+      } else {
+        reset();
+      }
+      draw();
+    }
+
+    function loop(timestamp = performance.now()) {
+      if (!running) { lastFrameTime = 0; return; }
+      if (!lastFrameTime) lastFrameTime = timestamp;
+      const elapsed = timestamp - lastFrameTime;
+      if (elapsed >= FRAME_INTERVAL) {
+        const frames = Math.min(3, Math.floor(elapsed / FRAME_INTERVAL));
+        lastFrameTime = timestamp - (elapsed % FRAME_INTERVAL);
+        for (let frame = 0; frame < frames && running; frame++) update();
+        if (running) draw();
+      }
+      requestAnimationFrame(loop);
+    }
 
     function start() {
       playerName = nameIn.value.trim() || 'Anonym';
       nameIn.value = playerName === 'Anonym' && !nameIn.value.trim() ? '' : playerName;
       try { localStorage.setItem('sj-name', nameIn.value); } catch (e) {}
-      tier = -1; showCoupon(); wonNow = false; toastUntil = 0; keys = {}; dir = 0; reset(); running = true; overlay.classList.add('hidden'); loop();
+      tier = -1; showCoupon(); wonNow = false; toastUntil = 0; keys = {}; dir = 0; reset(); lastFrameTime = 0; running = true; overlay.classList.add('hidden'); loop();
     }
     function end() {
       running = false; lastScore = score;
@@ -351,6 +422,8 @@
     if (tier + 1 < TIERS.length) msg.innerHTML += '<br><b style="color:#c6ff00">' + TIERS.map(t => t.score + ' Punkte = ' + t.label).join(' · ') + '</b>';
     const MSG_START = msg.innerHTML;
     showCoupon(); reset(); draw(); renderBoard();
+    resizeGame = resizeCanvas;
+    window.addEventListener('resize', resizeCanvas, { passive: true });
     stop = function () { // Fenster geschlossen: zurück ins Menü, Gutschein wieder verbergen
       running = false; tier = -1; wonNow = false; showCoupon();
       title.innerHTML = 'MON€Y<br>JUMP'; msg.innerHTML = MSG_START; startBtn.textContent = "Los geht's";
@@ -359,7 +432,11 @@
   }
   function open(event) {
     if (event && event.currentTarget) returnFocus = event.currentTarget;
-    init(); modal.classList.add('open'); document.documentElement.style.overflow = 'hidden'; closeBtn.focus();
+    modal.classList.add('open'); document.documentElement.style.overflow = 'hidden';
+    init();
+    if (resizeGame) resizeGame();
+    if (refreshBoard) refreshBoard();
+    closeBtn.focus();
   }
   function close() {
     if (stop) stop();

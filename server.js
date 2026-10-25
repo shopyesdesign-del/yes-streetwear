@@ -7,6 +7,8 @@ const crypto     = require("crypto");
 const nodemailer = require("nodemailer");
 const cloudinary = require("cloudinary").v2;
 const { MongoClient } = require("mongodb");
+const { Pool } = require("pg");
+const { attachDatabasePool } = require("@vercel/functions");
 
 // ── MongoDB ────────────────────────────────────────────────────
 let _db = null;
@@ -102,6 +104,71 @@ function safeWrite(file, data) {
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+
+const LEADERBOARD_LIMIT = 50;
+const MAX_LEADERBOARD_SCORE = 10000000;
+let _leaderboardPool = null;
+
+function getLeaderboardPool() {
+  if (_leaderboardPool) return _leaderboardPool;
+  if (!process.env.DATABASE_URL) return null;
+
+  _leaderboardPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: 1,
+    idleTimeoutMillis: 10000,
+    connectionTimeoutMillis: 5000,
+  });
+  if (process.env.VERCEL) attachDatabasePool(_leaderboardPool);
+  return _leaderboardPool;
+}
+
+async function queryLeaderboard(pool) {
+  const { rows } = await pool.query(
+    "SELECT player_name AS name, score FROM money_jump_scores ORDER BY score DESC, created_at ASC, name_key ASC LIMIT $1",
+    [LEADERBOARD_LIMIT]
+  );
+  return rows;
+}
+
+app.get("/api/money-jump/scores", async (_req, res) => {
+  try {
+    const pool = getLeaderboardPool();
+    if (!pool) return res.status(503).json({ error: "Rangliste momentan nicht verfügbar." });
+    res.set("Cache-Control", "no-store");
+    return res.json({ scores: await queryLeaderboard(pool) });
+  } catch (_) {
+    console.error("[leaderboard] read failed");
+    return res.status(503).json({ error: "Rangliste momentan nicht verfügbar." });
+  }
+});
+
+app.post("/api/money-jump/scores", async (req, res) => {
+  const rawName = req.body && req.body.name;
+  const name = typeof rawName === "string"
+    ? rawName.normalize("NFKC").replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/gu, " ").trim()
+    : "";
+  const score = req.body && req.body.score;
+
+  if (!name || Array.from(name).length > 12)
+    return res.status(400).json({ error: "Name muss 1 bis 12 Zeichen lang sein." });
+  if (!Number.isSafeInteger(score) || score < 0 || score > MAX_LEADERBOARD_SCORE)
+    return res.status(400).json({ error: "Ungültiger Punktestand." });
+
+  try {
+    const pool = getLeaderboardPool();
+    if (!pool) return res.status(503).json({ error: "Rangliste momentan nicht verfügbar." });
+    await pool.query(
+      "INSERT INTO money_jump_scores (name_key, player_name, score) VALUES ($1, $2, $3) ON CONFLICT (name_key) DO UPDATE SET player_name = EXCLUDED.player_name, score = GREATEST(money_jump_scores.score, EXCLUDED.score), updated_at = CASE WHEN EXCLUDED.score > money_jump_scores.score THEN NOW() ELSE money_jump_scores.updated_at END",
+      [name.toLowerCase(), name, score]
+    );
+    res.set("Cache-Control", "no-store");
+    return res.json({ scores: await queryLeaderboard(pool) });
+  } catch (_) {
+    console.error("[leaderboard] write failed");
+    return res.status(503).json({ error: "Punktestand konnte nicht gespeichert werden." });
+  }
+});
 
 // Fallback upload dir — on Vercel /var/task is read-only, always use /tmp there
 const UPLOADS_DIR = (() => {
