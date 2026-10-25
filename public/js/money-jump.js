@@ -35,12 +35,25 @@
 #mj #mj-wrap { position:relative; width:min(100%, 400px); aspect-ratio:2/3; max-height:100%; }
 @media (max-height:720px) { #mj #mj-panel { width:min(94vw, 320px); } }
 @media (max-width:749px) {
-  #mj { padding:6px; }
+  #mj {
+    padding:0;
+    overflow:hidden;
+    background:var(--black);
+    backdrop-filter:none;
+  }
   #mj #mj-panel {
-    width:min(100%, 480px);
-    height:min(96vh, 860px);
-    height:min(96dvh, 860px);
-    padding:56px 8px 8px;
+    width:100%;
+    height:100vh;
+    height:100dvh;
+    padding:calc(56px + env(safe-area-inset-top, 0px))
+      calc(8px + env(safe-area-inset-right, 0px))
+      calc(8px + env(safe-area-inset-bottom, 0px))
+      calc(8px + env(safe-area-inset-left, 0px));
+    box-shadow:none;
+  }
+  #mj #mj-close {
+    top:max(8px, env(safe-area-inset-top, 0px));
+    right:max(8px, env(safe-area-inset-right, 0px));
   }
 }
 @media (min-width:750px) {
@@ -157,7 +170,9 @@
     };
     const CASH_CHANCE = 0.12;
     const GRAVITY = 0.4, JUMP = -11.5, SPEED = 5, TOP_N = 7;
+    const FRAME_INTERVAL = 1000 / 60;
     let pu = { type: null, t: 0 };
+    let lastFrameTime = 0;
     let wonNow = false, toastUntil = 0, toastText = '', tier = -1;
     let p, plats, score, running = false, dir = 0, keys = {}, scores = [], playerName = '', lastScore = -1;
 
@@ -306,13 +321,24 @@
       }
       ctx.font = '700 12px Archivo, Arial'; ctx.fillStyle = '#8d8a82'; ctx.fillText(playerName.toUpperCase(), 14, 50);
     }
-    function loop() { if (!running) return; update(); draw(); requestAnimationFrame(loop); }
+    function loop(timestamp = performance.now()) {
+      if (!running) { lastFrameTime = 0; return; }
+      if (!lastFrameTime) lastFrameTime = timestamp;
+      const elapsed = timestamp - lastFrameTime;
+      if (elapsed >= FRAME_INTERVAL) {
+        const frames = Math.min(3, Math.floor(elapsed / FRAME_INTERVAL));
+        lastFrameTime = timestamp - (elapsed % FRAME_INTERVAL);
+        for (let frame = 0; frame < frames && running; frame++) update();
+        if (running) draw();
+      }
+      requestAnimationFrame(loop);
+    }
 
     function start() {
       playerName = nameIn.value.trim() || 'Anonym';
       nameIn.value = playerName === 'Anonym' && !nameIn.value.trim() ? '' : playerName;
       try { localStorage.setItem('sj-name', nameIn.value); } catch (e) {}
-      tier = -1; showCoupon(); wonNow = false; toastUntil = 0; keys = {}; dir = 0; reset(); running = true; overlay.classList.add('hidden'); loop();
+      tier = -1; showCoupon(); wonNow = false; toastUntil = 0; keys = {}; dir = 0; reset(); lastFrameTime = 0; running = true; overlay.classList.add('hidden'); loop();
     }
     function end() {
       running = false; lastScore = score;
