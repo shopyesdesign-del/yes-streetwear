@@ -105,7 +105,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-const LEADERBOARD_LIMIT = 50;
+const TOP_N = 10;
 const MAX_LEADERBOARD_SCORE = 10000000;
 let _leaderboardPool = null;
 let _leaderboardPoolPromise = null;
@@ -204,12 +204,25 @@ async function getLeaderboardPool() {
   }
 }
 
-async function queryLeaderboard(pool) {
+function normalizePlayerName(value) {
+  if (typeof value !== "string") return "";
+  return value.normalize("NFKC").replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/gu, " ").trim();
+}
+
+async function queryLeaderboard(pool, playerNameKey = null) {
   const { rows } = await pool.query(
-    "SELECT player_name AS name, score FROM public.money_jump_scores ORDER BY score DESC, created_at ASC, name_key ASC LIMIT $1",
-    [LEADERBOARD_LIMIT]
+    `WITH ranked_scores AS (
+      SELECT name_key, player_name AS name, score,
+        ROW_NUMBER() OVER (ORDER BY score DESC, created_at ASC, name_key ASC) AS rank
+      FROM public.money_jump_scores
+    )
+    SELECT name, score, rank
+    FROM ranked_scores
+    WHERE rank <= $1 OR ($2::text IS NOT NULL AND name_key = $2)
+    ORDER BY rank`,
+    [TOP_N, playerNameKey]
   );
-  return rows;
+  return rows.map(row => ({ ...row, rank: Number(row.rank) }));
 }
 
 function sendLeaderboardUnavailable(res, message) {
@@ -219,12 +232,16 @@ function sendLeaderboardUnavailable(res, message) {
   });
 }
 
-app.get("/api/money-jump/scores", async (_req, res) => {
+app.get("/api/money-jump/scores", async (req, res) => {
   res.set("Cache-Control", "no-store");
   try {
     const pool = await getLeaderboardPool();
     if (!pool) return sendLeaderboardUnavailable(res, "Rangliste momentan nicht verfügbar.");
-    return res.json({ scores: await queryLeaderboard(pool) });
+    const requestedName = normalizePlayerName(req.query.name);
+    const playerNameKey = requestedName && Array.from(requestedName).length <= 12
+      ? requestedName.toLowerCase()
+      : null;
+    return res.json({ scores: await queryLeaderboard(pool, playerNameKey) });
   } catch (error) {
     _leaderboardFailureCode = getLeaderboardFailureCode(error);
     logLeaderboardError("read", error);
@@ -235,9 +252,7 @@ app.get("/api/money-jump/scores", async (_req, res) => {
 app.post("/api/money-jump/scores", async (req, res) => {
   res.set("Cache-Control", "no-store");
   const rawName = req.body && req.body.name;
-  const name = typeof rawName === "string"
-    ? rawName.normalize("NFKC").replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/gu, " ").trim()
-    : "";
+  const name = normalizePlayerName(rawName);
   const score = req.body && req.body.score;
 
   if (!name || Array.from(name).length > 12)
@@ -252,7 +267,7 @@ app.post("/api/money-jump/scores", async (req, res) => {
       "INSERT INTO public.money_jump_scores (name_key, player_name, score) VALUES ($1, $2, $3) ON CONFLICT (name_key) DO UPDATE SET player_name = EXCLUDED.player_name, score = GREATEST(money_jump_scores.score, EXCLUDED.score), updated_at = CASE WHEN EXCLUDED.score > money_jump_scores.score THEN NOW() ELSE money_jump_scores.updated_at END",
       [name.toLowerCase(), name, score]
     );
-    return res.json({ scores: await queryLeaderboard(pool) });
+    return res.json({ scores: await queryLeaderboard(pool, name.toLowerCase()) });
   } catch (error) {
     _leaderboardFailureCode = getLeaderboardFailureCode(error);
     logLeaderboardError("write", error);
