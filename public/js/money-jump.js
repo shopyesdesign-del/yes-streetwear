@@ -86,7 +86,7 @@
     </div>
     <input id="mj-name" maxlength="12" placeholder="Dein Name" autocomplete="off" aria-label="Dein Name">
     <button id="mj-start">Los geht's</button>
-    <h2>Rangliste</h2>
+    <h2>Top 10 Rangliste</h2>
     <ol id="mj-board"></ol>
     </div>
   </div>
@@ -146,7 +146,7 @@
       x2:    { name: 'DOPPELTE PUNKTE', frames: 600 }
     };
     const CASH_CHANCE = 0.12;
-    const GRAVITY = 0.4, JUMP = -11.5, BASE_SPEED = 5, TOP_N = 7;
+    const GRAVITY = 0.4, JUMP = -11.5, BASE_SPEED = 5, TOP_N = 10;
     let SPEED = BASE_SPEED;
     const FRAME_INTERVAL = 1000 / 60;
     let pu = { type: null, t: 0 };
@@ -222,7 +222,9 @@
       boardStatus = 'Rangliste wird geladen …';
       renderBoard();
       try {
-        const response = await fetch('/api/money-jump/scores', { cache: 'no-store' });
+        const playerName = nameIn.value.trim();
+        const query = playerName ? `?name=${encodeURIComponent(playerName)}` : '';
+        const response = await fetch(`/api/money-jump/scores${query}`, { cache: 'no-store' });
         if (!response.ok) throw new Error('Leaderboard request failed');
         const data = await response.json();
         scores = Array.isArray(data.scores) ? data.scores : [];
@@ -269,11 +271,15 @@
         board.appendChild(li);
         return;
       }
-      scores.slice(0, TOP_N).forEach((e, i) => row(i + 1, e));
-      const mi = scores.findIndex(e => me && same(e.name, me));
-      if (mi >= TOP_N) {
+      const rankedScores = scores.map((entry, index) => {
+        const rank = Number(entry.rank);
+        return { ...entry, rank: Number.isSafeInteger(rank) && rank > 0 ? rank : index + 1 };
+      });
+      rankedScores.filter(entry => entry.rank <= TOP_N).forEach(entry => row(entry.rank, entry));
+      const myScore = rankedScores.find(entry => me && same(entry.name, me));
+      if (myScore && myScore.rank > TOP_N) {
         const g = document.createElement('li'); g.className = 'gap'; g.textContent = '···'; board.appendChild(g);
-        row(mi + 1, scores[mi]);
+        row(myScore.rank, myScore);
       }
       if (boardStatus) {
         const li = document.createElement('li'); li.className = 'gap';
@@ -486,6 +492,7 @@
     };
     startBtn.onclick = start;
     nameIn.addEventListener('input', renderBoard);
+    nameIn.addEventListener('change', loadScores);
     nameIn.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) start(); });
     addEventListener('keydown', e => {
       if (!running) return;
