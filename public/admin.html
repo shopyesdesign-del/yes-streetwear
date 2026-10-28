@@ -50,6 +50,9 @@
       <a class="nav-item" data-sec="logineditor" href="#">
         <span class="ni">🔐</span> Passwort Seite
       </a>
+      <a class="nav-item" data-sec="game" href="#">
+        <span class="ni">🎮</span> Game
+      </a>
       <div class="nav-divider"></div>
       <a class="nav-item" data-sec="orders" href="#">
         <span class="ni">📦</span> Bestellungen
@@ -2103,6 +2106,55 @@
       <div id="emailSectionMount"></div>
     </section>
 
+    <section id="sec-game" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Game Einstellungen</h1>
+          <p class="page-sub">MON€Y JUMP – Gutschein-Belohnungen konfigurieren.</p>
+        </div>
+        <button class="btn-primary" onclick="saveGameSettings()">Speichern</button>
+      </div>
+
+      <div class="editor-card">
+        <div class="card-title">🎫 Gutschein-Stufe 1</div>
+        <p class="field-hint" style="margin:0 0 18px">Spieler die diesen Score erreichen sehen den Gutscheincode im Spiel.</p>
+        <div class="field-row">
+          <div class="field-group" style="flex:1">
+            <label class="field-label">Score-Schwelle</label>
+            <input type="number" class="input-field" id="gc_score1" placeholder="10000" min="0">
+          </div>
+          <div class="field-group" style="flex:1">
+            <label class="field-label">Gutscheincode</label>
+            <input type="text" class="input-field" id="gc_code1" placeholder="JUMP5" maxlength="20" style="text-transform:uppercase">
+          </div>
+          <div class="field-group" style="flex:1">
+            <label class="field-label">Beschreibung</label>
+            <input type="text" class="input-field" id="gc_label1" placeholder="5% Rabatt" maxlength="50">
+          </div>
+        </div>
+      </div>
+
+      <div class="editor-card">
+        <div class="card-title">🎫 Gutschein-Stufe 2</div>
+        <p class="field-hint" style="margin:0 0 18px">Höherer Score = besserer Gutschein.</p>
+        <div class="field-row">
+          <div class="field-group" style="flex:1">
+            <label class="field-label">Score-Schwelle</label>
+            <input type="number" class="input-field" id="gc_score2" placeholder="25000" min="0">
+          </div>
+          <div class="field-group" style="flex:1">
+            <label class="field-label">Gutscheincode</label>
+            <input type="text" class="input-field" id="gc_code2" placeholder="JUMP10" maxlength="20" style="text-transform:uppercase">
+          </div>
+          <div class="field-group" style="flex:1">
+            <label class="field-label">Beschreibung</label>
+            <input type="text" class="input-field" id="gc_label2" placeholder="10% Rabatt" maxlength="50">
+          </div>
+        </div>
+      </div>
+
+    </section>
+
   </div><!-- /main-area -->
 
   <!-- Order detail modal -->
@@ -2480,6 +2532,7 @@ const SEC_LABELS = {
   homepage:'Startseite', media:'Medien', collections:'Collections',
   cursor:'Brand Cursor', vfx:'Visual Effects', logineditor:'Passwort Seite',
   orders:'Bestellungen', payment:'Zahlung', email:'E-Mail', settings:'Einstellungen',
+  game:'Game',
 };
 
 document.querySelectorAll('.nav-item').forEach(item => {
@@ -2510,6 +2563,7 @@ function navigate(sec) {
   if (sec === 'settings')    { if (!settingsLoaded) loadSettingsPage(); }
   if (sec === 'vfx')         loadVFX();
   if (sec === 'logineditor') loadLoginEditor();
+  if (sec === 'game')        loadGameSettings();
 }
 
 // ── Mobile sidebar ─────────────────────────────────────────────
@@ -4558,6 +4612,40 @@ async function sendTestEmail() {
   const data = await res.json();
   if (data.success) toast(`Test-E-Mail an ${to} gesendet ✓`, 'success');
   else toast('Fehler: ' + (data.error || 'Unbekannt'), 'error');
+}
+
+// ── Game Settings ────────────────────────────────────────────
+let gameSettingsLoaded = false;
+async function loadGameSettings() {
+  if (gameSettingsLoaded) return;
+  gameSettingsLoaded = true;
+  try {
+    const res = await fetch('/api/game-config');
+    const d = await res.json();
+    document.getElementById('gc_score1').value = d.score1 ?? 10000;
+    document.getElementById('gc_code1').value  = d.code1  ?? 'JUMP5';
+    document.getElementById('gc_label1').value = d.label1 ?? '5% Rabatt';
+    document.getElementById('gc_score2').value = d.score2 ?? 25000;
+    document.getElementById('gc_code2').value  = d.code2  ?? 'JUMP10';
+    document.getElementById('gc_label2').value = d.label2 ?? '10% Rabatt';
+  } catch { toast('Game-Einstellungen konnten nicht geladen werden', 'error'); }
+}
+
+async function saveGameSettings() {
+  const body = {
+    score1: parseInt(document.getElementById('gc_score1').value) || 10000,
+    code1:  document.getElementById('gc_code1').value.trim().toUpperCase() || 'JUMP5',
+    label1: document.getElementById('gc_label1').value.trim() || '5% Rabatt',
+    score2: parseInt(document.getElementById('gc_score2').value) || 25000,
+    code2:  document.getElementById('gc_code2').value.trim().toUpperCase() || 'JUMP10',
+    label2: document.getElementById('gc_label2').value.trim() || '10% Rabatt',
+  };
+  const res = await fetch('/admin/game-settings', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  }).catch(() => null);
+  if (!res || !res.ok) { toast('Fehler beim Speichern', 'error'); return; }
+  toast('Game-Einstellungen gespeichert ✓', 'success');
+  gameSettingsLoaded = false;
 }
 
 // ── Boot ──────────────────────────────────────────────────────
