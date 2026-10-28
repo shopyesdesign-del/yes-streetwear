@@ -95,7 +95,7 @@
       <div id="mj-card-rank" class="hidden"></div>
       <div id="mj-card-brand">yesdesign.art</div>
     </div>
-    <p id="mj-msg">Steuern mit ← → oder A / D.<br>Am Handy: links / rechts tippen.<br>Sammle Geldbündel für Powerups.</p>
+    <p id="mj-msg"></p>
     <div id="mj-coupon" class="hidden">
       <small id="mj-coupon-label">Dein Gutschein</small>
       <div id="mj-code"></div>
@@ -533,7 +533,6 @@
     cv.addEventListener('touchend', () => dir = 0);
 
     playerName = nameIn.value;
-    if (tier + 1 < TIERS.length) msg.innerHTML += '<br><b style="color:#c6ff00">' + TIERS.map(t => t.score + ' Punkte = ' + t.label).join(' · ') + '</b>';
     const MSG_START = msg.innerHTML;
     showCoupon(); reset(); draw(); renderBoard();
     resizeGame = resizeCanvas;
