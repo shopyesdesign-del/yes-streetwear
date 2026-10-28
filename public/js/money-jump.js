@@ -164,7 +164,7 @@
       x2:    { name: 'DOPPELTE PUNKTE',frames: 600 },
       joint: { name: 'RAKETEN-SCHUB',  frames: 180 }
     };
-    const CASH_CHANCE = 0.12, JOINT_CHANCE = 0.07;
+    const CASH_CHANCE = 0.12, JOINT_CHANCE = 0.02;
     const GRAVITY = 0.4, JUMP = -11.5, BASE_SPEED = 5, TOP_N = 10;
     let SPEED = BASE_SPEED;
     const FRAME_INTERVAL = 1000 / 60;
