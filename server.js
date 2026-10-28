@@ -671,22 +671,34 @@ app.get("/admin/db-test", async (req, res) => {
 app.get("/api/game-config", async (req, res) => {
   try { await Promise.race([_ready, new Promise(r => setTimeout(r, 4000))]); } catch (_) {}
   const gc = await dbGet("game_config", null);
-  res.json(gc || { score1: 10000, code1: "JUMP5", label1: "5% Rabatt", score2: 25000, code2: "JUMP10", label2: "10% Rabatt" });
+  res.json(gc || { score1: 10000, code1: "JUMP5", label1: "5% Rabatt", discount1: 5, score2: 25000, code2: "JUMP10", label2: "10% Rabatt", discount2: 10 });
 });
 
 app.post("/admin/game-settings", async (req, res) => {
   try { await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]); } catch (_) {}
-  const { score1, code1, label1, score2, code2, label2 } = req.body || {};
+  const { score1, code1, label1, discount1, score2, code2, label2, discount2 } = req.body || {};
   const data = {
-    score1: Math.max(0, parseInt(score1) || 10000),
-    code1:  String(code1  || "JUMP5" ).toUpperCase().trim().slice(0, 20),
-    label1: String(label1 || "5% Rabatt").trim().slice(0, 50),
-    score2: Math.max(0, parseInt(score2) || 25000),
-    code2:  String(code2  || "JUMP10").toUpperCase().trim().slice(0, 20),
-    label2: String(label2 || "10% Rabatt").trim().slice(0, 50),
+    score1:    Math.max(0, parseInt(score1) || 10000),
+    code1:     String(code1  || "JUMP5" ).toUpperCase().trim().slice(0, 20),
+    label1:    String(label1 || "5% Rabatt").trim().slice(0, 50),
+    discount1: Math.min(100, Math.max(0, parseFloat(discount1) || 5)),
+    score2:    Math.max(0, parseInt(score2) || 25000),
+    code2:     String(code2  || "JUMP10").toUpperCase().trim().slice(0, 20),
+    label2:    String(label2 || "10% Rabatt").trim().slice(0, 50),
+    discount2: Math.min(100, Math.max(0, parseFloat(discount2) || 10)),
   };
   await dbSet("game_config", data);
   res.json({ ok: true, ...data });
+});
+
+app.post("/api/validate-coupon", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 4000))]); } catch (_) {}
+  const code = String(req.body?.code || "").toUpperCase().trim();
+  if (!code) return res.json({ valid: false });
+  const gc = await dbGet("game_config", null) || { code1: "JUMP5", discount1: 5, label1: "5% Rabatt", code2: "JUMP10", discount2: 10, label2: "10% Rabatt" };
+  if (code === gc.code1) return res.json({ valid: true, code, label: gc.label1, discount: gc.discount1 });
+  if (code === gc.code2) return res.json({ valid: true, code, label: gc.label2, discount: gc.discount2 });
+  res.json({ valid: false });
 });
 
 // LOGIN — passwords now configurable via admin
@@ -1579,6 +1591,10 @@ app.post("/checkout/create-paypal-order", async (req, res) => {
   }
   const shipping = p.shippingFree ? 0 : (p.shippingCost || 0);
   total += shipping;
+  // Use client-side discounted total if provided (coupon applied)
+  if (req.body.discountedTotal && req.body.discountedTotal > 0 && req.body.discountedTotal < total) {
+    total = Math.round(req.body.discountedTotal * 100) / 100;
+  }
   const currency = p.currency || "EUR";
 
   try {
