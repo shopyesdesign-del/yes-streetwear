@@ -67,6 +67,15 @@
 #mj #mj-coupon button, #mj #mj-coupon a { font-size:.85rem; padding:6px 12px; }
 #mj #mj-coupon a { font-family:'Archivo Black', Impact, sans-serif; text-transform:uppercase; text-decoration:none;
               border:3px solid var(--lime); background:var(--lime); color:var(--black); }
+#mj #mj-score-card { width:100%; max-width:300px; border:3px solid var(--lime); background:#111; padding:20px 16px 14px; display:flex; flex-direction:column; align-items:center; gap:5px; }
+#mj #mj-card-logo { width:min(55vw,200px); height:auto; display:block; margin-bottom:4px; }
+#mj #mj-card-label { font-family:'Archivo Black',Impact,sans-serif; font-size:1.2rem; text-transform:uppercase; transform:rotate(-2deg); background:var(--lime); color:var(--black); padding:3px 12px; }
+#mj #mj-card-name { font-family:'Archivo Black',Impact,sans-serif; font-size:1.7rem; text-transform:uppercase; color:var(--paper); letter-spacing:.05em; margin-top:8px; }
+#mj #mj-card-pts { font-family:'Archivo Black',Impact,sans-serif; font-size:4.5rem; line-height:1; color:var(--lime); letter-spacing:-.02em; }
+#mj #mj-card-unit { font-size:.65rem; letter-spacing:.2em; color:var(--mute); text-transform:uppercase; margin-top:-2px; }
+#mj #mj-card-rank { font-family:'Archivo Black',Impact,sans-serif; font-size:.95rem; border:2px solid #555; color:var(--paper); padding:3px 12px; margin-top:6px; letter-spacing:.06em; }
+#mj #mj-card-rank.top3 { border-color:var(--lime); color:var(--lime); }
+#mj #mj-card-brand { font-size:.68rem; color:#555; letter-spacing:.12em; padding-top:10px; margin-top:4px; border-top:1px solid #282828; width:100%; text-align:center; }
 #mj .hidden { display:none !important; }`;
   var HTML = `<button id="mj-fab" type="button" aria-label="Money Jump Spiel starten" aria-haspopup="dialog" aria-controls="mj"></button>
 <div id="mj" role="dialog" aria-modal="true" aria-label="Money Jump Spiel">
@@ -77,6 +86,15 @@
   <div id="mj-overlay">
     <img id="mj-title-logo" src="/js/money-jump-logo.png" alt="Money Jump" />
     <h1 id="mj-title" class="hidden"></h1>
+    <div id="mj-score-card" class="hidden">
+      <img id="mj-card-logo" src="/js/money-jump-logo.png" alt="MON€Y JUMP">
+      <div id="mj-card-label"></div>
+      <div id="mj-card-name"></div>
+      <div id="mj-card-pts"></div>
+      <div id="mj-card-unit">PUNKTE</div>
+      <div id="mj-card-rank" class="hidden"></div>
+      <div id="mj-card-brand">yesdesign.art</div>
+    </div>
     <p id="mj-msg">Steuern mit ← → oder A / D.<br>Am Handy: links / rechts tippen.<br>Sammle Geldbündel für Powerups.</p>
     <div id="mj-coupon" class="hidden">
       <small id="mj-coupon-label">Dein Gutschein</small>
@@ -277,6 +295,12 @@
       });
       rankedScores.filter(entry => entry.rank <= TOP_N).forEach(entry => row(entry.rank, entry));
       const myScore = rankedScores.find(entry => me && same(entry.name, me));
+      const cardRank = document.getElementById('mj-card-rank');
+      if (cardRank && lastScore >= 0 && myScore) {
+        cardRank.textContent = 'PLATZ #' + myScore.rank;
+        cardRank.classList.remove('hidden', 'top3');
+        if (myScore.rank <= 3) cardRank.classList.add('top3');
+      }
       if (myScore && myScore.rank > TOP_N) {
         const g = document.createElement('li'); g.className = 'gap'; g.textContent = '···'; board.appendChild(g);
         row(myScore.rank, myScore);
@@ -467,14 +491,15 @@
       addScore(playerName, score);
       if (!nameIn.value.trim()) nameIn.value = playerName;
       logo.classList.add('hidden');
-      title.classList.remove('hidden');
-      title.textContent = wonNow ? 'Geschafft' : 'Gestürzt';
-      const points = document.createElement('b');
-      points.style.color = '#f2efe6';
-      points.textContent = String(score);
-      msg.replaceChildren(document.createTextNode(playerName + ': '), points, document.createTextNode(' Punkte'));
+      title.classList.add('hidden');
+      const sc = $('score-card'); sc.classList.remove('hidden');
+      $('card-label').textContent = wonNow ? 'Geschafft' : 'Gestürzt';
+      $('card-name').textContent = playerName;
+      $('card-pts').textContent = score.toLocaleString('de-DE');
+      $('card-rank').classList.add('hidden');
+      msg.replaceChildren();
       if (tier + 1 < TIERS.length) {
-        msg.append(document.createElement('br'), document.createTextNode('Noch ' + (TIERS[tier + 1].score - score) + ' bis zum ' + TIERS[tier + 1].label + '-Gutschein'));
+        msg.append(document.createTextNode('Noch ' + (TIERS[tier + 1].score - score) + ' bis zum ' + TIERS[tier + 1].label + '-Gutschein'));
       }
       showCoupon();
       startBtn.textContent = 'Nochmal';
@@ -518,6 +543,7 @@
       if (audioContext && audioContext.state === 'running') audioContext.suspend().catch(() => {});
       tier = -1; wonNow = false; showCoupon();
       logo.classList.remove('hidden'); title.classList.add('hidden'); title.textContent = '';
+      $('score-card').classList.add('hidden');
       msg.innerHTML = MSG_START; startBtn.textContent = "Los geht's";
       renderBoard(); overlay.classList.remove('hidden');
     };
