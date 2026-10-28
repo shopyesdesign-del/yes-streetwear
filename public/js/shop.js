@@ -642,6 +642,48 @@ function flashCartButton() {
 // ── Checkout (multi-step) ──────────────────────────────────────
 let _payConfig    = null;
 let _paypalLoaded = false;
+let _coupon       = null; // { code, label, discount } or null
+
+async function applyCoupon() {
+  const input = document.getElementById('co_coupon');
+  const msg   = document.getElementById('co_coupon_msg');
+  const code  = input.value.trim().toUpperCase();
+  if (!code) return;
+  msg.textContent = ''; msg.className = 'co-coupon-msg';
+  const res = await fetch('/api/validate-coupon', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  }).catch(() => null);
+  if (!res || !res.ok) { msg.textContent = 'Fehler. Bitte erneut versuchen.'; msg.className = 'co-coupon-msg err'; return; }
+  const data = await res.json();
+  if (!data.valid) { msg.textContent = 'Ungültiger Code.'; msg.className = 'co-coupon-msg err'; _coupon = null; refreshSummaryTotals(); return; }
+  _coupon = data;
+  msg.textContent = `✓ ${data.label} angewendet!`; msg.className = 'co-coupon-msg ok';
+  refreshSummaryTotals();
+}
+
+function calcTotals() {
+  const sub      = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const shipping = _payConfig?.shippingFree ? 0 : (_payConfig?.shippingCost || 0);
+  const discount = _coupon ? Math.round(sub * _coupon.discount) / 100 : 0;
+  const total    = Math.max(0, sub - discount + shipping);
+  return { sub, shipping, discount, total };
+}
+
+function refreshSummaryTotals() {
+  const { sub, shipping, discount, total } = calcTotals();
+  const discRow = document.getElementById('co_discount_row');
+  document.getElementById('co_subtotal').textContent = formatPrice(sub);
+  document.getElementById('co_shipping').textContent = _payConfig?.shippingFree ? 'Kostenlos' : formatPrice(shipping);
+  document.getElementById('co_total').textContent    = formatPrice(total);
+  if (discount > 0 && _coupon) {
+    document.getElementById('co_discount_label').textContent = `Gutschein (${_coupon.label})`;
+    document.getElementById('co_discount_amt').textContent   = '–' + formatPrice(discount);
+    discRow.style.display = '';
+  } else {
+    discRow.style.display = 'none';
+  }
+}
 
 function coGoto(step) {
   [1, 2, 3].forEach(n => {
@@ -664,9 +706,11 @@ async function openCheckout() {
     }));
   }
 
-  const sub      = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const shipping = _payConfig.shippingFree ? 0 : (_payConfig.shippingCost || 0);
-  const total    = sub + shipping;
+  _coupon = null;
+  document.getElementById('co_coupon').value = '';
+  document.getElementById('co_coupon_msg').textContent = '';
+  document.getElementById('co_coupon_msg').className = 'co-coupon-msg';
+  document.getElementById('co_discount_row').style.display = 'none';
 
   document.getElementById('co_items_list').innerHTML = cart.map(i => `
     <div class="co-item-row">
@@ -680,11 +724,8 @@ async function openCheckout() {
       <span class="co-item-price">${formatPrice(i.price * i.qty)}</span>
     </div>
   `).join('');
-  document.getElementById('co_subtotal').textContent = formatPrice(sub);
-  document.getElementById('co_shipping').textContent = _payConfig.shippingFree
-    ? 'Kostenlos' : formatPrice(shipping);
-  document.getElementById('co_total').textContent = formatPrice(total);
 
+  refreshSummaryTotals();
   coGoto(1);
   document.getElementById('checkoutModal').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -723,14 +764,13 @@ function getCustomerInfo() {
 function coGotoStep2() {
   if (!coValidateStep1()) return;
   const info  = getCustomerInfo();
-  const total = cart.reduce((s, i) => s + i.price * i.qty, 0)
-              + (_payConfig?.shippingFree ? 0 : _payConfig?.shippingCost || 0);
+  const { total } = calcTotals();
   document.getElementById('co_pay_summary').innerHTML = `
     <div><strong>${esc(info.name)}</strong> · ${esc(info.email)}</div>
     <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:3px">
       ${esc(info.street)}, ${esc(info.zip)} ${esc(info.city)}
     </div>
-    <div class="co-pay-total">${formatPrice(total)} gesamt</div>
+    <div class="co-pay-total">${formatPrice(total)} gesamt${_coupon ? ` <span style="color:#c6ff00;font-size:12px">(${_coupon.label})</span>` : ''}</div>
   `;
   coGoto(2);
   initPaymentOptions();
@@ -783,10 +823,11 @@ function renderPaypalButtons() {
     style: { layout: 'vertical', color: 'black', shape: 'rect', label: 'paypal' },
 
     createOrder: async () => {
+      const { total } = calcTotals();
       const res  = await fetch('/checkout/create-paypal-order', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ items: cart.map(i => ({ id: i.id, qty: i.qty })) }),
+        body:    JSON.stringify({ items: cart.map(i => ({ id: i.id, qty: i.qty })), discountedTotal: total }),
       });
       const data = await res.json();
       if (!data.id) throw new Error('Order creation failed');
@@ -796,6 +837,7 @@ function renderPaypalButtons() {
     onApprove: async (data) => {
       document.getElementById('coPayLoading').style.display = '';
       try {
+        const { sub, total, discount } = calcTotals();
         const res    = await fetch('/checkout/capture-paypal-order', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -803,6 +845,10 @@ function renderPaypalButtons() {
             paypalOrderId: data.orderID,
             customerInfo:  getCustomerInfo(),
             items:         cart.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
+            subtotal:      sub,
+            discount,
+            couponCode:    _coupon?.code || null,
+            couponLabel:   _coupon?.label || null,
           }),
         });
         const result = await res.json();
@@ -828,9 +874,8 @@ async function submitManualOrder() {
   btn.disabled    = true;
   btn.textContent = '⏳ Bestellung wird gesendet…';
   try {
-    const info    = getCustomerInfo();
-    const total   = cart.reduce((s, i) => s + i.price * i.qty, 0)
-                  + (_payConfig?.shippingFree ? 0 : _payConfig?.shippingCost || 0);
+    const info              = getCustomerInfo();
+    const { sub, total, discount } = calcTotals();
     const res  = await fetch('/orders', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -838,6 +883,10 @@ async function submitManualOrder() {
         ...info,
         items:         cart.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty, image: i.image || '' })),
         total,
+        subtotal:      sub,
+        discount,
+        couponCode:    _coupon?.code || null,
+        couponLabel:   _coupon?.label || null,
         currency:      _payConfig?.currency || 'EUR',
         paymentMethod: 'manual',
         status:        'pending',
