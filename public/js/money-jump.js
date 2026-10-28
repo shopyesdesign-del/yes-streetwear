@@ -32,7 +32,7 @@
 #mj #mj-close:focus-visible { outline:3px solid var(--lime); outline-offset:2px; }
 
 #mj h1, #mj h2 { letter-spacing:normal; font-weight:400; }
-#mj #mj-title-logo { display:block; width:min(74vw, 280px); height:min(32dvh, 220px); object-fit:contain; }
+#mj #mj-title-logo { display:block; width:min(90vw, 360px); height:min(42dvh, 280px); object-fit:contain; }
 #mj #mj-wrap { position:relative; flex:1; width:100%; height:100%; min-width:0; min-height:0; }
 #mj canvas { width:100%; height:100%; display:block; background-color:#f2efe6;
            border:4px solid var(--paper); touch-action:none; }
@@ -159,11 +159,12 @@
     ];
     /* ======================================== */
     const POWERUPS = {
-      turbo: { name: 'TURBO',        frames: 90 },
-      mega:  { name: 'MEGA-SPRUNG',  frames: 480 },
-      x2:    { name: 'DOPPELTE PUNKTE', frames: 600 }
+      turbo: { name: 'TURBO',          frames: 90 },
+      mega:  { name: 'MEGA-SPRUNG',    frames: 480 },
+      x2:    { name: 'DOPPELTE PUNKTE',frames: 600 },
+      joint: { name: 'RAKETEN-SCHUB',  frames: 180 }
     };
-    const CASH_CHANCE = 0.12;
+    const CASH_CHANCE = 0.12, JOINT_CHANCE = 0.07;
     const GRAVITY = 0.4, JUMP = -11.5, BASE_SPEED = 5, TOP_N = 10;
     let SPEED = BASE_SPEED;
     const FRAME_INTERVAL = 1000 / 60;
@@ -171,10 +172,12 @@
     let lastFrameTime = 0;
     let wonNow = false, toastUntil = 0, toastText = '', tier = -1;
     let p, plats, score, running = false, dir = 0, keys = {}, scores = [], playerName = '', lastScore = -1;
+    let smokeParticles = [];
 
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     const SOUND_LEVEL = 0.9;
     const SOUND_PATTERNS = {
+      joint: [[180, 260, 0.25, 0.07, 'sine', 0], [260, 200, 0.3, 0.08, 'sine', 0.18], [200, 280, 0.35, 0.09, 'sine', 0.38]],
       start: [[392, 523, 0.1, 0.16, 'triangle', 0], [523, 659, 0.12, 0.15, 'triangle', 0.08]],
       bounce: [[320, 460, 0.07, 0.13, 'sine', 0]],
       powerup: [[659, 880, 0.09, 0.17, 'sine', 0], [880, 1175, 0.12, 0.15, 'triangle', 0.06]],
@@ -315,13 +318,15 @@
 
     /* ---------- Spiel ---------- */
     function makePlat(y, moving) {
+      const hasCash = Math.random() < CASH_CHANCE;
       return { x: Math.random() * (W - 80), y, w: 80, h: 14,
-               mv: moving ? (Math.random() < .5 ? 1 : -1) * 1.6 : 0, cash: Math.random() < CASH_CHANCE };
+               mv: moving ? (Math.random() < .5 ? 1 : -1) * 1.6 : 0,
+               cash: hasCash, joint: !hasCash && Math.random() < JOINT_CHANCE };
     }
     function reset() {
       p = { x: W / 2 - 17, y: H - 150, w: 34, h: HERO_H, vy: JUMP, face: 1, sq: 0 };
       plats = [{ x: W / 2 - 40, y: H - 40, w: 80, h: 14, mv: 0 }];
-      score = 0; pu = { type: null, t: 0 };
+      score = 0; pu = { type: null, t: 0 }; smokeParticles = [];
       for (let y = H - 110; y > -H; y -= 75) plats.push(makePlat(y, false));
     }
     function update() {
@@ -330,7 +335,9 @@
       if (right) p.face = 1; if (left) p.face = -1;
       p.x += (right ? SPEED : 0) - (left ? SPEED : 0);
       if (p.x > W) p.x = -p.w; if (p.x < -p.w) p.x = W;
-      if (pu.type === 'turbo') p.vy = -14; else p.vy += GRAVITY;
+      if (pu.type === 'turbo') p.vy = -14;
+      else if (pu.type === 'joint') { p.vy -= 1.5; if (p.vy < -19) p.vy = -19; }
+      else p.vy += GRAVITY;
       p.y += p.vy;
       if (pu.type && --pu.t <= 0) pu.type = null;
       if (p.vy > 0) for (const pl of plats)
@@ -345,7 +352,16 @@
           playSound('powerup');
         }
       }
-      if (p.y < H / 2.2) { const d = H / 2.2 - p.y; p.y = H / 2.2; score += Math.round(d) * (pu.type === 'x2' ? 2 : 1); plats.forEach(pl => pl.y += d); }
+      for (const pl of plats) if (pl.joint) {
+        const cx = pl.x + pl.w / 2 - 10, cy = pl.y - 30;
+        if (p.x + p.w > cx && p.x < cx + 20 && p.y + p.h > cy && p.y < cy + 26) {
+          pl.joint = false;
+          pu = { type: 'joint', t: POWERUPS.joint.frames };
+          smokeParticles = [];
+          playSound('joint');
+        }
+      }
+      if (p.y < H / 2.2) { const d = H / 2.2 - p.y; p.y = H / 2.2; score += Math.round(d) * (pu.type === 'x2' ? 2 : 1); plats.forEach(pl => pl.y += d); smokeParticles.forEach(s => s.y += d); }
       plats = plats.filter(pl => pl.y < H + 20);
       let top = Math.min(...plats.map(pl => pl.y));
       const gap = Math.min(75 + score / 120, 120);
@@ -382,6 +398,31 @@
       ctx.fillStyle = '#0e0e0e'; ctx.font = '700 11px Archivo, Arial'; ctx.textAlign = 'center';
       ctx.fillText('€', x + 5.5, y + 14); ctx.fillText('€', x + 22.5, y + 14); ctx.textAlign = 'left';
     }
+    function drawJoint(pl) {
+      if (!pl.joint) return;
+      const cx = pl.x + pl.w / 2, bob = Math.sin(performance.now() * 0.003) * 4;
+      const jy = pl.y - 34 + bob;
+      ctx.save(); ctx.translate(cx, jy); ctx.rotate(0.45);
+      // Körper (Papier)
+      ctx.fillStyle = '#f0e8c8'; ctx.strokeStyle = '#c8a96e'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(-13, -4, 26, 8, 3); ctx.fill(); ctx.stroke();
+      // Rillen
+      ctx.strokeStyle = 'rgba(160,130,80,.4)'; ctx.lineWidth = 0.7;
+      [-5, 0, 5].forEach(xo => { ctx.beginPath(); ctx.moveTo(xo, -4); ctx.lineTo(xo, 4); ctx.stroke(); });
+      // Filter (braun, gedreht)
+      ctx.fillStyle = '#8B5E2A'; ctx.beginPath(); ctx.roundRect(-20, -3.5, 9, 7, 2); ctx.fill();
+      // Glut
+      ctx.fillStyle = '#ff5500'; ctx.beginPath(); ctx.arc(15, 0, 4, 0, Math.PI * 2); ctx.fill();
+      const grd = ctx.createRadialGradient(15, 0, 1, 15, 0, 9);
+      grd.addColorStop(0, 'rgba(255,160,20,.7)'); grd.addColorStop(1, 'rgba(255,80,0,0)');
+      ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(15, 0, 9, 0, Math.PI * 2); ctx.fill();
+      // Rauch
+      ctx.globalAlpha = 0.35; ctx.fillStyle = '#aaa';
+      [[18, -9, 3.5], [20, -16, 2.5], [19, -23, 2]].forEach(([rx, ry, rr]) => {
+        ctx.beginPath(); ctx.arc(rx, ry, rr, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.restore();
+    }
     function drawSneaker() {
       // Spielfigur mit kleiner Sprung-Animation: Landung = zusammenstauchen,
       // Aufstieg = Sprung-Pose mit Streckung, Fall = Stand-Pose
@@ -415,10 +456,29 @@
       ctx.fillStyle = 'rgba(14,14,14,.06)'; // Beton-Fugen
       for (let y = ((score * .3) % 120); y < H; y += 120) ctx.fillRect(0, y, W, 2);
       ctx.fillRect(W / 2, 0, 2, H);
-      plats.forEach(drawPlat); plats.forEach(drawCash); drawSneaker();
+      plats.forEach(drawPlat); plats.forEach(drawCash); plats.forEach(drawJoint);
+      // Smoke-Partikel zeichnen (hinter Spielfigur)
+      smokeParticles = smokeParticles.filter(s => s.a > 0.04);
+      smokeParticles.forEach(s => {
+        s.x += s.vx; s.y += s.vy; s.r += 0.3; s.a -= 0.018;
+        ctx.save(); ctx.globalAlpha = s.a; ctx.fillStyle = '#b0b0b0';
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      });
+      drawSneaker();
       if (pu.type === 'turbo') { // Flamme unter dem Schuh
         ctx.fillStyle = '#ffd400'; ctx.beginPath(); ctx.moveTo(p.x + 6, p.y + p.h);
         ctx.lineTo(p.x + p.w / 2, p.y + p.h + 18 + Math.random() * 10); ctx.lineTo(p.x + p.w - 6, p.y + p.h); ctx.fill();
+      }
+      if (pu.type === 'joint') { // Raketen-Nebel-Schub
+        for (let i = 0; i < 4; i++) smokeParticles.push({
+          x: p.x + p.w / 2 + (Math.random() - .5) * 10, y: p.y + p.h,
+          vx: (Math.random() - .5) * 2, vy: 1.5 + Math.random() * 2.5,
+          r: 4 + Math.random() * 4, a: 0.5 + Math.random() * .25
+        });
+        ctx.fillStyle = '#c6ff00'; ctx.beginPath(); ctx.moveTo(p.x + 6, p.y + p.h);
+        ctx.lineTo(p.x + p.w / 2, p.y + p.h + 26 + Math.random() * 12); ctx.lineTo(p.x + p.w - 6, p.y + p.h); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(p.x + 10, p.y + p.h);
+        ctx.lineTo(p.x + p.w / 2, p.y + p.h + 12); ctx.lineTo(p.x + p.w - 10, p.y + p.h); ctx.fill();
       }
       if (pu.type) { // Anzeige oben rechts
         const info = POWERUPS[pu.type];
