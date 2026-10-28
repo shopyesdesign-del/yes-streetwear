@@ -194,10 +194,21 @@
             <div id="co_items_list" class="co-items-list"></div>
             <div class="co-sum-rows">
               <div class="co-sum-row"><span>Zwischensumme</span><span id="co_subtotal"></span></div>
+              <div class="co-sum-row" id="co_discount_row" style="display:none;color:#c6ff00"><span id="co_discount_label">Gutschein</span><span id="co_discount_amt"></span></div>
               <div class="co-sum-row"><span>Versand</span><span id="co_shipping">Kostenlos</span></div>
               <div class="co-sum-row co-sum-total"><span>Gesamt</span><span id="co_total"></span></div>
             </div>
           </div>
+
+          <!-- Coupon -->
+          <div class="co-coupon-wrap" id="coCouponWrap">
+            <div class="co-coupon-row">
+              <input type="text" id="co_coupon" class="co-coupon-input" placeholder="Gutscheincode" autocomplete="off" style="text-transform:uppercase">
+              <button type="button" class="co-coupon-btn" onclick="applyCoupon()">Einlösen</button>
+            </div>
+            <div class="co-coupon-msg" id="co_coupon_msg"></div>
+          </div>
+
           <button type="submit" class="co-btn-primary">Weiter zur Zahlung →</button>
         </form>
       </div>
