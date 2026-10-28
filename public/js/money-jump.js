@@ -319,9 +319,11 @@
     /* ---------- Spiel ---------- */
     function makePlat(y, moving) {
       const hasCash = Math.random() < CASH_CHANCE;
+      const hasJoint = !hasCash && Math.random() < JOINT_CHANCE;
+      const canBreak = tier >= 0 && !hasCash && !hasJoint && Math.random() < 0.28;
       return { x: Math.random() * (W - 80), y, w: 80, h: 14,
                mv: moving ? (Math.random() < .5 ? 1 : -1) * 1.6 : 0,
-               cash: hasCash, joint: !hasCash && Math.random() < JOINT_CHANCE };
+               cash: hasCash, joint: hasJoint, breaks: canBreak, broken: false, breakT: 0 };
     }
     function reset() {
       p = { x: W / 2 - 17, y: H - 150, w: 34, h: HERO_H, vy: JUMP, face: 1, sq: 0 };
@@ -340,8 +342,14 @@
       else p.vy += GRAVITY;
       p.y += p.vy;
       if (pu.type && --pu.t <= 0) pu.type = null;
-      if (p.vy > 0) for (const pl of plats)
-        if (p.x + p.w > pl.x && p.x < pl.x + pl.w && p.y + p.h > pl.y && p.y + p.h < pl.y + pl.h + p.vy + 2) { p.vy = pu.type === 'mega' ? JUMP * 1.4 : JUMP; p.sq = 9; playSound('bounce'); break; }
+      if (p.vy > 0) for (const pl of plats) {
+        if (pl.broken) continue;
+        if (p.x + p.w > pl.x && p.x < pl.x + pl.w && p.y + p.h > pl.y && p.y + p.h < pl.y + pl.h + p.vy + 2) {
+          p.vy = pu.type === 'mega' ? JUMP * 1.4 : JUMP; p.sq = 9; playSound('bounce');
+          if (pl.breaks) { pl.broken = true; pl.breakT = 18; }
+          break;
+        }
+      }
       for (const pl of plats) if (pl.mv) { pl.x += pl.mv; if (pl.x < 0 || pl.x + pl.w > W) pl.mv *= -1; }
       for (const pl of plats) if (pl.cash) {
         const cx = pl.x + pl.w / 2 - 14, cy = pl.y - 26;
@@ -362,7 +370,8 @@
         }
       }
       if (p.y < H / 2.2) { const d = H / 2.2 - p.y; p.y = H / 2.2; score += Math.round(d) * (pu.type === 'x2' ? 2 : 1); plats.forEach(pl => pl.y += d); smokeParticles.forEach(s => s.y += d); }
-      plats = plats.filter(pl => pl.y < H + 20);
+      for (const pl of plats) if (pl.broken) pl.breakT--;
+      plats = plats.filter(pl => pl.y < H + 20 && !(pl.broken && pl.breakT <= 0));
       let top = Math.min(...plats.map(pl => pl.y));
       const gap = Math.min(75 + score / 120, 120);
       while (top > -20) { top -= gap; plats.push(makePlat(top, score > 600 && Math.random() < .3)); }
@@ -374,6 +383,16 @@
     }
 
     function drawPlat(pl) {
+      if (pl.broken) {
+        const t = Math.max(0, pl.breakT) / 18;
+        ctx.save(); ctx.globalAlpha = t;
+        const shk = (1 - t) * 5;
+        ctx.translate(pl.x + pl.w / 2 + (Math.random() - .5) * shk, pl.y + pl.h / 2);
+        ctx.scale(1 + (1 - t) * .25, t * .5 + .05);
+        ctx.fillStyle = '#ff4400'; ctx.beginPath(); ctx.roundRect(-pl.w / 2, -pl.h / 2, pl.w / 2 - 2, pl.h, 3); ctx.fill();
+        ctx.fillStyle = '#ff7700'; ctx.beginPath(); ctx.roundRect(2, -pl.h / 2, pl.w / 2 - 2, pl.h, 3); ctx.fill();
+        ctx.restore(); return;
+      }
       if (pl.mv) { // Absperrband
         ctx.save(); ctx.beginPath(); ctx.rect(pl.x, pl.y, pl.w, pl.h); ctx.clip();
         ctx.fillStyle = '#ffd400'; ctx.fillRect(pl.x, pl.y, pl.w, pl.h);
@@ -385,7 +404,8 @@
         ctx.restore();
       } else { // Skateboard-Deck
         ctx.fillStyle = '#0e0e0e'; ctx.beginPath(); ctx.roundRect(pl.x, pl.y, pl.w, pl.h, 7); ctx.fill();
-        ctx.fillStyle = '#c6ff00'; ctx.fillRect(pl.x + 14, pl.y + 4, pl.w - 28, 6);
+        ctx.fillStyle = pl.breaks ? '#ff7700' : '#c6ff00'; ctx.fillRect(pl.x + 14, pl.y + 4, pl.w - 28, 6);
+        if (pl.breaks) { ctx.strokeStyle = '#ff4400'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(pl.x + 36, pl.y); ctx.lineTo(pl.x + 30, pl.y + pl.h); ctx.stroke(); }
         ctx.fillStyle = '#0e0e0e';
         ctx.beginPath(); ctx.arc(pl.x + 16, pl.y + pl.h + 2, 3, 0, 7); ctx.arc(pl.x + pl.w - 16, pl.y + pl.h + 2, 3, 0, 7); ctx.fill();
       }
