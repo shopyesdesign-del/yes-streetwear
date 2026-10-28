@@ -2161,6 +2161,25 @@ body.page-enter {
   border-top: 1px solid rgba(255,255,255,.1);
 }
 
+/* Coupon */
+.co-coupon-wrap { margin: 12px 0 4px; }
+.co-coupon-row { display: flex; gap: 8px; }
+.co-coupon-input {
+  flex: 1; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.15);
+  border-radius: 8px; padding: 10px 12px; color: #fff; font-size: 14px;
+  letter-spacing: .08em; font-weight: 600;
+}
+.co-coupon-input:focus { outline: none; border-color: rgba(198,255,0,.5); }
+.co-coupon-btn {
+  background: rgba(198,255,0,.12); border: 1px solid rgba(198,255,0,.35);
+  color: #c6ff00; border-radius: 8px; padding: 10px 16px; font-size: 13px;
+  font-weight: 700; cursor: pointer; white-space: nowrap; transition: background .15s;
+}
+.co-coupon-btn:hover { background: rgba(198,255,0,.22); }
+.co-coupon-msg { font-size: 12px; margin-top: 5px; min-height: 16px; }
+.co-coupon-msg.ok  { color: #c6ff00; }
+.co-coupon-msg.err { color: #ff4d4d; }
+
 /* Buttons */
 .co-btn-primary {
   background: var(--color-accent, #ff2d55);
