@@ -667,6 +667,28 @@ app.get("/admin/db-test", async (req, res) => {
   }
 });
 
+// GAME CONFIG — public read, admin write
+app.get("/api/game-config", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 4000))]); } catch (_) {}
+  const gc = await dbGet("game_config", null);
+  res.json(gc || { score1: 10000, code1: "JUMP5", label1: "5% Rabatt", score2: 25000, code2: "JUMP10", label2: "10% Rabatt" });
+});
+
+app.post("/admin/game-settings", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]); } catch (_) {}
+  const { score1, code1, label1, score2, code2, label2 } = req.body || {};
+  const data = {
+    score1: Math.max(0, parseInt(score1) || 10000),
+    code1:  String(code1  || "JUMP5" ).toUpperCase().trim().slice(0, 20),
+    label1: String(label1 || "5% Rabatt").trim().slice(0, 50),
+    score2: Math.max(0, parseInt(score2) || 25000),
+    code2:  String(code2  || "JUMP10").toUpperCase().trim().slice(0, 20),
+    label2: String(label2 || "10% Rabatt").trim().slice(0, 50),
+  };
+  await dbSet("game_config", data);
+  res.json({ ok: true, ...data });
+});
+
 // LOGIN — passwords now configurable via admin
 app.post("/login", async (req, res) => {
   try { await Promise.race([_ready, new Promise(r => setTimeout(r, 3000))]); } catch (_) {}
