@@ -701,6 +701,26 @@ app.post("/api/validate-coupon", async (req, res) => {
   res.json({ valid: false });
 });
 
+app.get("/admin/coupon-stats", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 4000))]); } catch (_) {}
+  try {
+    const fresh = await dbGet("orders", null);
+    if (fresh) _store.orders = fresh;
+  } catch (_) {}
+  const orders = loadOrders();
+  const stats = {};
+  const recent = [];
+  for (const o of orders) {
+    if (!o.couponCode) continue;
+    const code = o.couponCode;
+    if (!stats[code]) stats[code] = { code, label: o.couponLabel || code, count: 0, totalDiscount: 0 };
+    stats[code].count++;
+    stats[code].totalDiscount += o.discount || 0;
+    recent.push({ code, label: o.couponLabel || code, discount: o.discount || 0, orderId: o.id, name: o.name || '–', createdAt: o.createdAt });
+  }
+  res.json({ stats: Object.values(stats), recent: recent.slice(0, 20) });
+});
+
 // LOGIN — passwords now configurable via admin
 app.post("/login", async (req, res) => {
   try { await Promise.race([_ready, new Promise(r => setTimeout(r, 3000))]); } catch (_) {}
