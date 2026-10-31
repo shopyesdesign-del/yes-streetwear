@@ -595,16 +595,17 @@
     }
 
     function start() {
-      playerName = nameIn.value.trim() || 'Anonym';
-      nameIn.value = playerName === 'Anonym' && !nameIn.value.trim() ? '' : playerName;
-      try { localStorage.setItem('sj-name', nameIn.value); } catch (e) {}
+      const n = nameIn.value.trim();
+      if (!n) { nameIn.focus(); nameIn.style.borderColor = '#ff2d55'; nameIn.placeholder = 'Name eingeben!'; setTimeout(() => { nameIn.style.borderColor = ''; nameIn.placeholder = 'Dein Name'; }, 1500); return; }
+      playerName = n;
+      try { localStorage.setItem('sj-name', playerName); } catch (e) {}
       tier = -1; showCoupon(); wonNow = false; toastUntil = 0; keys = {}; dir = 0; reset(); lastFrameTime = 0; running = true; overlay.classList.add('hidden'); playSound('start'); loop();
     }
     function end() {
       running = false; lastScore = score;
       playSound('gameOver');
       addScore(playerName, score);
-      if (!nameIn.value.trim()) nameIn.value = playerName;
+      if (nameIn.value.trim() !== playerName) nameIn.value = playerName;
       logo.classList.add('hidden');
       title.classList.add('hidden');
       const sc = $('score-card'); sc.classList.remove('hidden');
