@@ -2175,6 +2175,41 @@
         </div>
       </div>
 
+      <div class="editor-card">
+        <div class="card-title">🏆 Contest / Gewinnspiel</div>
+        <p class="field-hint" style="margin:0 0 18px">Wer am Stichtag auf Platz 1 der Rangliste steht, gewinnt ein physisches Geschenk. Standardmäßig <strong>inaktiv</strong> — erst hier aktivieren.</p>
+
+        <div class="field-row" style="align-items:center;margin-bottom:16px">
+          <div class="field-group" style="flex:0 0 auto">
+            <label class="field-label">Contest aktiv</label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+              <input type="checkbox" id="gc_contest_active" style="width:18px;height:18px;accent-color:#c6ff00;cursor:pointer">
+              <span id="gc_contest_active_lbl" style="font-size:13px;color:rgba(255,255,255,.5)">Inaktiv</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group" style="flex:2">
+            <label class="field-label">Titel (wird im Spiel angezeigt)</label>
+            <input type="text" class="input-field" id="gc_contest_title" placeholder="November Challenge – Wer wird Champion?" maxlength="100">
+          </div>
+          <div class="field-group" style="flex:1">
+            <label class="field-label">Enddatum &amp; Uhrzeit</label>
+            <input type="datetime-local" class="input-field" id="gc_contest_end">
+          </div>
+        </div>
+
+        <div class="field-group" style="margin-bottom:20px">
+          <label class="field-label">Preis / Gewinn (wird im Spiel angezeigt)</label>
+          <input type="text" class="input-field" id="gc_contest_prize" placeholder="YES Hoodie + Cap" maxlength="200">
+        </div>
+
+        <button class="btn-primary" onclick="saveContestSettings()">Speichern</button>
+
+        <div id="gc_contest_winner_wrap" style="margin-top:20px"></div>
+      </div>
+
     </section>
 
   </div><!-- /main-area -->
@@ -2585,7 +2620,7 @@ function navigate(sec) {
   if (sec === 'settings')    { if (!settingsLoaded) loadSettingsPage(); }
   if (sec === 'vfx')         loadVFX();
   if (sec === 'logineditor') loadLoginEditor();
-  if (sec === 'game')        { loadGameSettings(); loadCouponStats(); }
+  if (sec === 'game')        { loadGameSettings(); loadCouponStats(); loadContestSettings(); }
 }
 
 // ── Mobile sidebar ─────────────────────────────────────────────
@@ -4697,6 +4732,68 @@ async function loadCouponStats() {
         </tr>`).join('')}
       </tbody>
     </table>`;
+}
+
+let contestLoaded = false;
+async function loadContestSettings() {
+  if (contestLoaded) return;
+  contestLoaded = true;
+  try {
+    const res = await fetch('/api/contest');
+    const d = await res.json();
+    const cb = document.getElementById('gc_contest_active');
+    cb.checked = !!d.active;
+    document.getElementById('gc_contest_active_lbl').textContent = d.active ? 'Aktiv' : 'Inaktiv';
+    document.getElementById('gc_contest_title').value = d.title || '';
+    document.getElementById('gc_contest_prize').value = d.prize || '';
+    if (d.endDate) {
+      const dt = new Date(d.endDate);
+      const pad = n => String(n).padStart(2, '0');
+      document.getElementById('gc_contest_end').value =
+        `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+    }
+    renderContestWinner(d);
+  } catch { toast('Contest-Einstellungen konnten nicht geladen werden', 'error'); }
+  document.getElementById('gc_contest_active').addEventListener('change', function () {
+    document.getElementById('gc_contest_active_lbl').textContent = this.checked ? 'Aktiv' : 'Inaktiv';
+  });
+}
+
+function renderContestWinner(d) {
+  const wrap = document.getElementById('gc_contest_winner_wrap');
+  if (!wrap) return;
+  if (d.ended && d.winner) {
+    wrap.innerHTML = `<div style="border:2px solid #c6ff00;border-radius:10px;padding:16px;margin-top:4px">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.4);margin-bottom:6px">Gewinner</div>
+      <div style="font-size:22px;font-weight:700;color:#c6ff00">${esc(d.winner.name)}</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.6);margin-top:2px">${Number(d.winner.score).toLocaleString('de-DE')} Punkte</div>
+      ${d.endDate ? `<div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:4px">Contest beendet: ${new Date(d.endDate).toLocaleDateString('de-DE')}</div>` : ''}
+    </div>`;
+  } else if (d.active && !d.ended && d.endDate) {
+    const msLeft = new Date(d.endDate) - new Date();
+    const daysLeft = Math.max(0, Math.ceil(msLeft / 86400000));
+    wrap.innerHTML = `<div style="font-size:13px;color:rgba(255,255,255,.4);margin-top:4px">Contest läuft — noch ${daysLeft} Tag${daysLeft !== 1 ? 'e' : ''}.</div>`;
+  } else {
+    wrap.innerHTML = '';
+  }
+}
+
+async function saveContestSettings() {
+  const body = {
+    title:   document.getElementById('gc_contest_title').value.trim(),
+    prize:   document.getElementById('gc_contest_prize').value.trim(),
+    endDate: document.getElementById('gc_contest_end').value || null,
+    active:  document.getElementById('gc_contest_active').checked,
+  };
+  const res = await fetch('/admin/contest', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  }).catch(() => null);
+  if (!res || !res.ok) { toast('Fehler beim Speichern', 'error'); return; }
+  const d = await res.json();
+  document.getElementById('gc_contest_active_lbl').textContent = d.active ? 'Aktiv' : 'Inaktiv';
+  renderContestWinner(d);
+  toast('Contest-Einstellungen gespeichert ✓', 'success');
+  contestLoaded = false;
 }
 
 async function saveGameSettings() {
