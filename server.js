@@ -721,6 +721,91 @@ app.get("/admin/coupon-stats", async (req, res) => {
   res.json({ stats: Object.values(stats), recent: recent.slice(0, 20) });
 });
 
+/* ─── CONTEST ─────────────────────────────────────────────── */
+
+async function sendContestWinnerNotification(contest, winner) {
+  try {
+    const f = await dbGetCached("settings"); if (f) _store.settings = f;
+  } catch (_) {}
+  const cfg = getEmailConfig();
+  const adminEmail = cfg.senderEmail || cfg.smtpUser || "";
+  if (!adminEmail) { console.warn("[contest] No admin email configured — skipping winner notification"); return; }
+
+  const subject = `🏆 Contest beendet – Gewinner: ${winner.name}`;
+  const body = `Der Contest "${contest.title || 'Leaderboard Challenge'}" ist beendet!\n\nGewinner: ${winner.name}\nScore: ${winner.score.toLocaleString('de-DE')}\n\nPreis: ${contest.prize || '–'}\n\nBitte nimm Kontakt mit dem Gewinner auf, um den Preis zu übergeben.`;
+
+  if (cfg.resendApiKey) {
+    const from = `${cfg.senderName || "DRIP VAULT"} <${adminEmail}>`;
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${cfg.resendApiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from, to: [adminEmail], subject, text: body }),
+    });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(`Resend: ${e.message || r.status}`); }
+    return;
+  }
+  if (cfg.smtpHost && cfg.smtpUser && cfg.smtpPass) {
+    const transporter = nodemailer.createTransport({
+      host: cfg.smtpHost, port: cfg.smtpPort, secure: cfg.smtpSecure,
+      requireTLS: cfg.smtpPort === 587, auth: { user: cfg.smtpUser, pass: cfg.smtpPass },
+      tls: { rejectUnauthorized: false },
+    });
+    await transporter.sendMail({ from: cfg.smtpUser, to: adminEmail, subject, text: body });
+  }
+}
+
+app.get("/api/contest", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 4000))]); } catch (_) {}
+  const contest = await dbGet("contest", null);
+  if (!contest || !contest.active) return res.json({ active: false });
+
+  if (!contest.ended && contest.endDate && new Date(contest.endDate) < new Date()) {
+    const updated = { ...contest, ended: true };
+    try {
+      const pool = await getLeaderboardPool();
+      if (pool) {
+        const { rows } = await pool.query(
+          `SELECT player_name AS name, score FROM public.money_jump_scores ORDER BY score DESC, created_at ASC LIMIT 1`
+        );
+        if (rows[0]) {
+          updated.winner = { name: rows[0].name, score: Number(rows[0].score) };
+          if (!contest.adminNotified) {
+            sendContestWinnerNotification(updated, updated.winner)
+              .then(() => { updated.adminNotified = true; dbSet("contest", updated).catch(() => {}); })
+              .catch(err => console.error("[contest] winner email failed:", err.message));
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[contest] winner lookup failed:", e.message);
+    }
+    await dbSet("contest", updated);
+    return res.json(updated);
+  }
+
+  res.json(contest);
+});
+
+app.post("/admin/contest", async (req, res) => {
+  try { await Promise.race([_ready, new Promise(r => setTimeout(r, 5000))]); } catch (_) {}
+  const existing = await dbGet("contest", null) || {};
+  const { title, prize, endDate, active } = req.body || {};
+  const nowActive = Boolean(active);
+  const newEnd = endDate ? new Date(endDate).toISOString() : (existing.endDate || null);
+  const reactivating = nowActive && !existing.active && newEnd && new Date(newEnd) > new Date();
+  const data = {
+    title:          String(title  || "").trim().slice(0, 100),
+    prize:          String(prize  || "").trim().slice(0, 200),
+    endDate:        newEnd,
+    active:         nowActive,
+    ended:          reactivating ? false : (existing.ended || false),
+    winner:         reactivating ? null  : (existing.winner || null),
+    adminNotified:  reactivating ? false : (existing.adminNotified || false),
+  };
+  await dbSet("contest", data);
+  res.json({ ok: true, ...data });
+});
+
 // LOGIN — passwords now configurable via admin
 app.post("/login", async (req, res) => {
   try { await Promise.race([_ready, new Promise(r => setTimeout(r, 3000))]); } catch (_) {}
