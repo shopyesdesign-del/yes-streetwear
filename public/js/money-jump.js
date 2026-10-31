@@ -58,7 +58,13 @@
 #mj li.me { background:var(--lime); color:var(--black); border-bottom-color:var(--lime); font-weight:700; }
 #mj li.me .r { color:var(--black); }
 #mj li.gap { justify-content:center; color:var(--mute); border:0; padding:0; }
+#mj li.rank1 { background:rgba(198,255,0,.12); color:var(--lime); border-bottom-color:rgba(198,255,0,.3); }
+#mj li.rank1 .r { color:var(--lime); }
 #mj h2 { margin:6px 0 0; font-family:'Archivo Black', Impact, sans-serif; font-size:.95rem; text-transform:uppercase; }
+#mj #mj-contest { width:100%; max-width:290px; border:2px solid var(--lime); background:rgba(198,255,0,.06); padding:10px 12px; display:flex; flex-direction:column; gap:4px; }
+#mj #mj-contest .ct { font-family:'Archivo Black',Impact,sans-serif; font-size:.9rem; color:var(--lime); text-transform:uppercase; }
+#mj #mj-contest .cp { font-size:.8rem; color:var(--paper); }
+#mj #mj-contest .cd { font-size:.78rem; color:var(--mute); }
 #mj #mj-coupon { width:100%; max-width:290px; border:3px dashed var(--lime); padding:10px; display:flex;
             flex-direction:column; gap:6px; align-items:center; }
 #mj #mj-coupon small { color:var(--mute); }
@@ -105,6 +111,7 @@
     <input id="mj-name" maxlength="12" placeholder="Dein Name" autocomplete="off" aria-label="Dein Name">
     <button id="mj-start">Los geht's</button>
     <h2>Top 10 Rangliste</h2>
+    <div id="mj-contest" class="hidden"></div>
     <ol id="mj-board"></ol>
     </div>
   </div>
@@ -236,6 +243,32 @@
       else audio.resume().then(schedule).catch(() => {});
     }
 
+    /* ---------- Contest Banner ---------- */
+    const contestDiv = $('contest');
+    (async function loadContest() {
+      try {
+        const r = await fetch('/api/contest', { cache: 'no-store' });
+        const d = await r.json();
+        if (!d.active) return;
+        contestDiv.classList.remove('hidden');
+        if (d.ended && d.winner) {
+          contestDiv.innerHTML =
+            '<div class="ct">🏆 Champion</div>' +
+            '<div class="cp">' + d.winner.name + ' — ' + Number(d.winner.score).toLocaleString('de-DE') + ' Punkte</div>' +
+            (d.prize ? '<div class="cd">Gewinn: ' + d.prize + '</div>' : '');
+        } else if (!d.ended && d.endDate) {
+          const msLeft = new Date(d.endDate) - Date.now();
+          const daysLeft = Math.max(0, Math.ceil(msLeft / 86400000));
+          const hoursLeft = Math.max(0, Math.ceil(msLeft / 3600000));
+          const timeStr = daysLeft >= 2 ? daysLeft + ' Tage' : daysLeft === 1 ? '1 Tag' : hoursLeft + ' Std';
+          contestDiv.innerHTML =
+            '<div class="ct">🏆 ' + (d.title || 'Leaderboard Challenge') + '</div>' +
+            (d.prize ? '<div class="cp">Preis: ' + d.prize + '</div>' : '') +
+            '<div class="cd">Noch ' + timeStr + ' — Platz 1 gewinnt!</div>';
+        }
+      } catch (e) {}
+    })();
+
     /* ---------- Gemeinsame Rangliste ---------- */
     let boardStatus = 'Rangliste wird geladen …';
     try { nameIn.value = localStorage.getItem('sj-name') || ''; } catch (e) {}
@@ -280,9 +313,11 @@
     function renderBoard() {
       board.replaceChildren();
       const me = nameIn.value.trim();
+      const contestActive = !contestDiv.classList.contains('hidden');
       const row = (rank, e) => {
         const li = document.createElement('li');
         if (me && same(e.name, me)) li.className = 'me';
+        else if (contestActive && rank === 1) li.className = 'rank1';
         [['r', '#' + rank], ['n', e.name], ['s', e.score]].forEach(([c, t]) => {
           const s = document.createElement('span'); s.className = c; s.textContent = t; li.appendChild(s);
         });
