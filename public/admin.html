@@ -2165,6 +2165,16 @@
         </div>
       </div>
 
+      <div class="editor-card">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+          <span>📊 Gutschein-Auswertung</span>
+          <button class="btn-outline" style="font-size:12px;padding:5px 12px" onclick="loadCouponStats()">↻ Aktualisieren</button>
+        </div>
+        <div id="gc_stats_wrap">
+          <p style="color:rgba(255,255,255,.4);font-size:13px">Lade Daten…</p>
+        </div>
+      </div>
+
     </section>
 
   </div><!-- /main-area -->
@@ -2575,7 +2585,7 @@ function navigate(sec) {
   if (sec === 'settings')    { if (!settingsLoaded) loadSettingsPage(); }
   if (sec === 'vfx')         loadVFX();
   if (sec === 'logineditor') loadLoginEditor();
-  if (sec === 'game')        loadGameSettings();
+  if (sec === 'game')        { loadGameSettings(); loadCouponStats(); }
 }
 
 // ── Mobile sidebar ─────────────────────────────────────────────
@@ -4643,6 +4653,50 @@ async function loadGameSettings() {
     document.getElementById('gc_discount2').value = d.discount2 ?? 10;
     document.getElementById('gc_label2').value    = d.label2    ?? '10% Rabatt';
   } catch { toast('Game-Einstellungen konnten nicht geladen werden', 'error'); }
+}
+
+async function loadCouponStats() {
+  const wrap = document.getElementById('gc_stats_wrap');
+  wrap.innerHTML = '<p style="color:rgba(255,255,255,.4);font-size:13px">Lade Daten…</p>';
+  const res = await fetch('/admin/coupon-stats').catch(() => null);
+  if (!res || !res.ok) { wrap.innerHTML = '<p style="color:#ff4d4d;font-size:13px">Fehler beim Laden.</p>'; return; }
+  const { stats, recent } = await res.json();
+  if (!stats.length) {
+    wrap.innerHTML = '<p style="color:rgba(255,255,255,.4);font-size:13px">Noch keine Gutscheine eingelöst.</p>';
+    return;
+  }
+  const fmt = n => n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  wrap.innerHTML = `
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">
+      ${stats.map(s => `
+        <div style="background:rgba(198,255,0,.07);border:1px solid rgba(198,255,0,.2);border-radius:10px;padding:14px 18px;min-width:160px">
+          <div style="font-size:18px;font-weight:700;color:#c6ff00;letter-spacing:.06em">${esc(s.code)}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.5);margin:2px 0 8px">${esc(s.label)}</div>
+          <div style="font-size:22px;font-weight:700">${s.count}×</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.5)">eingelöst</div>
+          <div style="font-size:14px;font-weight:600;margin-top:6px;color:#c6ff00">– ${fmt(s.totalDiscount)}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4)">Gesamt-Rabatt</div>
+        </div>`).join('')}
+    </div>
+    <div class="card-title" style="font-size:13px;margin-bottom:10px">Letzte Einlösungen</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="color:rgba(255,255,255,.4);text-align:left">
+        <th style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08)">Code</th>
+        <th style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08)">Kunde</th>
+        <th style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08)">Rabatt</th>
+        <th style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08)">Bestellung</th>
+        <th style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08)">Datum</th>
+      </tr></thead>
+      <tbody>
+        ${recent.map(r => `<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+          <td style="padding:7px 8px"><span style="color:#c6ff00;font-weight:700">${esc(r.code)}</span></td>
+          <td style="padding:7px 8px;color:rgba(255,255,255,.8)">${esc(r.name)}</td>
+          <td style="padding:7px 8px">– ${fmt(r.discount)}</td>
+          <td style="padding:7px 8px;color:rgba(255,255,255,.5);font-size:11px">${esc(r.orderId)}</td>
+          <td style="padding:7px 8px;color:rgba(255,255,255,.5);font-size:11px">${r.createdAt ? new Date(r.createdAt).toLocaleDateString('de-DE') : '–'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
 }
 
 async function saveGameSettings() {
